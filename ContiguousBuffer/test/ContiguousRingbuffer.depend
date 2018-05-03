@@ -1,0 +1,27 @@
+# depslib dependency file v1.0
+1525162351 source:c:\workspace_local\contiguousringbuffer\main.cpp
+	"ContiguousRingbuffer.hpp"
+	<iostream>
+	<cassert>
+	<cstddef>
+	<thread>
+	<chrono>
+
+1525162343 c:\workspace_local\contiguousringbuffer\contiguousringbuffer.hpp
+	<atomic>
+	<cstddef>
+	<iostream>
+
+1525355741 source:c:\git\embedded\contiguousbuffer\test\main.cpp
+	"ContiguousRingbuffer.hpp"
+	<iostream>
+	<cassert>
+	<cstddef>
+	<thread>
+	<chrono>
+
+1525162343 c:\git\embedded\contiguousbuffer\test\contiguousringbuffer.hpp
+	<atomic>
+	<cstddef>
+	<iostream>
+

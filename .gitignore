@@ -1,0 +1,4 @@
+# ContiguousBuffer
+ContiguousBuffer/test/*.layout
+ContiguousBuffer/test/bin/*
+ContiguousBuffer/test/obj/*
