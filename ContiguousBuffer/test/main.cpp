@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cassert>
 #include <cstddef>      // size_t
+#include <cstdint>      // uint8_t
 #include <thread>
 #include <chrono>
 
@@ -16,14 +17,17 @@ static int refArr[NR_ITEMS_THREAD_TEST]  = {};
 static int measArr[NR_ITEMS_THREAD_TEST] = {};
 
 
-void Producer(void)
+void Producer(size_t nr_items)
 {
     std::cout << "Producer start" << std::endl;
+
+    const size_t nr_of_items = nr_items;
+    assert(nr_of_items > 0);
 
     int* data_prod = nullptr;
     size_t size_prod;
 
-    for (auto i = 0; i < NR_ITEMS_THREAD_TEST; i++)
+    for (size_t i = 0; i < NR_ITEMS_THREAD_TEST; i += nr_of_items)
     {
         // Try to put an item in the queue, but queue may be full.
         // Assume Consumer will empty it so we can continue.
@@ -33,11 +37,16 @@ void Producer(void)
         {
             sched_yield();
 
-            size_prod = 1;
+            size_prod = nr_of_items;
             if (ringBuff.Poke(data_prod, size_prod))
             {
-                *data_prod = refArr[i];
-                result = ringBuff.Write(1);
+                size_t k = i;
+                for (size_t j = 0; j < nr_of_items; j++)
+                {
+                    *data_prod++ = refArr[k++];
+                }
+
+                result = ringBuff.Write(nr_of_items);
             }
         } while (result == false);
     }
@@ -45,14 +54,17 @@ void Producer(void)
     std::cout << "Producer end" << std::endl;
 }
 
-void Consumer(void)
+void Consumer(size_t nr_items)
 {
     std::cout << "Consumer start" << std::endl;
+
+    const size_t nr_of_items = nr_items;
+    assert(nr_of_items > 0);
 
     int* data_cons = nullptr;
     size_t size_cons;
 
-    for (auto i = 0; i < NR_ITEMS_THREAD_TEST; i++)
+    for (size_t i = 0; i < NR_ITEMS_THREAD_TEST; i += nr_of_items)
     {
         // Try to get an item from the queue, but queue may be empty.
         // Assume the Producer will fill the queue.
@@ -62,11 +74,15 @@ void Consumer(void)
         {
             sched_yield();
 
-            size_cons = 1;
+            size_cons = nr_of_items;
             if (ringBuff.Peek(data_cons, size_cons))
             {
-                measArr[i] = *data_cons;
-                result = ringBuff.Read(1);
+                size_t k = i;
+                for (size_t j = 0; j < nr_of_items; j++)
+                {
+                    measArr[k++] = *data_cons++;
+                }
+                result = ringBuff.Read(nr_of_items);
             }
         } while (result == false);
     }
@@ -2057,9 +2073,100 @@ bool TEST_FoundIssues(void)
 
     // -----
 
-    return result;
+    result = ringBuff.Resize(4);
+    assert(result);
+
+    ringBuff.SetState(0, 0, 5);     // Buffer empty
+
+    size = 1;
+    result = ringBuff.Poke(data, size);
+    assert(result);
+    assert(size == 4);
+    size = ringBuff.Size();
+    assert(size == 0);
+
+    ringBuff.SetState(1, 0, 5);     // 1 element in buffer
+
+    size = 1;
+    result = ringBuff.Poke(data, size);
+    assert(result);
+    assert(size == 3);
+    size = ringBuff.Size();
+    assert(size == 1);
+
+    ringBuff.SetState(3, 0, 5);     // 3 elements in buffer
+
+    size = 1;
+    result = ringBuff.Poke(data, size);
+    assert(result);
+    assert(size == 1);
+    size = ringBuff.Size();
+    assert(size == 3);
+
+    ringBuff.SetState(4, 0, 5);     // Buffer full
+
+    size = 1;
+    result = ringBuff.Poke(data, size);
+    assert(result == false);
+    assert(size == 0);
+    size = ringBuff.Size();
+    assert(size == 4);
+
+    ringBuff.SetState(5, 1, 5);     // Buffer full
+
+    size = 1;
+    result = ringBuff.Poke(data, size);
+    assert(result == false);
+    assert(size == 0);
+    size = ringBuff.Size();
+    assert(size == 4);
+
+    // -----
+
+    return true;
 }
 
+
+void TEST_Threading(uint8_t nr_of_runs, uint8_t prod_nr_items, uint8_t cons_nr_items)
+{
+    std::cout << "Starting treading test with: nr_of_runs(" << (int)nr_of_runs << "), prod_nr_items(" << (int)prod_nr_items << "), cons_nr_items(" << (int)cons_nr_items << ")" << std::endl;
+
+    for (auto run = 0; run < nr_of_runs; run++)
+    {
+        ringBuff.Resize(15);          // Clears previous state
+
+        for (auto i = 0; i < NR_ITEMS_THREAD_TEST; i++)
+        {
+            measArr[i] = 0;             // Clear the measurement array
+        }
+
+        std::cout << "Starting run: " << run << std::endl;
+
+        auto start = std::chrono::steady_clock::now();
+
+        std::thread prod(Producer, prod_nr_items);     // prod starts running
+        std::thread cons(Consumer, cons_nr_items);     // cons starts running
+
+        // Threads running
+
+        prod.join();
+        cons.join();
+
+        auto end = std::chrono::steady_clock::now();
+
+        // Validate results
+        for (auto i = 0; i < NR_ITEMS_THREAD_TEST; i++)
+        {
+            if (refArr[i] != measArr[i])
+            {
+                std::cout << "Error found during run: " << run << ", at location: " << i << ", items: [" << refArr[i] << " -- " << measArr[i] << "]" << std::endl;
+            }
+        }
+
+        auto diff = end - start;
+        std::cout << "Completed run: " << run << ", duration: " << std::chrono::duration<double, std::micro>(diff).count() << " microseconds" << std::endl << std::endl;
+    }
+}
 
 int main(void)
 {
@@ -2105,7 +2212,7 @@ int main(void)
 
 
     // Threading tests
-    const int nrOfRuns = 100;
+    const uint8_t nrOfRuns = 100;
     std::cout << std::endl << std::endl << std::endl;
 
     for (auto i = 0; i < NR_ITEMS_THREAD_TEST; i++)
@@ -2113,45 +2220,16 @@ int main(void)
         refArr[i]  = i;                 // Fill the reference array
     }
 
-    for (auto run = 0; run < nrOfRuns; run++)
-    {
-        //ringBuff.Resize(CAPACITY);    // Clears previous state
-        ringBuff.Resize(15);          // Clears previous state
-
-        for (auto i = 0; i < NR_ITEMS_THREAD_TEST; i++)
-        {
-            measArr[i] = 0;             // Clear the measurement array
-        }
-
-        std::cout << "Starting run: " << run << std::endl;
-
-        auto start = std::chrono::steady_clock::now();
-
-        std::thread prod(Producer);     // prod starts running
-        std::thread cons(Consumer);     // cons starts running
-
-        // Threads running
-
-        prod.join();
-        cons.join();
-
-        auto end = std::chrono::steady_clock::now();
-
-        // Validate results
-        for (auto i = 0; i < NR_ITEMS_THREAD_TEST; i++)
-        {
-            if (refArr[i] != measArr[i])
-            {
-                std::cout << "Error found during run: " << run << ", at location: " << i << ", items: [" << refArr[i] << " -- " << measArr[i] << "]" << std::endl;
-            }
-        }
-
-        auto diff = end - start;
-        std::cout << "Completed run: " << run << ", duration: " << std::chrono::duration<double, std::micro>(diff).count() << " microseconds" << std::endl << std::endl << std::endl;
-    }
+    TEST_Threading(nrOfRuns, 1, 1);
+    TEST_Threading(nrOfRuns, 2, 1);
+    TEST_Threading(nrOfRuns, 1, 2);
+    TEST_Threading(nrOfRuns, 2, 2);
+    TEST_Threading(nrOfRuns, 4, 1);     // Note: NR_ITEMS_THREAD_TEST is used, the number used for test must be a non-fractional divider of this.
+    TEST_Threading(nrOfRuns, 1, 4);
+    TEST_Threading(nrOfRuns, 4, 4);
 
 
-
+    std::cout << std::endl << std::endl << "End of tests -------------------------" << std::endl;
     int dummy;
 	std::cin >> dummy;
 
