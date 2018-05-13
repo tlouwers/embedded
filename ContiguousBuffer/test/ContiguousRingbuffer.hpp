@@ -250,7 +250,7 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
                 {
                     if (size < read)                    // Does the requested block fit?
                     {
-                        size = read;
+                        size = read - 1;
                         dest = mElements;
                         return true;
                     }
@@ -297,30 +297,32 @@ bool ContiguousRingbuffer<T>::Write(const size_t size)
 
         if (write >= read)                              // Space at the end?
         {
-            // Calculate the size available at the end, take into account the extra element when the buffer is empty.
-            const size_t available = (write < mCapacity) ? mCapacity -   write - ( (read > 0) ? 0 : 1 ) :
-                                                           mCapacity - ( write - ( (read > 0) ? 0 : 1 ) );
+            if (write < mCapacity)                      // Robustness, condition should always be true
+            {
+                // Calculate the size available at the end, take into account the extra element when the buffer is empty.
+                const size_t available = mCapacity - write - ( (read > 0) ? 0 : 1 );
 
-            if (size <= available)
-            {
-                if (size < (mCapacity - write))         // Does the requested block fit?
+                if (size <= available)
                 {
-                    mWrite.store((write + size), std::memory_order_release);
-                    return true;
+                    if (size < (mCapacity - write))     // Does the requested block fit?
+                    {
+                        mWrite.store((write + size), std::memory_order_release);
+                        return true;
+                    }
+                    else if (size == (mCapacity - write))   // Does the requested block fit exactly and we need to wrap?
+                    {
+                        mWrite.store(0, std::memory_order_release);
+                        return true;
+                    }
                 }
-                else if (size == (mCapacity - write))   // Does the requested block fit exactly and we need to wrap?
+                else                                    // Space at the start?
                 {
-                    mWrite.store(0, std::memory_order_release);
-                    return true;
-                }
-            }
-            else                                        // Space at the start?
-            {
-                if (size < read)
-                {
-                    mWrap.store(write, std::memory_order_release);  // Shrink wrap to prevent claiming memory at the end.
-                    mWrite.store(size, std::memory_order_release);
-                    return true;
+                    if (size < read)
+                    {
+                        mWrap.store(write, std::memory_order_release);  // Shrink wrap to prevent claiming memory at the end.
+                        mWrite.store(size, std::memory_order_release);
+                        return true;
+                    }
                 }
             }
         }
