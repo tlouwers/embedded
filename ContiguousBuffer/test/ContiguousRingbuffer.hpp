@@ -235,23 +235,25 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
 
         if (write >= read)                              // Space at the end?
         {
-            // Calculate the size available at the end, take into account the extra element when the buffer is empty.
-            const size_t available = (write < mCapacity) ? mCapacity -   write - ( (read > 0) ? 0 : 1 ) :
-                                                           mCapacity - ( write - ( (read > 0) ? 0 : 1 ) );
+            if (write < mCapacity)                      // Robustness, condition should always be true
+            {
+                // Calculate the size available at the end, take into account the extra element when the buffer is empty.
+                const size_t available = mCapacity - write - ( (read > 0) ? 0 : 1 );
 
-            if (size <= available)                      // Does the requested block fit?
-            {
-                size = available;
-                dest = mElements + write;
-                return true;
-            }
-            else if (read > 0)                          // Space at the start?
-            {
-                if (size <= (read - 1))                 // Does the requested block fit?
+                if (size <= available)                  // Does the requested block fit?
                 {
-                    size = read - 1;
-                    dest = mElements;
+                    size = available;
+                    dest = mElements + write;
                     return true;
+                }
+                else                                    // Space at the start?
+                {
+                    if (size < read)                    // Does the requested block fit?
+                    {
+                        size = read;
+                        dest = mElements;
+                        return true;
+                    }
                 }
             }
         }
@@ -375,23 +377,26 @@ bool ContiguousRingbuffer<T>::Peek(T* &dest, size_t& size)
         }
         else    // write < read                         // Data at the end?
         {
-            const auto wrap = mWrap.load(std::memory_order_acquire);
+            if (read < mCapacity)                       // Robustness, condition should always be true
+            {
+                const auto wrap = mWrap.load(std::memory_order_acquire);
 
-            if ((read + size) <= wrap)                  // Requested size available?
-            {
-                size = wrap - read;
-                dest = mElements + read;
-                return true;
-            }
-            // Exception: when read/write were equal at the end of the buffer and a large block was written,
-            //            this resulted in wrap being shrunk and becoming equal to read.
-            else if (read == wrap)                      // Data available at the start?
-            {
-                if (size <= write)                      // Requested size available?
+                if ((read + size) <= wrap)              // Requested size available?
                 {
-                    size = write;
-                    dest = mElements;
+                    size = wrap - read;
+                    dest = mElements + read;
                     return true;
+                }
+                // Exception: when read/write were equal at the end of the buffer and a large block was written,
+                //            this resulted in wrap being shrunk and becoming equal to read.
+                else if (read == wrap)                  // Data available at the start?
+                {
+                    if (size <= write)                  // Requested size available?
+                    {
+                        size = write;
+                        dest = mElements;
+                        return true;
+                    }
                 }
             }
         }
