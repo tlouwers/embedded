@@ -220,11 +220,11 @@
 	<ctime>
 	<algorithm>
 
-1526243864 source:e:\workingdir\embedded\contiguousbuffer\test\test_peek.cpp
+1526327460 source:e:\workingdir\embedded\contiguousbuffer\test\test_peek.cpp
 	"../../Catch/catch.hpp"
 	"ContiguousRingbuffer.hpp"
 
-1526251715 e:\workingdir\embedded\contiguousbuffer\test\contiguousringbuffer.hpp
+1526330349 e:\workingdir\embedded\contiguousbuffer\test\contiguousringbuffer.hpp
 	<atomic>
 	<cstddef>
 	<iostream>
@@ -447,4 +447,19 @@
 1526280758 source:c:\git\embedded\contiguousbuffer\test\test_read.cpp
 	"../../Catch/catch.hpp"
 	"ContiguousRingbuffer.hpp"
+
+1526327460 source:e:\workingdir\embedded\contiguousbuffer\test\test_read.cpp
+	"../../Catch/catch.hpp"
+	"ContiguousRingbuffer.hpp"
+
+1526330010 source:e:\workingdir\embedded\contiguousbuffer\test\test_wrap.cpp
+	"../../Catch/catch.hpp"
+	"ContiguousRingbuffer.hpp"
+
+1526330200 source:e:\workingdir\embedded\contiguousbuffer\test\test_threading.cpp
+	"../../Catch/catch.hpp"
+	"ContiguousRingbuffer.hpp"
+	<cstddef>
+	<cstdint>
+	<thread>
 
