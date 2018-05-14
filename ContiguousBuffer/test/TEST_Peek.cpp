@@ -207,7 +207,7 @@ TEST_CASE( "ContiguousRingbuffer Peek() operations", "[ContiguousRingbuffer]" )
 
         // -----
 
-        ringBuff.SetState(1, 2, 4);                     // Set mWrite(1), mRead(2), mWrap(4) - 2 elements at end
+        ringBuff.SetState(1, 2, 4);                     // Set mWrite(1), mRead(2), mWrap(4) - 2 elements at end, 1 element at front
         REQUIRE(ringBuff.CheckState(1, 2, 4) == true);
 
         size = 0;
@@ -264,7 +264,7 @@ TEST_CASE( "ContiguousRingbuffer Peek() operations", "[ContiguousRingbuffer]" )
 
         // -----
 
-        ringBuff.SetState(0, 3, 4);                     // Set mWrite(0), mRead(3), mWrap(4) - 1 elements at end
+        ringBuff.SetState(0, 3, 4);                     // Set mWrite(0), mRead(3), mWrap(4) - 1 element at end
         REQUIRE(ringBuff.CheckState(0, 3, 4) == true);
 
         size = 0;
@@ -281,7 +281,7 @@ TEST_CASE( "ContiguousRingbuffer Peek() operations", "[ContiguousRingbuffer]" )
 
         // -----
 
-        ringBuff.SetState(1, 3, 4);                     // Set mWrite(1), mRead(3), mWrap(4) - 1 element at end
+        ringBuff.SetState(1, 3, 4);                     // Set mWrite(1), mRead(3), mWrap(4) - 1 element at end, 1 element at start
         REQUIRE(ringBuff.CheckState(1, 3, 4) == true);
 
         size = 0;
@@ -298,7 +298,7 @@ TEST_CASE( "ContiguousRingbuffer Peek() operations", "[ContiguousRingbuffer]" )
 
          // -----
 
-        ringBuff.SetState(2, 3, 4);                     // Set mWrite(2), mRead(3), mWrap(4) - 1 element at end
+        ringBuff.SetState(2, 3, 4);                     // Set mWrite(2), mRead(3), mWrap(4) - 1 element at end, 2 elements at start
         REQUIRE(ringBuff.CheckState(2, 3, 4) == true);
 
         size = 0;

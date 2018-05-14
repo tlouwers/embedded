@@ -433,42 +433,45 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
 
         const auto read_and_size = read + size;
 
-        if (read < write)                               // Data available at the start?
+        if (read_and_size <= mCapacity)                 // Robustness, condition should always be true
         {
-            if (read_and_size <= write)                 // Requested size available?
+            if (read < write)                           // Data available at the start?
             {
-                mRead.store(read_and_size, std::memory_order_release);
-                return true;
-            }
-        }
-        else if (read > write)                          // Data available at the end?
-        {
-            const auto wrap = mWrap.load(std::memory_order_acquire);
-
-            if (read_and_size < wrap)                   // Requested size available? And we do not wrap?
-            {
-                mRead.store(read_and_size, std::memory_order_release);
-                return true;
-            }
-            else if (read_and_size == wrap)             // Requested size available? And we do wrap?
-            {
-                mWrap.store(mCapacity, std::memory_order_release);
-                mRead.store(0, std::memory_order_release);
-                return true;
-            }
-            // Exception: when read/write were equal at the end of the buffer and a large block was written,
-            //            this resulted in wrap being shrunk and becoming equal to read.
-            else if (read == wrap)                      // Data available at the start?
-            {
-                if (size <= write)                      // Requested size available?
+                if (read_and_size <= write)             // Requested size available?
                 {
-                    mWrap.store(mCapacity, std::memory_order_release);
-                    mRead.store(size, std::memory_order_release);
+                    mRead.store(read_and_size, std::memory_order_release);
                     return true;
                 }
             }
+            else if (read > write)                      // Data available at the end?
+            {
+                const auto wrap = mWrap.load(std::memory_order_acquire);
+
+                if (read_and_size < wrap)               // Requested size available? And we do not wrap?
+                {
+                    mRead.store(read_and_size, std::memory_order_release);
+                    return true;
+                }
+                else if (read_and_size == wrap)         // Requested size available? And we do wrap?
+                {
+                    mWrap.store(mCapacity, std::memory_order_release);
+                    mRead.store(0, std::memory_order_release);
+                    return true;
+                }
+                // Exception: when read/write were equal at the end of the buffer and a large block was written,
+                //            this resulted in wrap being shrunk and becoming equal to read.
+                else if (read == wrap)                  // Data available at the start?
+                {
+                    if (size <= write)                  // Requested size available?
+                    {
+                        mWrap.store(mCapacity, std::memory_order_release);
+                        mRead.store(size, std::memory_order_release);
+                        return true;
+                    }
+                }
+            }
+            // Else: buffer empty
         }
-        // Else: buffer empty
     }
 
     return false;
