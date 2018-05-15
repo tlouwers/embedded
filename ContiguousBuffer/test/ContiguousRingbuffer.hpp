@@ -433,26 +433,26 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
 
         const auto read_and_size = read + size;
 
-        if (read_and_size <= mCapacity)                 // Robustness, condition should always be true
+        if (read < write)                           // Data available at the start?
         {
-            if (read < write)                           // Data available at the start?
+            if (read_and_size <= write)             // Requested size available?
             {
-                if (read_and_size <= write)             // Requested size available?
-                {
-                    mRead.store(read_and_size, std::memory_order_release);
-                    return true;
-                }
+                mRead.store(read_and_size, std::memory_order_release);
+                return true;
             }
-            else if (read > write)                      // Data available at the end?
+        }
+        else if (read > write)                      // Data available at the end?
+        {
+            if (read < mCapacity)                   // Robustness, condition should always be true
             {
                 const auto wrap = mWrap.load(std::memory_order_acquire);
 
-                if (read_and_size < wrap)               // Requested size available? And we do not wrap?
+                if (read_and_size < wrap)           // Requested size available? And we do not wrap?
                 {
                     mRead.store(read_and_size, std::memory_order_release);
                     return true;
                 }
-                else if (read_and_size == wrap)         // Requested size available? And we do wrap?
+                else if (read_and_size == wrap)     // Requested size available? And we do wrap?
                 {
                     mWrap.store(mCapacity, std::memory_order_release);
                     mRead.store(0, std::memory_order_release);
@@ -460,9 +460,9 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
                 }
                 // Exception: when read/write were equal at the end of the buffer and a large block was written,
                 //            this resulted in wrap being shrunk and becoming equal to read.
-                else if (read == wrap)                  // Data available at the start?
+                else if (read == wrap)              // Data available at the start?
                 {
-                    if (size <= write)                  // Requested size available?
+                    if (size <= write)              // Requested size available?
                     {
                         mWrap.store(mCapacity, std::memory_order_release);
                         mRead.store(size, std::memory_order_release);
@@ -470,8 +470,8 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
                     }
                 }
             }
-            // Else: buffer empty
         }
+        // Else: buffer empty
     }
 
     return false;
