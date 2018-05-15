@@ -125,7 +125,7 @@ public:
     bool Read(const size_t size);
 
     size_t Size(void) const;
-    bool Clear(void);
+    void Clear(void);
 
     // Debug
     bool IsLockFree(void) const;
@@ -509,13 +509,11 @@ size_t ContiguousRingbuffer<T>::Size(void) const
  * \returns Always true.
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::Clear(void)
+void ContiguousRingbuffer<T>::Clear(void)
 {
     mWrite.store(0, std::memory_order_release);
     mRead.store(0, std::memory_order_release);
     mWrap.store(mCapacity, std::memory_order_release);
-
-    return true;
 }
 
 /**

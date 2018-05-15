@@ -29,6 +29,7 @@
 		<Unit filename="TEST_Peek.cpp" />
 		<Unit filename="TEST_Poke.cpp" />
 		<Unit filename="TEST_Read.cpp" />
+		<Unit filename="TEST_Resize.cpp" />
 		<Unit filename="TEST_Threading.cpp" />
 		<Unit filename="TEST_Wrap.cpp" />
 		<Unit filename="TEST_Write.cpp" />
