@@ -467,7 +467,11 @@
 	"../../Catch/catch.hpp"
 	"ContiguousRingbuffer.hpp"
 
-1526501557 source:e:\workingdir\embedded\contiguousbuffer\test\test_writeandread.cpp
+1526504999 source:e:\workingdir\embedded\contiguousbuffer\test\test_writeandread.cpp
+	"../../Catch/catch.hpp"
+	"ContiguousRingbuffer.hpp"
+
+1526506667 source:e:\workingdir\embedded\contiguousbuffer\test\test_blocks.cpp
 	"../../Catch/catch.hpp"
 	"ContiguousRingbuffer.hpp"
 

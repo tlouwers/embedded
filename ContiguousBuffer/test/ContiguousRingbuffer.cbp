@@ -25,6 +25,7 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="ContiguousRingbuffer.hpp" />
+		<Unit filename="TEST_Blocks.cpp" />
 		<Unit filename="TEST_Main.cpp" />
 		<Unit filename="TEST_Peek.cpp" />
 		<Unit filename="TEST_Poke.cpp" />
