@@ -175,6 +175,8 @@ ContiguousRingbuffer<T>::~ContiguousRingbuffer()
  *          The buffer allocates 1 element more than requested, this to be able
  *          to differentiate in a thread safe way the buffer full/buffer empty
  *          status.
+ *          Resizing to previous size is allowed, this frees and allocates
+ *          memory like other Resize().
  * \param   size    Size of the memory to allocate.
  * \returns True if the requested size could be allocated, else false. False if
  *          the requested size equals 0.

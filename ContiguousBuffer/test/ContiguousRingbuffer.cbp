@@ -33,6 +33,7 @@
 		<Unit filename="TEST_Threading.cpp" />
 		<Unit filename="TEST_Wrap.cpp" />
 		<Unit filename="TEST_Write.cpp" />
+		<Unit filename="TEST_WriteAndRead.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

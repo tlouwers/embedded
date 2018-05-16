@@ -224,7 +224,7 @@
 	"../../Catch/catch.hpp"
 	"ContiguousRingbuffer.hpp"
 
-1526421427 e:\workingdir\embedded\contiguousbuffer\test\contiguousringbuffer.hpp
+1526501699 e:\workingdir\embedded\contiguousbuffer\test\contiguousringbuffer.hpp
 	<atomic>
 	<cstddef>
 	<iostream>
@@ -462,4 +462,12 @@
 	<cstddef>
 	<cstdint>
 	<thread>
+
+1526421504 source:e:\workingdir\embedded\contiguousbuffer\test\test_resize.cpp
+	"../../Catch/catch.hpp"
+	"ContiguousRingbuffer.hpp"
+
+1526501557 source:e:\workingdir\embedded\contiguousbuffer\test\test_writeandread.cpp
+	"../../Catch/catch.hpp"
+	"ContiguousRingbuffer.hpp"
 
