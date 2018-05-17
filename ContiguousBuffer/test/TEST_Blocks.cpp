@@ -8,7 +8,7 @@ static ContiguousRingbuffer<int> ringBuff_ext;
 
 
 // Helper method to add a block of elements to buffer
-bool AddBlock(int index_start, size_t block_size)
+static bool AddBlock(int index_start, size_t block_size)
 {
     bool result = true;
     int* data   = nullptr;
@@ -34,7 +34,7 @@ bool AddBlock(int index_start, size_t block_size)
 }
 
 // Helper method to remove a block of elements
-bool RemoveBlock(int index_start, size_t block_size)
+static bool RemoveBlock(int index_start, size_t block_size)
 {
     bool result = true;
     int* data   = nullptr;

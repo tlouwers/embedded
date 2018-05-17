@@ -8,7 +8,7 @@ static ContiguousRingbuffer<int> ringBuff_ext;
 
 
 // Helper method to add an element to buffer
-bool AddOne(int val)
+static bool AddOne(int val)
 {
     bool result = true;
     int* data   = nullptr;
@@ -29,7 +29,7 @@ bool AddOne(int val)
 }
 
 // Helper method to remove an element from buffer
-bool RemoveOne(int& val)
+static bool RemoveOne(int& val)
 {
     bool result = true;
     int* data   = nullptr;

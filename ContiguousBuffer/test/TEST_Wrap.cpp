@@ -151,4 +151,46 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.Read(2) == true);              // Read 2 elements, restores wrap
         REQUIRE(ringBuff.CheckState(2, 2, 5) == true);
     }
+
+    SECTION( "wrap with large buffer" )
+    {
+        REQUIRE(ringBuff.Resize(20) == true);
+        REQUIRE(ringBuff.Size() == 0);
+
+        // -----
+
+        ringBuff.SetState(14, 14, 21);                  // Set mWrite(14), mRead(14), mWrap(21) - 7 elements available at end, 13 elements available at start
+
+        size = 1;
+        REQUIRE(ringBuff.Poke(data, size) == true);     // 7 contiguous elements available at the end
+        REQUIRE(size == 7);
+
+        size = 13;
+        REQUIRE(ringBuff.Poke(data, size) == true);     // And 13 contiguous elements available at the start
+        REQUIRE(size == 13);
+
+        REQUIRE(ringBuff.Write(10) == true);            // Wraps, leave 3 elements available
+        REQUIRE(ringBuff.CheckState(10, 14, 14) == true);
+        REQUIRE(ringBuff.Size() == 10);
+
+        size = 1;
+        REQUIRE(ringBuff.Peek(data, size) == true);
+        REQUIRE(size == 10);
+
+        size = 1;
+        REQUIRE(ringBuff.Poke(data, size) == true);     // 3 elements available
+        REQUIRE(size == 3);
+
+        REQUIRE(ringBuff.Read(3) == true);              // Read 3 elements, restores wrap, leaving 7 remaining
+        REQUIRE(ringBuff.CheckState(10, 3, 21) == true);
+        REQUIRE(ringBuff.Size() == 7);
+
+        size = 1;
+        REQUIRE(ringBuff.Peek(data, size) == true);
+        REQUIRE(size == 7);
+
+        REQUIRE(ringBuff.Read(7) == true);            // Read remaining 7 elements
+        REQUIRE(ringBuff.CheckState(10, 10, 21) == true);
+        REQUIRE(ringBuff.Size() == 0);
+    }
 }
