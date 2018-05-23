@@ -21,15 +21,16 @@ To get an idea of the heap (dynamic memory currently in use), another trick is u
 
 ```cpp
 // Include the header as 'C' file
-extern "C" {
-	#include "util/heap_check.h"
+extern "C"
+{
+    #include "heap_check.h"
 }
 
 // At a later point check where the block of memory can be allocated:
 static volatile uint32_t used_heap = 0;			<-- global to store the (growing) heap value
 void Application::GetUsedHeap()
 {
-	uint32_t tmp = get_used_heap();
+    uint32_t tmp = get_used_heap();
     if (tmp > used_heap)
     {
         used_heap = tmp;

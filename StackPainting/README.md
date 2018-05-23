@@ -21,8 +21,9 @@ To check the stack usage, a method known as "stack painting" is used: upon start
 
 ```cpp
 // Include the header as 'C' file
-extern "C" {
-	#include "util/stack_painting.h"
+extern "C"
+{
+	#include "stack_painting.h"
 }
 
 // In the main.cpp file, add the 'paint_stack()' function as close to the board startup as possible.
@@ -30,21 +31,21 @@ void main(void)
 {
     paint_stack();		<-- here
 
-	sysclk_init();
+    sysclk_init();
     board_init();
 
-	// Remainder of the application	
-	while(1)
-	{
-		// ...
-	}
+    // Remainder of the application	
+    while(1)
+    {
+        // ...
+    }
 }
 
 // At certain intervals log the used stack memory (not too often, every 10 seconds or so):
 static volatile uint32_t used_stack = 0;			<-- global to store the (growing) stack value
 void Application::GetStack()
 {
-	uint32_t tmp = get_used_stack();
+    uint32_t tmp = get_used_stack();
     if (tmp > used_stack )
     {
         used_stack = tmp;
@@ -54,6 +55,6 @@ void Application::GetStack()
 // To get an idea of the total stack available:
 void Application::GetTotalStack()
 {
-	uint32_t total_stack = get_total_stack();
+    uint32_t total_stack = get_total_stack();
 }
 ```
