@@ -23,7 +23,7 @@ To check the stack usage, a method known as "stack painting" is used: upon start
 // Include the header as 'C' file
 extern "C"
 {
-	#include "stack_painting.h"
+    #include "stack_painting.h"
 }
 
 // In the main.cpp file, add the 'paint_stack()' function as close to the board startup as possible.

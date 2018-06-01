@@ -529,8 +529,8 @@ bool ContiguousRingbuffer<T>::IsLockFree(void) const
 }
 
 /**
- * \brief   Debug method to force a state to be set to the mWrite, mRead and
- *          mWrap and  pointers.
+ * \brief   Debug method to force a state to be set to the mWrite/mRead/mWrap
+ *          pointers.
  * \param   write   Value to set mWrite to.
  * \param   read    Value to set mRead to.
  * \param   wrap    Value to set mWrap to.
@@ -547,8 +547,7 @@ void ContiguousRingbuffer<T>::SetState(size_t write, size_t read, size_t wrap)
 }
 
 /**
- * \brief   Debug method to check the state of the mWrite, mRead and mWrap
- *          pointers.
+ * \brief   Debug method to check the state of the mWrite/mRead/mWrap pointers.
  * \param   write   Value to check mWrite against.
  * \param   read    Value to check mRead against.
  * \param   wrap    Value to check mWrap against.

@@ -16,7 +16,7 @@ This code is intended to be used to feed DMA handling of a Cortex-M4 microcontro
 | test | A CodeBlocks 17.12 project, along with a main.cpp file containing tests for the buffer. |
 
 ## Notes
-The tests do not make use of a C++ test framework (yet). I intent to use this some day in future. Although care has been taken to make the code work like a charm, use it at your own risk.
+Although care has been taken to make the code work like a charm, use it at your own risk.
 
 ## Example
 
@@ -36,16 +36,16 @@ size_t size = 1;
 int val = 42;
 if (ringBuff.Poke(data, size))  // 'size' changes to the space available
 {
-	data[0] = val;
-	ringBuff.Write(1);          // Administer the data is written, 1 element
+    data[0] = val;
+    ringBuff.Write(1);          // Administer the data is written, 1 element
 }
 
 // Check if there is at least 1 element in buffer, then read it
 size_t size = 1;
 if (ringBuff.Peek(data, size))  // 'size' changes to the elements available
 {
-	val = data[0];
-	ringBuff.Read(1);           // Administer the data is read, 1 element
+    val = data[0];
+    ringBuff.Read(1);           // Administer the data is read, 1 element
 }
 ```
 
