@@ -1,4 +1,5 @@
 # ContiguousBuffer
 ContiguousBuffer/test/*.layout
+ContiguousBuffer/test/*.depend
 ContiguousBuffer/test/bin/*
 ContiguousBuffer/test/obj/*

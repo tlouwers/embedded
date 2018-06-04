@@ -12,16 +12,12 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
     int* data;
     size_t size = 0;
 
-    REQUIRE( ringBuff.Size() == 0 );
+    REQUIRE(ringBuff.Resize(3) == true);
+    REQUIRE(ringBuff.Size() == 0);
 
 
     SECTION( "basic operations - read at 0" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(0, 0, 4);                     // Set mWrite(0), mRead(0), mWrap(4) - 3 elements available at start
         REQUIRE(ringBuff.CheckState(0, 0, 4) == true);
 
@@ -99,11 +95,6 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
     SECTION( "basic operations - read at 1" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(0, 1, 4);                     // Set mWrite(0), mRead(1), mWrap(4) - buffer full
         REQUIRE(ringBuff.CheckState(0, 1, 4) == true);
 
@@ -181,11 +172,6 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
     SECTION( "basic operations - read at 2" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(0, 2, 4);                     // Set mWrite(0), mRead(2), mWrap(4) - 1 element available at start
         REQUIRE(ringBuff.CheckState(0, 2, 4) == true);
 
@@ -255,11 +241,6 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
     SECTION( "basic operations - read at 3" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(0, 3, 4);                     // Set mWrite(0), mRead(3), mWrap(4) - 2 elements available at start
         REQUIRE(ringBuff.CheckState(0, 3, 4) == true);
 
@@ -333,11 +314,6 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
     SECTION( "basic operations - invalid states" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(4, 0, 4);                     // Set mWrite(4), mRead(0), mWrap(4) - 1 element more than possible - buffer full
         REQUIRE(ringBuff.CheckState(4, 0, 4) == true);
 

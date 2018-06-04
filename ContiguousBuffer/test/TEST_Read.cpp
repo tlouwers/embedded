@@ -9,16 +9,12 @@ TEST_CASE( "ContiguousRingbuffer Read() operations", "[ContiguousRingbuffer]" )
     // For each section, ContiguousBuffer ringBuff is anew:
     ContiguousRingbuffer<int> ringBuff;
 
-    REQUIRE( ringBuff.Size() == 0 );
+    REQUIRE(ringBuff.Resize(3) == true);
+    REQUIRE(ringBuff.Size() == 0);
 
 
     SECTION( "basic operations - read at 0" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(0, 0, 4);                     // Set mWrite(0), mRead(0), mWrap(4) - buffer empty
         REQUIRE(ringBuff.CheckState(0, 0, 4) == true);
         REQUIRE(ringBuff.Size() == 0);
@@ -92,11 +88,6 @@ TEST_CASE( "ContiguousRingbuffer Read() operations", "[ContiguousRingbuffer]" )
 
     SECTION( "basic operations - read at 1" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(0, 1, 4);                     // Set mWrite(0), mRead(1), mWrap(4) - 3 elements at end
         REQUIRE(ringBuff.CheckState(0, 1, 4) == true);
         REQUIRE(ringBuff.Size() == 3);
@@ -170,11 +161,6 @@ TEST_CASE( "ContiguousRingbuffer Read() operations", "[ContiguousRingbuffer]" )
 
     SECTION( "basic operations - read at 2" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(0, 2, 4);                     // Set mWrite(0), mRead(2), mWrap(4) - 2 elements at end
         REQUIRE(ringBuff.CheckState(0, 2, 4) == true);
         REQUIRE(ringBuff.Size() == 2);
@@ -256,11 +242,6 @@ TEST_CASE( "ContiguousRingbuffer Read() operations", "[ContiguousRingbuffer]" )
 
     SECTION( "basic operations - read at 3" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(0, 3, 4);                     // Set mWrite(0), mRead(3), mWrap(4) - 1 element at end
         REQUIRE(ringBuff.CheckState(0, 3, 4) == true);
         REQUIRE(ringBuff.Size() == 1);
@@ -352,11 +333,6 @@ TEST_CASE( "ContiguousRingbuffer Read() operations", "[ContiguousRingbuffer]" )
 
     SECTION( "basic operations - invalid states" )
     {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
         ringBuff.SetState(0, 4, 4);                     // Set mWrite(0), mRead(4), mWrap(4) - 1 element more than possible - buffer empty
         REQUIRE(ringBuff.CheckState(0, 4, 4) == true);
 
