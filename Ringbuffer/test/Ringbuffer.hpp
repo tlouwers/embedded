@@ -56,10 +56,10 @@ public:
     bool Resize(const size_t size);
 
     bool Poke(size_t& size);
-    bool TryPush(const T* src, const size_t size);
+    bool TryPush(const T* src, const size_t size = 1);
 
     bool Peek(size_t& size);
-    bool TryPop(T* &dest, const size_t size);
+    bool TryPop(T* &dest, const size_t size = 1);
 
     size_t Size(void) const;
     void Clear(void);
@@ -129,9 +129,9 @@ bool Ringbuffer<T>::Poke(size_t& size)
         const auto write = mWrite.load(std::memory_order_relaxed);
         const auto read  = mRead.load(std::memory_order_relaxed);
 
-        if (write < mCapacity)            // Robustness
+        if (write < mCapacity)                          // Robustness, condition should always be true
         {
-            if (write == read)
+            if (write == read)                          // Buffer empty
             {
                 size = mCapacity - 1;
                 return true;
@@ -139,13 +139,9 @@ bool Ringbuffer<T>::Poke(size_t& size)
 
             size_t available = 0;
 
-            if (write > read)
+            if (write > read)                           // Space at the end?
             {
-                if (read == 0)
-                {
-                    available = (mCapacity - 1) - write;
-                }
-                else if (write == (mCapacity - 1))
+                if (write == (mCapacity - 1))           // mWrite at the end
                 {
                     available = read;
                 }
@@ -154,12 +150,12 @@ bool Ringbuffer<T>::Poke(size_t& size)
                     available = mCapacity - write - ( (read > 0) ? 0 : 1 );
                 }
             }
-            else     // write < read
+            else     // write < read                    // Space at the start?
             {
                 available = (mCapacity - 1) - ((mCapacity - read) + write);
             }
 
-            if ((available > 0) && (size <= available))
+            if ((available > 0) && (size <= available)) // Does the requested block fit?
             {
                 size = available;
                 return true;
@@ -187,7 +183,36 @@ bool Ringbuffer<T>::Peek(size_t& size)
 {
     if ((size > 0) && (size < mCapacity))               // Size within valid range?
     {
+        const auto write = mWrite.load(std::memory_order_relaxed);
+        const auto read  = mRead.load(std::memory_order_relaxed);
 
+        if (read < mCapacity)                          // Robustness, condition should always be true
+        {
+            size_t available = 0;
+
+            if (write > read)                          // Data at the start?
+            {
+                available = write - read;
+            }
+            else if (write < read)                     // Data at the end?
+            {
+                if (read == (mCapacity - 1))
+                {
+                    available = write + 1;
+                }
+                else
+                {
+                    available = (mCapacity - read) + write;
+                }
+            }
+            // Else: buffer empty
+
+            if ((available > 0) && (size <= available)) // Does the requested block exist?
+            {
+                size = available;
+                return true;
+            }
+        }
     }
 
     size = 0;
@@ -208,12 +233,26 @@ bool Ringbuffer<T>::TryPop(T* &dest, const size_t size)
 template<typename T>
 size_t Ringbuffer<T>::Size(void) const
 {
+    const auto write = mWrite.load(std::memory_order_acquire);
+    const auto read  = mRead.load(std::memory_order_acquire);
+
+    if (write > read)
+    {
+        return write - read;
+    }
+    else if (write < read)
+    {
+        return (mCapacity - read) + write;
+    }
+    // Else: write == read --> buffer empty, return 0
+
 	return 0;
 }
 
 /**
  * \brief   Clears the buffer.
- * \details Resets the write/read/wrap pointers to the initial state.
+ * \details Resets the write and read pointers to the initial state.
+ *          Set
  * \returns Always true.
  */
 template<typename T>
@@ -221,6 +260,11 @@ void Ringbuffer<T>::Clear(void)
 {
     mWrite.store(0, std::memory_order_release);
     mRead.store(0, std::memory_order_release);
+
+//    for (auto&& element : mElements)
+//    {
+//        element = nullptr;
+//    }
 }
 
 /**
@@ -268,7 +312,7 @@ bool Ringbuffer<T>::CheckState(size_t write, size_t read)
 
 /**
  * \brief   Debug method to print the contents of the buffer.
- * \details Prints the contents of the buffer along with the write/read/wrap
+ * \details Prints the contents of the buffer along with the write and read
  *          pointers and the size for reference.
  */
 template<typename T>
