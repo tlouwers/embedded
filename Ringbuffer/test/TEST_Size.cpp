@@ -10,7 +10,7 @@ TEST_CASE( "Ringbuffer Size() operations", "[Ringbuffer]" )
     Ringbuffer<int> ringBuff;
 
     REQUIRE(ringBuff.Resize(3) == true);
-    REQUIRE( ringBuff.Size() == 0 );
+    REQUIRE(ringBuff.Size() == 0);
 
 
     SECTION( "basic operations - read at 0" )

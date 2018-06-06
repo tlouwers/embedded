@@ -27,9 +27,8 @@
 		<Unit filename="Ringbuffer.hpp" />
 		<Unit filename="TEST_Clear.cpp" />
 		<Unit filename="TEST_Main.cpp" />
-		<Unit filename="TEST_Peek.cpp" />
-		<Unit filename="TEST_Poke.cpp" />
 		<Unit filename="TEST_Size.cpp" />
+		<Unit filename="TEST_TryPop.cpp" />
 		<Unit filename="TEST_TryPush.cpp" />
 		<Extensions>
 			<code_completion />

@@ -56,12 +56,7 @@ public:
 
     bool Resize(const size_t size);
 
-#warning ToDo: remove the Poke() method, redundant
-    bool Poke(size_t& size);
     bool TryPush(const T* src, const size_t size = 1);
-
-#warning ToDo: remove the Peek() method, redundant
-    bool Peek(size_t& size);
     bool TryPop(T* &dest, const size_t size = 1);
 
     size_t Size(void) const;
@@ -121,52 +116,6 @@ bool Ringbuffer<T>::Resize(const size_t size)
         }
     }
 
-    return false;
-}
-
-template<typename T>
-bool Ringbuffer<T>::Poke(size_t& size)
-{
-    if ((size > 0) && (size < mCapacity))               // Size within valid range?
-    {
-        const auto write = mWrite.load(std::memory_order_relaxed);
-        const auto read  = mRead.load(std::memory_order_relaxed);
-
-        if (write < mCapacity)                          // Robustness, condition should always be true
-        {
-            if (write == read)                          // Buffer empty
-            {
-                size = mCapacity - 1;
-                return true;
-            }
-
-            size_t available = 0;
-
-            if (write > read)                           // Space at the end?
-            {
-                if (write == (mCapacity - 1))           // mWrite at the end
-                {
-                    available = read;
-                }
-                else
-                {
-                    available = mCapacity - write - ( (read > 0) ? 0 : 1 );
-                }
-            }
-            else     // write < read                    // Space at the start?
-            {
-                available = (mCapacity - 1) - ((mCapacity - read) + write);
-            }
-
-            if ((available > 0) && (size <= available)) // Does the requested block fit?
-            {
-                size = available;
-                return true;
-            }
-        }
-    }
-
-    size = 0;
     return false;
 }
 
@@ -233,52 +182,52 @@ bool Ringbuffer<T>::TryPush(const T* src, const size_t size)
 }
 
 template<typename T>
-bool Ringbuffer<T>::Peek(size_t& size)
-{
-    if ((size > 0) && (size < mCapacity))               // Size within valid range?
-    {
-        const auto write = mWrite.load(std::memory_order_relaxed);
-        const auto read  = mRead.load(std::memory_order_relaxed);
-
-        if (read < mCapacity)                          // Robustness, condition should always be true
-        {
-            size_t available = 0;
-
-            if (write > read)                          // Data at the start?
-            {
-                available = write - read;
-            }
-            else if (write < read)                     // Data at the end?
-            {
-                if (read == (mCapacity - 1))
-                {
-                    available = write + 1;
-                }
-                else
-                {
-                    available = (mCapacity - read) + write;
-                }
-            }
-            // Else: buffer empty
-
-            if ((available > 0) && (size <= available)) // Does the requested block exist?
-            {
-                size = available;
-                return true;
-            }
-        }
-    }
-
-    size = 0;
-	return false;
-}
-
-template<typename T>
 bool Ringbuffer<T>::TryPop(T* &dest, const size_t size)
 {
     if ((size > 0) && (size < mCapacity))               // Size within valid range?
     {
+        if (dest != nullptr)
+        {
+            const auto write = mWrite.load(std::memory_order_relaxed);
+            const auto read  = mRead.load(std::memory_order_relaxed);
 
+            if (read < mCapacity)                          // Robustness, condition should always be true
+            {
+                size_t available = 0;
+
+                if (write > read)                          // Data at the start?
+                {
+                    available = write - read;
+                }
+                else if (write < read)                     // Data at the end?
+                {
+                    if (read == (mCapacity - 1))
+                    {
+                        available = write + 1;             // mRead at the end, write < read
+                    }
+                    else
+                    {
+                        available = (mCapacity - read) + write;
+                    }
+                }
+                // Else: buffer empty
+
+                if (size <= available)
+                {
+                    const auto available_upto_end = std::min(size, (mCapacity - read));
+
+                    std::copy((mElements + read), (mElements + (read + available_upto_end)), dest);
+
+                    if ((size - available_upto_end) > 0)
+                    {
+                        std::copy(mElements, (mElements + (available - available_upto_end)), dest);
+                    }
+
+                    mRead.store(((read + size) % mCapacity), std::memory_order_release);
+                    return true;
+                }
+            }
+        }
     }
 
     return false;
