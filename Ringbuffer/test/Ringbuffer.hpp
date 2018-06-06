@@ -38,6 +38,7 @@
  *****************************************************************************/
 #include <atomic>
 #include <cstddef>      // size_t
+#include <algorithm>    // std::copy()
 
 // Debugging only!
 #include <iostream>
@@ -55,9 +56,11 @@ public:
 
     bool Resize(const size_t size);
 
+#warning ToDo: remove the Poke() method, redundant
     bool Poke(size_t& size);
     bool TryPush(const T* src, const size_t size = 1);
 
+#warning ToDo: remove the Peek() method, redundant
     bool Peek(size_t& size);
     bool TryPop(T* &dest, const size_t size = 1);
 
@@ -172,7 +175,58 @@ bool Ringbuffer<T>::TryPush(const T* src, const size_t size)
 {
     if ((size > 0) && (size < mCapacity))               // Size within valid range?
     {
+        if (src != nullptr)
+        {
+            const auto write = mWrite.load(std::memory_order_relaxed);
+            const auto read  = mRead.load(std::memory_order_relaxed);
 
+            if (write < mCapacity)                          // Robustness, condition should always be true
+            {
+                if (write >= read)                          // Space at the end?
+                {
+                    size_t available = 0;
+
+                    if (write == read)
+                    {
+                        available = (mCapacity - 1);        // Buffer empty
+                    }
+                    else if (write == (mCapacity - 1))
+                    {
+                        available = read;                   // mWrite at the end, read < write
+                    }
+                    else
+                    {
+                        available = mCapacity - write - ( (read > 0) ? 0 : 1 );
+                    }
+
+                    if (size <= available)
+                    {
+                        const auto available_upto_end = std::min(size, (mCapacity - write));
+
+                        std::copy(src, (src + available_upto_end), (mElements + write));
+
+                        if ((available - available_upto_end) > 0)
+                        {
+                            std::copy((src + available_upto_end), (src + size), mElements);
+                        }
+
+                        mWrite.store(((write + size) % mCapacity), std::memory_order_release);
+                        return true;
+                    }
+                }
+                else     // write < read                    // Space at the start?
+                {
+                    const auto available = (mCapacity - 1) - ((mCapacity - read) + write);
+
+                    if (size <= available)
+                    {
+                        std::copy(src, (src + size), (mElements + write));
+                        mWrite.store((write + size), std::memory_order_release);
+                        return true;
+                    }
+                }
+            }
+        }
     }
 
     return false;
