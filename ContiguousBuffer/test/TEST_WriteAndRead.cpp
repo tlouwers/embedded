@@ -198,7 +198,7 @@ TEST_CASE( "ContiguousRingbuffer write and read operations", "[ContiguousRingbuf
         REQUIRE(ringBuff_ext.CheckState(1, 1, 4) == true);
         REQUIRE(val == 5);
 
-        ringBuff.Clear();
+        ringBuff_ext.Clear();
     }
 
     SECTION( "write and read data - data must be contiguous" )
