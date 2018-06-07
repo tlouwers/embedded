@@ -154,7 +154,7 @@ bool Ringbuffer<T>::TryPush(const T* src, const size_t size)
 
                         std::copy(src, (src + available_upto_end), (mElements + write));
 
-                        if ((available - available_upto_end) > 0)
+                        if ((size - available_upto_end) > 0)
                         {
                             std::copy((src + available_upto_end), (src + size), mElements);
                         }
@@ -220,7 +220,7 @@ bool Ringbuffer<T>::TryPop(T* &dest, const size_t size)
 
                     if ((size - available_upto_end) > 0)
                     {
-                        std::copy(mElements, (mElements + (available - available_upto_end)), dest);
+                        std::copy(mElements, (mElements + (available - available_upto_end)), (dest + available_upto_end));
                     }
 
                     mRead.store(((read + size) % mCapacity), std::memory_order_release);
