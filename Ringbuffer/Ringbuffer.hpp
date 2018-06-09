@@ -9,10 +9,68 @@
  *                                                                Terry Louwers
  * \class   Ringbuffer
  *
+ *
  * \brief   Single-Producer, Single-Consumer, lock free, wait free, ringbuffer.
  * 			Suited for embedded use, see URLs below.
  *
- * \details <TBD>	Intended use, example, why is it threadsafe
+ * \note    https://github.com/tlouwers/embedded/tree/master/Ringbuffer
+ *
+ * \details This code is intended to be used on a Cortex-M4 microcontroller.
+ *          Be sure to read up on the documentation, as it has some
+ *          other-than-usual behavior.
+ *
+ *          As example:
+ *          Producer will fill the buffer, Consumer will empty the buffer.
+ *          Note: do check for the result values, the example omits them for
+ *                clarity.
+ *
+ *          // Declare the buffer
+ *          Ringbuffer<int> ringBuff;
+ *
+ *          // Reserve the size to hold the elements, 'int' in this example
+ *          ringBuff.Resize(5);
+ *
+ *          // If needed, check the number of elements in the buffer
+ *          size_t nr_elements = ringBuff.Size();
+ *
+ *          // Assuming the Producer has 'source', data to put in buffer
+ *          int src_arr[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+ *
+ *          // Writing data to the buffer
+ *          size_t size = 4;                        // The amount of elements to add to buffer
+ *          bool result = TryPush(src_arr, size);
+ *
+ *          // Assuming the Consumer has a 'destination' to place retrieved data
+ *          int dest_arr[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+ *
+ *          // Reading data from the buffer
+ *          size_t size = 4;                        // The amount of elements to retrieve from buffer
+ *          bool result = TryPop(dest_arr, size);
+ *
+ *          The intended use in a nutshell:
+ *          The Ringbuffer can be used a regular ringbuffer, with the addition
+ *          that for a single consumer, single producer it is thread safe.
+ *          Assuming an Interrupt Service Routine (ISR) as thread 'Producer'
+ *          and the main application loop as thread 'Consumer'.
+ *          The Producer will push items to the buffer, where the consumer will
+ *          read them. Putting items in the buffer is a copy action, so is
+ *          retrieving them. If data cannot be put into buffer or retrieved
+ *          from buffer the TryPush() and TryPop() will return with false.
+ *          This can happen when the buffer is filling up and the Consumer does
+ *          not read data from buffer fast enough.
+ *          Although a Size() method is provided it is a snaphot or indication,
+ *          due to the threaded nature the buffer contents can have changed
+ *          before the method returns.
+ *
+ *          Thread safety is guaranteed by preventing the write pointer to
+ *          overtake or become equal to the read pointer, preventing the read
+ *          to overtake the write pointer (but they can become equal).
+ *          If TryPush() uses an old value of the read pointer this would
+ *          mean the buffer is 'more full' (or entirely full) at the time,
+ *          allowing less data to be inserted.
+ *          If TryPop() uses an old value of the write pointer this would
+ *          mean the buffer is 'more empty' (or completely empty) at the time,
+ *          allowing less data to be removed.
  *
  * \note    If you happen to find an issue, and are able to provide a
  *          reproducible scenario I am happy to have a look. If you have a fix,
@@ -20,13 +78,12 @@
  *          so I can update the buffer.
  *
  * \note    Inspiration from:
- *          https://en.wikipedia.org/wiki/PEEK_and_POKE
  *          https://www.codeproject.com/Articles/43510/Lock-Free-Single-Producer-Single-Consumer-Circular
  *          https://www.boost.org/doc/libs/1_54_0/doc/html/boost/lockfree/spsc_queue.html
  *          http://moodycamel.com/blog/2013/a-fast-lock-free-queue-for-c++
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 0.1
+ * \version 1.0
  * \date    05-2018
  */
 
@@ -38,7 +95,7 @@
  *****************************************************************************/
 #include <atomic>
 #include <cstddef>      // size_t
-#include <algorithm>    // std::copy()
+#include <algorithm>    // std::min(), std::copy()
 
 
 /******************************************************************************
@@ -67,6 +124,11 @@ private:
 };
 
 
+/**
+ * \brief   Constructor.
+ * \details Buffer needs to be set to a size with 'Resize()' before it can be
+ *          used.
+ */
 template<typename T>
 Ringbuffer<T>::Ringbuffer() noexcept :
     mWrite(0), mRead(0), mCapacity(0), mElements(nullptr)
@@ -74,6 +136,10 @@ Ringbuffer<T>::Ringbuffer() noexcept :
     ;
 }
 
+/**
+ * \brief   Destructor.
+ * \details Frees memory allocated to the buffer if needed.
+ */
 template<typename T>
 Ringbuffer<T>::~Ringbuffer()
 {
@@ -84,6 +150,20 @@ Ringbuffer<T>::~Ringbuffer()
     }
 }
 
+/**
+ * \brief   Resizes the buffer to the given size by freeing and (re)allocating
+ *          memory.
+ * \details Frees memory allocated to the buffer if needed. Then tries to
+ *          allocate the requested memory size.
+ *          The buffer allocates 1 element more than requested, this to be able
+ *          to differentiate in a thread safe way the buffer full/buffer empty
+ *          status.
+ *          Resizing to previous size is allowed, this frees and allocates
+ *          memory like other Resize().
+ * \param   size    Size of the memory to allocate.
+ * \returns True if the requested size could be allocated, else false. False if
+ *          the requested size equals 0.
+ */
 template<typename T>
 bool Ringbuffer<T>::Resize(const size_t size)
 {
@@ -95,9 +175,9 @@ bool Ringbuffer<T>::Resize(const size_t size)
 
     if (size > 0)
     {
-        mWrite      = 0;
-        mRead       = 0;
-        mCapacity   = size + 1;
+        mWrite    = 0;
+        mRead     = 0;
+        mCapacity = size + 1;
 
         mElements = new T[size + 1];
 
@@ -110,6 +190,16 @@ bool Ringbuffer<T>::Resize(const size_t size)
     return false;
 }
 
+/**
+ * \brief   Try to copy 'size' elements from location 'src' into the buffer.
+ * \details Underlying copy mechanism is std::copy(). If there is enough space
+ *          available this will copy the given elements into the buffer.
+ *          Will only succeed if all elements could be copied in buffer.
+ * \returns True if all elements could be copied into the buffer. False if not.
+ *          False if 'size' is 0 of larger than buffer capacity.
+ *          False if 'size' is larger  than the space remaining.
+ *          False if 'src' is nullptr.
+ */
 template<typename T>
 bool Ringbuffer<T>::TryPush(const T* src, const size_t size)
 {
@@ -172,6 +262,17 @@ bool Ringbuffer<T>::TryPush(const T* src, const size_t size)
     return false;
 }
 
+/**
+ * \brief   Try to retrieve (copy) 'size' elements to location 'dest' from the
+ *          buffer.
+ * \details Underlying copy mechanism is std::copy(). If there are enough
+ *          elements available this will copy the given amount of elements into
+ *          'dest'. Will only succeed if all requested elements could be copied.
+ * \returns True if all elements could be copied into 'dest'. False if not.
+ *          False if 'size' is 0 of larger than buffer capacity.
+ *          False if 'size' is larger  than the number of elements available.
+ *          False if 'dest' is nullptr.
+ */
 template<typename T>
 bool Ringbuffer<T>::TryPop(T* &dest, const size_t size)
 {
@@ -224,6 +325,12 @@ bool Ringbuffer<T>::TryPop(T* &dest, const size_t size)
     return false;
 }
 
+/**
+ * \brief   Returns the number of elements in the buffer.
+ * \remark  This is a snapshot, either read or write can change the status
+ *          causing the size to be (slightly) incorrect.
+ * \returns The total number of elements in the buffer.
+ */
 template<typename T>
 size_t Ringbuffer<T>::Size(void) const
 {
@@ -246,19 +353,14 @@ size_t Ringbuffer<T>::Size(void) const
 /**
  * \brief   Clears the buffer.
  * \details Resets the write and read pointers to the initial state.
- *          Set
- * \returns Always true.
+ *          Does not clear the elements, they remain in memory until
+ *          overwritten or the buffer is destructed.
  */
 template<typename T>
 void Ringbuffer<T>::Clear(void)
 {
     mWrite.store(0, std::memory_order_release);
     mRead.store(0, std::memory_order_release);
-
-//    for (auto&& element : mElements)
-//    {
-//        element = nullptr;
-//    }
 }
 
 /**

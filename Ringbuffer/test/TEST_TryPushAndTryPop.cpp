@@ -23,13 +23,13 @@ static bool RemoveOne(int& val)
 {
     bool result = true;
 
-    int tmp[1] = { -1 };
-    int *pTmp = &tmp[0];
+    int dest[1] = { -1 };
+    int *pDest = &dest[0];
 
-    result &= ringBuff_ext.TryPop(pTmp);
+    result &= ringBuff_ext.TryPop(pDest);
     REQUIRE(result == true);
 
-    val = (result) ? tmp[0] : -1;
+    val = (result) ? dest[0] : -1;
 
     return result;
 }

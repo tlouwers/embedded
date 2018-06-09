@@ -26,8 +26,11 @@
 		</Compiler>
 		<Unit filename="Ringbuffer.hpp" />
 		<Unit filename="TEST_Clear.cpp" />
+		<Unit filename="TEST_DifferentElementTypes.cpp" />
 		<Unit filename="TEST_Main.cpp" />
+		<Unit filename="TEST_Resize.cpp" />
 		<Unit filename="TEST_Size.cpp" />
+		<Unit filename="TEST_Threading.cpp" />
 		<Unit filename="TEST_TryPop.cpp" />
 		<Unit filename="TEST_TryPush.cpp" />
 		<Unit filename="TEST_TryPushAndTryPop.cpp" />
