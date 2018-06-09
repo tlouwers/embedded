@@ -13,6 +13,8 @@
  *          ringbuffer. Best described as a variant of the bip-buffer, suited
  *          for embedded use, see URLs below.
  *
+ * \note    https://github.com/tlouwers/embedded/tree/master/ContiguousBuffer
+ *
  * \details This code is intended to be used to feed DMA handling of a
  *          Cortex-M4 microcontroller, but can see its share of use in other
  *          scenarios as well. Be sure to read up on the documentation, as it
@@ -501,7 +503,6 @@ size_t ContiguousRingbuffer<T>::Size(void) const
 /**
  * \brief   Clears the buffer.
  * \details Resets the write/read/wrap pointers to the initial state.
- * \returns Always true.
  */
 template<typename T>
 void ContiguousRingbuffer<T>::Clear(void)
