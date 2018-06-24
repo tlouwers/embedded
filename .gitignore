@@ -3,3 +3,9 @@ ContiguousBuffer/test/*.layout
 ContiguousBuffer/test/*.depend
 ContiguousBuffer/test/bin/*
 ContiguousBuffer/test/obj/*
+
+# Ringbuffer
+Ringbuffer/test/*.layout
+Ringbuffer/test/*.depend
+Ringbuffer/test/bin/*
+Ringbuffer/test/obj/*
