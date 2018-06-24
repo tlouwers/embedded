@@ -46,6 +46,7 @@ bool result = TryPush(src_arr, size);
 // Reading data from the buffer
 size_t size = 4;                        // The amount of elements to retrieve from buffer
 bool result = TryPop(dest_arr, size);
+```
 
 ## Intended use
 The Ringbuffer can be used a regular ringbuffer, with the addition that for a single consumer, single producer it is thread safe.  Assuming an Interrupt Service Routine (ISR) as thread 'Producer' and the main application loop as thread 'Consumer'. The Producer will push items to the buffer, where the consumer will read them. Putting items in the buffer is a copy action, so is retrieving them. If data cannot be put into buffer or retrieved from buffer the TryPush() and TryPop() will return with false. This can happen when the buffer is filling up and the Consumer does not read data from buffer fast enough. Although a Size() method is provided it is a snapshot or indication, due to the threaded nature the buffer contents can have changed before the method returns.
