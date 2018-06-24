@@ -41,7 +41,7 @@
  *          bool result = TryPush(src_arr, size);
  *
  *          // Assuming the Consumer has a 'destination' to place retrieved data
- *          int dest_arr[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+ *          int dest_arr[10] = { };
  *
  *          // Reading data from the buffer
  *          size_t size = 4;                        // The amount of elements to retrieve from buffer
@@ -58,7 +58,7 @@
  *          from buffer the TryPush() and TryPop() will return with false.
  *          This can happen when the buffer is filling up and the Consumer does
  *          not read data from buffer fast enough.
- *          Although a Size() method is provided it is a snaphot or indication,
+ *          Although a Size() method is provided it is a snapshot or indication,
  *          due to the threaded nature the buffer contents can have changed
  *          before the method returns.
  *
