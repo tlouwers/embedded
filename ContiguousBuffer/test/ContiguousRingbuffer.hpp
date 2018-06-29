@@ -129,8 +129,9 @@ public:
     size_t Size(void) const;
     void Clear(void);
 
-    // Debug
     bool IsLockFree(void) const;
+
+    // Debug
     void Print(void) const;
     void SetState(size_t write, size_t read, size_t wrap);
     bool CheckState(size_t write, size_t read, size_t wrap );

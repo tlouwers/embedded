@@ -1,5 +1,5 @@
 /**
- * \file 	Ringbuffer.hpp
+ * \file    Ringbuffer.hpp
  *
  * \licence "THE BEER-WARE LICENSE" (Revision 42):
  *          <terry.louwers@fourtress.nl> wrote this file. As long as you retain
@@ -11,7 +11,7 @@
  *
  *
  * \brief   Single-Producer, Single-Consumer, lock free, wait free, ringbuffer.
- * 			Suited for embedded use, see URLs below.
+ *          Suited for embedded use, see URLs below.
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/Ringbuffer
  *
@@ -115,6 +115,8 @@ public:
 
     size_t Size(void) const;
     void Clear(void);
+
+    bool IsLockFree(void) const;
 
 private:
     std::atomic<size_t> mWrite;
@@ -347,7 +349,7 @@ size_t Ringbuffer<T>::Size(void) const
     }
     // Else: write == read --> buffer empty, return 0
 
-	return 0;
+    return 0;
 }
 
 /**
