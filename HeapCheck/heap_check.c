@@ -32,6 +32,15 @@
  *              }
  *          }
  *
+ *          // To check for stack overflow we can call a dedicated function (should be done regularly):
+ *          void Application::CheckForStackOverflow()
+ *          {
+ *              if (end_of_heap_overrun())
+ *              {
+ *                  // Log, or take action ...
+ *              }
+ *          }
+ *
  * \note    This code is not to be used 'as-is': be sure you know where the
  *          stack and heap are located in your project and modify the code to
  *          match these areas.
@@ -41,8 +50,8 @@
  *          http://library.softwareverify.com/memory-fragmentation-your-worst-nightmare/
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.0
- * \date    05-2018
+ * \version 1.1
+ * \date    07-2018
  */
 
 /************************************************************************/
@@ -69,6 +78,12 @@ extern caddr_t _sbrk(int incr);
 
 
 /************************************************************************/
+/* Static variables                                                     */
+/************************************************************************/
+const uint32_t HEAP_END_VALUE = 0xFAFBFCFD;
+
+
+/************************************************************************/
 /* Public functions                                                     */
 /************************************************************************/
 /**
@@ -81,4 +96,31 @@ uint32_t get_used_heap(void)
     char* heap_start = (char*)&_estack;
 
     return (heap_end - heap_start);
+}
+
+/**
+ * \brief   Get a pointer to the start of the heap.
+ * \return  Start of the heap as address.
+ */
+uint32_t* get_start_of_heap(void)
+{
+    return (uint32_t*)&_estack;
+}
+
+/**
+ * \brief   Check if the heap has been overwritten by the stack.
+ * \note    It could be we never reach here as overwriting the heap could
+ *          cause HardFaults as well.
+ * \returns True if the heap is overwritten by the stack, else false.
+ */
+bool end_of_heap_overrun(void)
+{
+    char* heap_end = (char*)_sbrk(0);
+
+    if (heap_end == (char*)-1)
+    {
+        return true;
+    }
+
+    return ( *(uint32_t*)heap_end != HEAP_END_VALUE );
 }

@@ -32,6 +32,15 @@
  *              }
  *          }
  *
+ *          // To check for stack overflow we can call a dedicated function (should be done regularly):
+ *          void Application::CheckForStackOverflow()
+ *          {
+ *              if (end_of_heap_overrun())
+ *              {
+ *                  // Log, or take action ...
+ *              }
+ *          }
+ *
  * \note    This code is not to be used 'as-is': be sure you know where the
  *          stack and heap are located in your project and modify the code to
  *          match these areas.
@@ -41,8 +50,8 @@
  *          http://library.softwareverify.com/memory-fragmentation-your-worst-nightmare/
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.0
- * \date    05-2018
+ * \version 1.1
+ * \date    07-2018
  */
 
 #ifndef HEAP_CHECK_H_
@@ -57,12 +66,15 @@ extern "C" {
 /* Includes                                                             */
 /************************************************************************/
 #include <stdint.h>     // uint32_t
+#include <stdbool.h>    // bool
 
 
 /************************************************************************/
 /* Functions                                                            */
 /************************************************************************/
 uint32_t get_used_heap(void);
+uint32_t* get_start_of_heap(void);
+bool end_of_heap_overrun(void);
 
 
 #ifdef __cplusplus

@@ -1,4 +1,5 @@
 
+
 # HeapCheck
 Low level functions to determine heap usage during run time.
 
@@ -12,6 +13,9 @@ This code is intended to be used on an Atmel Cortex-M4, but should be easily por
 
 ## Check
 Be sure you know where the heap is located. This is presented in the linker file, in our (tested) case it was in a file called `flash.ld`.
+
+## Change
+To allow stack overflow detection (stack growing/running over allocated heap memory) a flag is added in the function `_sbrk()` which allocated the heap memory. Every time memory is allocated it flags the end of the claimed heap memory with a flag. Later on, when checking regularly, if the flag gets overwritten by the stack we can determine if a stack overflow occurred. It is an indication only, as there is a chance the stack has exactly the same value as the flag (very unlikely), or that the device enters a HardFault before we can check the condition.
 
 ## Note
 The code is written in "C", not C++ - as it performs a few tricks which may not work on every board. Also note that these methods are a rough indication - your mileage may vary.
@@ -35,5 +39,14 @@ void Application::GetUsedHeap()
     {
         used_heap = tmp;
     }
+}
+
+// To check for stack overflow we can call a dedicated function (should be done regularly):
+void Application::CheckForStackOverflow()
+{
+	if (end_of_heap_overrun())
+	{
+		// Log, or take action ...
+	}
 }
 ```
