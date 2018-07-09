@@ -52,11 +52,11 @@
  *          {
  *              static unsigned char *heap = NULL;
  *              unsigned char *prev_heap;
- *              int ramend = (int)&__ram_end__;
+ *              int ramend = (int)\&__ram_end__;            // The '\' is needed for doxygen only!
  *
  *              if (heap == NULL)
  *              {
- *                  heap = (unsigned char *)&_end;
+ *                  heap = (unsigned char *)\&_end;         // The '\' is needed for doxygen only!
  *              }
  *              prev_heap = heap;
  *
