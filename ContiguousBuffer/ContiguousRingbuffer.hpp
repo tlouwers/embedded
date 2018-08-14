@@ -51,7 +51,7 @@
  *
  *          The intended use in a nutshell:
  *          Assuming an Interrupt Service Routine (ISR) as thread 'Producer'
- *          and  the main application loop as thread 'Consumer'.
+ *          and the main application loop as thread 'Consumer'.
  *          Producer will use Poke() to request a contiguous block of elements,
  *          this can be passed on to the DMA (to fill the data). The CPU can
  *          perform another task. When DMA finishes it flags the data as
@@ -59,16 +59,16 @@
  *          expected to check if data is available in the buffer by calling
  *          Peek() - either with the size it can manage at the time or 1 to
  *          get an indication of the largest contiguous block available. When
- *          the is read/processed the memory is released to the buffer (for
- *          reuse) with a call to Read() with the correct size.
+ *          the data is read/processed the memory is released to the buffer
+ *          (for reuse) with a call to Read() with the correct size.
  *
  *          Thread safety is guaranteed by preventing the write pointer to
  *          overtake or become equal to the read pointer, preventing the read
  *          to overtake the write pointer (but they can become equal).
- *          If Poke() / Write() use an old value of the read pointer this would
+ *          If Poke()/Write() use an old value of the read pointer this would
  *          mean the buffer is 'more full' (or entirely full) at the time,
  *          allowing less data to be inserted.
- *          If Peek() / Read() use an old value of the write pointer this would
+ *          If Peek()/Read() use an old value of the write pointer this would
  *          mean the buffer is 'more empty' (or completely empty) at the time,
  *          allowing less data to be removed.
  *          The race condition on the wrap pointer is prevented partly by not
@@ -138,8 +138,8 @@ private:
 
 /**
  * \brief   Constructor.
- * \details Buffer needs to be set to a size with 'Resize()' before it can be
- *          used.
+ * \details The buffer needs to be set to a size with 'Resize()' before it can
+ *          be used.
  */
 template<typename T>
 ContiguousRingbuffer<T>::ContiguousRingbuffer() noexcept :
@@ -168,11 +168,11 @@ ContiguousRingbuffer<T>::~ContiguousRingbuffer()
  * \details Frees memory allocated to the buffer if needed. Then tries to
  *          allocate the requested memory size.
  *          The buffer allocates 1 element more than requested, this to be able
- *          to differentiate in a thread safe way the buffer full/buffer empty
+ *          to differentiate in a thread safe way 'buffer full'/'buffer empty'
  *          status.
- *          Resizing to previous size is allowed, this frees and allocates
- *          memory like other Resize().
- * \param   size    Size of the memory to allocate.
+ *          Resizing to a previous size is allowed, this frees and allocates
+ *          memory like other calls to Resize().
+ * \param   size    The number of elements to allocate memory for.
  * \returns True if the requested size could be allocated, else false. False if
  *          the requested size equals 0.
  */
@@ -210,8 +210,8 @@ bool ContiguousRingbuffer<T>::Resize(const size_t size)
  *          data to the buffer with a call to 'Write()'.
  * \param   dest    Reference to pointer to T. If the method returns true it
  *                  points to the start of the contiguous block, else nullptr.
- *                  The contiguous block can be either at the end, else at the
- *                  start of the buffer.
+ *                  The contiguous block can be either at the end (if enough
+ *                  space is available), else at the start of the buffer.
  * \param   size    Reference to size. If the method returns true it is set to
  *                  largest free contiguous block available, else to 0.
  * \returns True if a contiguous block of elements of 'size' could be found,
@@ -414,8 +414,8 @@ bool ContiguousRingbuffer<T>::Peek(T* &dest, size_t& size)
  *          this is not the original size, it will restore the wrap pointer.
  *          The read pointer is set after the wrap (start of the buffer, before
  *          the write) to prevent reading released data.
- *          Note that 'Read()' is not able to pass beyond the
- *          write pointer, meaning a race condition with the wrap is prevented.
+ *          Note that 'Read()' is not able to pass beyond the write pointer,
+ *          meaning a race condition with the wrap is prevented.
  * \param   size    The size to advance the read pointer with.
  * \returns True if the read pointer could be advanced, else false. False if
  *          size is not within valid range.
