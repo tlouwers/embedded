@@ -1,3 +1,9 @@
+# BitmaskEnum
+BitmaskEnum/test/*.layout
+BitmaskEnum/test/*.depend
+BitmaskEnum/test/bin/*
+BitmaskEnum/test/obj/*
+
 # ContiguousBuffer
 ContiguousBuffer/test/*.layout
 ContiguousBuffer/test/*.depend
