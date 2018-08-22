@@ -13,7 +13,7 @@ This code is intended to be used to feed DMA handling of a Cortex-M4 microcontro
 
 | Folder | Contents |
 | ------ | -------- |
-| test | A CodeBlocks 17.12 project, along with a main.cpp file containing tests for the buffer. |
+| test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
 
 ## Notes
 Although care has been taken to make the code work like a charm, use it at your own risk.
