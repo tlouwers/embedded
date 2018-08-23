@@ -23,7 +23,7 @@
  *          // Sort the array:
  *          QuickSort(array, 0, (sizeof(array) - 1));
  *
- *			// At this point 'array' is sorted. 
+ *			// At this point 'array' is sorted.
  *
  * \note    If you happen to find an issue, and are able to provide a
  *          reproducible scenario I am happy to have a look. If you have a fix,
@@ -45,6 +45,7 @@
 /******************************************************************************
  * Includes                                                                   *
  *****************************************************************************/
+#include <cstdint>      // int32_t
 #include <algorithm>    // swap()
 
 
@@ -63,14 +64,14 @@
  * \returns The updated pivot point.
  */
 template <typename T>
-size_t Partition(T arr[], size_t start, size_t end)
+int32_t Partition(T arr[], int32_t start, int32_t end)
 {
     // The pivot element is taken to be the element at the start of the subrange to be partitioned.
     T      pivotValue    = arr[start];
-    size_t pivotPosition = start;
+    int32_t pivotPosition = start;
 
     // Rearrange the rest of the array elements to partition the subrange from start to end.
-    for (size_t pos = start + 1; pos <= end; pos++)
+    for (int32_t pos = start + 1; pos <= end; pos++)
     {
         if (arr[pos] < pivotValue)
         {
@@ -96,12 +97,12 @@ size_t Partition(T arr[], size_t start, size_t end)
  * \returns True if successful, false if the start is before the end point.
  */
 template <typename T>
-bool QuickSort(T arr[], size_t start, size_t end)
+bool QuickSort(T arr[], int32_t start, int32_t end)
 {
     if (start < end)
     {
         // Partition the array and get the pivot point.
-        size_t p = Partition(arr, start, end);
+        int32_t p = Partition(arr, start, end);
 
         // Sort the portion before the pivot point.
         QuickSort(arr, start, p - 1);

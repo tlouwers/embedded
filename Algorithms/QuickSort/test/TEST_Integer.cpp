@@ -5,7 +5,9 @@
 
 
 const int SIZE = 10;
-const int refArray[SIZE] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+const int refArrayPos[SIZE] = {   1,   2,   3,   4,   5,   6,   7,   8,   9,  10 };
+const int refArrayNeg[SIZE] = { -10,  -9,  -8,  -7,  -6,  -5,  -4,  -3,  -2,  -1 };
+const int refArrayMix[SIZE] = {  -4,  -3,  -2,  -1,   0,   1,   2,   3,   4,   5 };
 
 
 bool CompareArrays(const int* reference, int* sorted, size_t length)
@@ -30,18 +32,38 @@ bool CompareArrays(const int* reference, int* sorted, size_t length)
 }
 
 
-TEST_CASE( "integer sort", "[QuickSort]" )
+TEST_CASE( "positive numbers", "[QuickSort]" )
 {
-    // For each section variables are anew.
-    int array[SIZE] = { 6, 3, 7, 8, 2, 10, 1, 4, 5, 9 };
-
-
-    SECTION( "basic sort" )
+    SECTION( "positive numbers" )
     {
-        REQUIRE(CompareArrays(refArray, array, SIZE) == false);
+        int arrayPos[SIZE] = { 6, 3, 7, 8, 2, 10, 1, 4, 5, 9 };
 
-        QuickSort(array, 0, SIZE-1);
+        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == false);
 
-        REQUIRE(CompareArrays(refArray, array, SIZE) == true);
+        QuickSort(arrayPos, 0, SIZE-1);
+
+        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == true);
+    }
+
+    SECTION( "negative numbers" )
+    {
+        int arrayNeg[SIZE] = { -4, -5, -1, -7, -10, -2, -8, -3, -6, -9 };
+
+        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == false);
+
+        QuickSort(arrayNeg, 0, SIZE-1);
+
+        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == true);
+    }
+
+    SECTION( "mixed numbers" )
+    {
+        int arrayMix[SIZE] = { -1, 4, -2, -3, 3, 2, 0, 1, -4, 5 };
+
+        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == false);
+
+        QuickSort(arrayMix, 0, SIZE-1);
+
+        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == true);
     }
 }
