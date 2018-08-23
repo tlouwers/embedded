@@ -44,14 +44,17 @@
  *          chance of errors, getting feedback at compile time.
  *
  *          Some examples:
- *          // Given the enum Dummy:
+ *          // Include this file (only) to the header files listing the enum
+ *          #include "BitmaskEnum.hpp"
+ *
+ *          // Given the enum 'Dummy':
  *          enum class Dummy : uint8_t
  *          {
  *              BLUE  = 0x01,   // Bit 1
  *              RED   = 0x02,   // Bit 2
  *              GREEN = 0x04,   // Bit 3
  *          };
- *          ENABLE_BITMASK_ENUM(Dummy)      // Enable bitmask functionality
+ *          ENABLE_BITMASK_OPERATORS(Dummy)		// Enable bitmask functionality
  *
  *          // After the 'enable', we can use the enum as bitmask:
  *          Dummy d1 = ( Dummy::BLUE | Dummy::GREEN );      // d1: Bit 1 and 3

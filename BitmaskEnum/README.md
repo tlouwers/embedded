@@ -22,7 +22,10 @@ Although care has been taken to make the code work like a charm, use it at your 
 ## Example
 
 ```cpp
-// Given the enum Dummy:
+// Include this file (only) to the header files listing the enum
+#include "BitmaskEnum.hpp"
+
+// Given the enum 'Dummy':
 enum class Dummy : uint8_t
 {
     BLUE  = 0x01,   // Bit 1
