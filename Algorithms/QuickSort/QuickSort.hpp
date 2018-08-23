@@ -85,7 +85,7 @@ int32_t Partition(T arr[], int32_t start, int32_t end)
             // Adjust the pivot position so it stays with the pivot element.
             pivotPosition++;
         }
-	}
+    }
     return pivotPosition;
 }
 
@@ -111,8 +111,8 @@ bool QuickSort(T arr[], int32_t start, int32_t end)
         QuickSort(arr, p + 1, end);
 
         return true;
-	}
-	return false;   // Invalid range provided.
+    }
+    return false;   // Invalid range provided.
 }
 
 
