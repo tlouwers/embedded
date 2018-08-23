@@ -1,3 +1,9 @@
+# QuickSort
+Algorithms/QuickSort/test/*.layout
+Algorithms/QuickSort/test/*.depend
+Algorithms/QuickSort/test/bin/*
+Algorithms/QuickSort/test/obj/*
+
 # BitmaskEnum
 BitmaskEnum/test/*.layout
 BitmaskEnum/test/*.depend
