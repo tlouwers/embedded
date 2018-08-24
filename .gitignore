@@ -4,6 +4,12 @@ Algorithms/BubbleSort/test/*.depend
 Algorithms/BubbleSort/test/bin/*
 Algorithms/BubbleSort/test/obj/*
 
+# MovingAverage
+Algorithms/MovingAverage/test/*.layout
+Algorithms/MovingAverage/test/*.depend
+Algorithms/MovingAverage/test/bin/*
+Algorithms/MovingAverage/test/obj/*
+
 # QuickSort
 Algorithms/QuickSort/test/*.layout
 Algorithms/QuickSort/test/*.depend
