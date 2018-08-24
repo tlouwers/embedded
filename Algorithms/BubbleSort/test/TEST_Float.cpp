@@ -12,9 +12,9 @@ const float refArrayMix[SIZE] = { -4.0f,  -3.0f, -2.0f, -1.0f,  0.0f,  1.0f,  2.
 #include <cmath>
 #include <limits>
 
-bool AreSame(double a, double b)
+bool AreSame(float a, float b)
 {
-    return std::fabs(a - b) < std::numeric_limits<double>::epsilon();
+    return std::fabs(a - b) < std::numeric_limits<float>::epsilon();
 }
 
 bool CompareArrays(const float* reference, float* sorted, size_t length)
