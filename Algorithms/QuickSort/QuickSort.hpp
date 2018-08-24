@@ -13,8 +13,15 @@
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/Algorithms/QuickSort
  *
- * \details This code is intended as non STL version of the QuickSort algorithms,
+ * \details This code is intended as non STL version of the QuickSort algorithm,
  *          making it better suited for embedded use.
+ *
+ *          Use for large sets.
+ *
+ *          Worst case:      O(n^2)
+ *          Best case:       O(n)
+ *          Average case:    O(n)
+ *          Auxiliary space: O(Log n)
  *
  *          Example:
  *          // Define an array to sort:
@@ -91,6 +98,8 @@ int32_t Partition(T arr[], int32_t start, int32_t end)
 
 /**
  * \brief   QuickSort algorithm, sorts the given arr from start to end.
+ * \details Implementation uses tail call elimination to reduce stack
+ *          size and number of recursions needed.
  * \param   arr     The array to sort.
  * \param   start   The starting point (index) for sorting.
  * \param   end     The end point (index) for sorting.
@@ -99,17 +108,26 @@ int32_t Partition(T arr[], int32_t start, int32_t end)
 template <typename T>
 bool QuickSort(T arr[], int32_t start, int32_t end)
 {
-    if (start < end)
+    if (start < end)    // Range check
     {
-        // Partition the array and get the pivot point.
-        int32_t p = Partition(arr, start, end);
+        while (start < end)
+        {
+            // Partition the array and get the pivot point.
+            int32_t p = Partition(arr, start, end);
 
-        // Sort the portion before the pivot point.
-        QuickSort(arr, start, p - 1);
-
-        // Sort the portion after the pivot point.
-        QuickSort(arr, p + 1, end);
-
+            // If left part is smaller, then recurse for the left part and handle right part iteratively.
+            if ((p - start) < (end - p))
+            {
+                QuickSort(arr, start, (p - 1));
+                start = p + 1;
+            }
+            // Recurse for the right part
+            else
+            {
+                QuickSort(arr, (p + 1), end);
+                end = p - 1;
+            }
+        }
         return true;
     }
     return false;   // Invalid range provided.
