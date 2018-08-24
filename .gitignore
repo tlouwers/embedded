@@ -1,3 +1,9 @@
+# BubbleSort
+Algorithms/BubbleSort/test/*.layout
+Algorithms/BubbleSort/test/*.depend
+Algorithms/BubbleSort/test/bin/*
+Algorithms/BubbleSort/test/obj/*
+
 # QuickSort
 Algorithms/QuickSort/test/*.layout
 Algorithms/QuickSort/test/*.depend

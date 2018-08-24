@@ -7,6 +7,7 @@ Various C/C++ code fragments for use on an embedded platform, like a Cortex-M4.
 
 | Folder | Contents |
 | ------ | -------- |
+| Algorithms / BubbleSort | Implementation of the BubbleSort algorithm with template functions. |
 | Algorithms / QuickSort | Implementation of the QuickSort algorithm with template functions. |
 | BitmaskEnum | Template to enable bitmask operations using a strongly typed enum classes. |
 | Catch | Code of the Catch2 test framework, used for unit tests. |
