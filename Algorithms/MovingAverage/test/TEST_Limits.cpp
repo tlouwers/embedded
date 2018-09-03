@@ -61,18 +61,18 @@ TEST_CASE( "limits", "[MovingAverage]" )
             REQUIRE(movAvgFloat.Add(f_min) == true);
         }
 
-        REQUIRE(AreSame(movAvgFloat.GetAverage(), f_min));              // Only items of i_max in buffer
+        REQUIRE(AreSame(movAvgFloat.GetAverage(), f_min));              // Only items of f_min in buffer
 
         for (uint16_t i = 0; i < range_half; i++)                       // Add remainder
         {
             REQUIRE(movAvgFloat.Add(f_min) == true);
         }
 
-        REQUIRE(AreSame(movAvgFloat.GetAverage(), f_min));              // Only items of i_max in buffer
+        REQUIRE(AreSame(movAvgFloat.GetAverage(), f_min));              // Only items of f_min in buffer
 
         REQUIRE(movAvgFloat.Add(0) == true);                            // Add 1 item '0'
 
-        REQUIRE(AreSame(movAvgFloat.GetAverage(), 1.17545848e-038f));   // Only items of i_max and 1 item '0' in buffer
+        REQUIRE(AreSame(movAvgFloat.GetAverage(), 1.17545848e-038f));   // Only items of f_min and 1 item '0' in buffer
     }
 
     SECTION( "max float" )
@@ -89,17 +89,17 @@ TEST_CASE( "limits", "[MovingAverage]" )
             REQUIRE(movAvgFloat.Add(f_max) == true);
         }
 
-        REQUIRE(AreSame(movAvgFloat.GetAverage(), f_max));              // Only items of i_max in buffer
+        REQUIRE(AreSame(movAvgFloat.GetAverage(), f_max));              // Only items of f_max in buffer
 
         for (uint16_t i = 0; i < range_half; i++)                       // Add remainder
         {
             REQUIRE(movAvgFloat.Add(f_max) == true);
         }
 
-        REQUIRE(AreSame(movAvgFloat.GetAverage(), f_max));              // Only items of i_max in buffer
+        REQUIRE(AreSame(movAvgFloat.GetAverage(), f_max));              // Only items of f_max in buffer
 
         REQUIRE(movAvgFloat.Add(0) == true);                            // Add 1 item '0'
 
-        REQUIRE(AreSame(movAvgFloat.GetAverage(), 3.40271962e+038f));   // Only items of i_max and 1 item '0' in buffer
+        REQUIRE(AreSame(movAvgFloat.GetAverage(), 3.40271962e+038f));   // Only items of f_max and 1 item '0' in buffer
     }
 }
