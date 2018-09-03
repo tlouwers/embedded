@@ -34,5 +34,8 @@ movAvg.Add(4);
 int result = movAvg.GetAverage();
 ```
 
+## Notes
+Since the intent is to use it on smaller ranges and embedded devices, the use of larger types 'T' is not allowed: double, int64_t and uint64_t are checked/blocked in Resize().
+
 ## Careful
 One can only prevent so much, if the return values are not checked behavior might be undefined. One case in particular: if there are no elements in the internal buffer and GetAverage() is called, the result is 0. If this is used directly in a calculation it might trigger an unwanted divide-by-zero error.

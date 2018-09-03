@@ -6,7 +6,7 @@
 #include <cmath>
 #include <limits>
 
-bool AreSame(float a, float b)
+static bool AreSame(float a, float b)
 {
     return std::fabs(a - b) < std::numeric_limits<float>::epsilon();
 }

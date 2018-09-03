@@ -18,6 +18,9 @@
  *          the internal buffer, returns 0 if none are present. The Fill()
  *          method can be used to completely fill the internal buffer with a
  *          defined value.
+ *          Since the intent is to use it on smaller ranges and embedded
+ *          devices, the use of larger types 'T' is not allowed:
+ *          double, int64_t and uint64_t are checked/blocked in Resize().
  *
  *          Example:
  *          // Declare the object and type to use:
@@ -39,7 +42,7 @@
  *          so I can update the buffer.
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.0
+ * \version 1.1
  * \date    08-2018
  */
 
@@ -51,6 +54,7 @@
  *****************************************************************************/
 #include <cstdint>      // uint16_t
 #include <algorithm>    // std::fill()
+#include <type_traits>  // std::is_same()
 
 
 /******************************************************************************
@@ -117,10 +121,16 @@ MovingAverage<T>::~MovingAverage()
  * \param   size    Size of the memory to allocate.
  * \returns True if the requested size could be allocated, else false. False if
  *          the requested size equals 0.
+ *          False if the type T is too large: double, int64_t, uint64_t.
  */
 template<class T>
 bool MovingAverage<T>::Resize(const uint16_t size)
 {
+    // Disallow the use of larger types
+    if (std::is_same<double,   T>::value) { return false; }
+    if (std::is_same<int64_t,  T>::value) { return false; }
+    if (std::is_same<uint64_t, T>::value) { return false; }
+
     if (mElements != nullptr)
     {
         delete [] mElements;
