@@ -59,8 +59,8 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.Size() == 0);
 
         size = 3;
-        REQUIRE(ringBuff.Poke(data, size) == false);
-        REQUIRE(size == 0);
+        REQUIRE(ringBuff.Poke(data, size) == true);     // Exception: if write == read and size == read allow Poke() to reset mWrite and mRead
+        REQUIRE(size == 3);
     }
 
     SECTION( "wrap with small buffer - read starts unequal to wrap" )

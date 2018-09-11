@@ -91,8 +91,8 @@
  *          https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    05-2018
+ * \version 1.2
+ * \date    09-2018
  */
 
 #ifndef CONTIGUOUS_RING_BUFFER_HPP_
@@ -132,7 +132,6 @@ public:
     bool IsLockFree(void) const;
 
     // Debug
-    void Print(void) const;
     void SetState(size_t write, size_t read, size_t wrap);
     bool CheckState(size_t write, size_t read, size_t wrap );
 
@@ -222,6 +221,10 @@ bool ContiguousRingbuffer<T>::Resize(const size_t size)
  *                  space is available), else at the start of the buffer.
  * \param   size    Reference to size. If the method returns true it is set to
  *                  largest free contiguous block available, else to 0.
+ * \note    This has 1 exceptional case: if the buffer is empty and a block is
+ *          requested equal to the size of the read pointer at that moment,
+ *          Poke() will reset the write and read pointer to allow writing that
+ *          block.
  * \returns True if a contiguous block of elements of 'size' could be found,
  *          else false. False if size is not within valid range.
  *          The 'size' will be set to the maximum size of elements in a
@@ -257,6 +260,16 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
                     {
                         size = read - 1;
                         dest = mElements;
+                        return true;
+                    }
+                    // If the buffer is empty and the next block would fill it completely, allow this exception
+                    else if ((write == read) && (size == read))
+                    {
+                        // Allowed as buffer is empty, we are Producer and will not call Write() before this.
+                        // The Consumer will use Peek() which at the moment mWrite is used will also have an update mRead.
+                        dest = mElements;
+                        mRead.store(0, std::memory_order_release);      // Note: Poke() modifies mWrite and mRead!
+                        mWrite.store(0, std::memory_order_release);
                         return true;
                     }
                 }
@@ -567,22 +580,6 @@ bool ContiguousRingbuffer<T>::CheckState(size_t write, size_t read, size_t wrap)
     return ( ( write == current_write ) &&
              ( read  == current_read  ) &&
              ( wrap  == current_wrap  ) );
-}
-
-/**
- * \brief   Debug method to print the contents of the buffer.
- * \details Prints the contents of the buffer along with the write/read/wrap
- *          pointers and the size for reference.
- */
-template<typename T>
-void ContiguousRingbuffer<T>::Print(void) const
-{
-    std::cout << "Read(" << mRead << "), Write(" << mWrite << "), Wrap(" << mWrap << "), Elements[";
-    for (size_t i = 0; i < (mCapacity - 1); i++)
-    {
-        std::cout << mElements[i] << "|";
-    }
-    std::cout << mElements[(mCapacity - 1)] << "]" << ", Size(" << Size() << ")" << std::endl;
 }
 
 

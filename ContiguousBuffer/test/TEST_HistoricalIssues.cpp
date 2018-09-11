@@ -322,4 +322,36 @@ TEST_CASE( "ContiguousRingbuffer Historical Issues", "[ContiguousRingbuffer]" )
         REQUIRE(size == 0);
         REQUIRE(ringBuff_ext.Size() == 0);
     }
+
+    SECTION( "cannot use single block buffer size" )
+    {
+        REQUIRE(ringBuff_ext.Resize(128) == true);
+        REQUIRE(ringBuff_ext.Size() == 0);
+
+        // -----
+
+        REQUIRE(AddBlock(1, 128) == true);                      // Fill with a fixed block (size of buffer)
+        REQUIRE(ringBuff_ext.CheckState(128, 0, 129) == true);
+
+        REQUIRE(RemoveBlock(1, 128) == true);                   // Read the entire block
+        REQUIRE(ringBuff_ext.CheckState(128, 128, 129) == true);
+
+        size = 128;
+        REQUIRE(ringBuff_ext.Poke(data, size) == true);         // Check a next block would fit (moves read pointer in this exceptional case)
+        REQUIRE(size == 128);
+
+        REQUIRE(ringBuff_ext.CheckState(0, 0, 129) == true);    // Note: buffer was empty, Poke() moved mWrite and mRead!
+
+        REQUIRE(AddBlock(1, 128) == true);                      // Fill with a fixed block (size of buffer)
+        REQUIRE(ringBuff_ext.CheckState(128, 0, 129) == true);
+
+        size = 128;
+        REQUIRE(ringBuff_ext.Peek(data, size) == true);
+        REQUIRE(size == 128);
+
+        REQUIRE(RemoveBlock(1, 128) == true);                   // Read the entire block
+        REQUIRE(ringBuff_ext.CheckState(128, 128, 129) == true);
+
+        REQUIRE(ringBuff_ext.Size() == 0);
+    }
 }

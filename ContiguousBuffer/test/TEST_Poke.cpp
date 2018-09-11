@@ -308,8 +308,8 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
         REQUIRE(size == 2);
 
         size = 3;
-        REQUIRE(ringBuff.Poke(data, size) == false);
-        REQUIRE(size == 0);
+        REQUIRE(ringBuff.Poke(data, size) == true);     // Exception: if write == read and size == read allow Poke() to reset mWrite and mRead
+        REQUIRE(size == 3);
     }
 
     SECTION( "basic operations - invalid states" )
