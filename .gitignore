@@ -16,6 +16,13 @@ Algorithms/QuickSort/test/*.depend
 Algorithms/QuickSort/test/bin/*
 Algorithms/QuickSort/test/obj/*
 
+# Arbiter
+Arbiter/*.layout
+Arbiter/*.depend
+Arbiter/bin/*
+Arbiter/doxygen/html/*
+Arbiter/obj/*
+
 # BitmaskEnum
 BitmaskEnum/test/*.layout
 BitmaskEnum/test/*.depend
