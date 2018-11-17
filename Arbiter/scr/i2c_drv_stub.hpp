@@ -111,11 +111,11 @@ public:
     ~I2C();
 
     bool Init(const Config& refConfig) const;
-    bool IsInit(void) const;
-    void Sleep(void) const;
+    bool IsInit() const;
+    void Sleep() const;
 
-    void Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallbackDataSent);
-    void Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallbackDataReceived);
+    bool Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallback);
+    bool Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallbackData);
 
     bool WriteBlocking(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length);
     bool ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length);
@@ -123,7 +123,7 @@ public:
 private:
     I2CVariables& mRefI2CVariables;
 
-    void AsyncCallbackStub(void);
+    void AsyncCallbackStub();
 };
 
 

@@ -91,11 +91,11 @@ public:
     ~I2CArbiter();
 
     bool Init(const I2C::Config& refConfig);
-    bool IsInit(void) const;
-    void Sleep(void);
+    bool IsInit() const;
+    void Sleep();
 
-    void Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallbackDataSent);
-    void Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallbackDataReceived);
+    bool Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallback);
+    bool Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallback);
 
     bool WriteBlocking(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length);
     bool ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length);
@@ -107,8 +107,7 @@ private:
     std::atomic<bool>  mBusy;
     std::atomic_flag   mLock = ATOMIC_FLAG_INIT;
 
-    std::function<void()> mDataRequestHandler;
-    void DataRequestHandler(void);
+    void DataRequestHandler();
 };
 
 

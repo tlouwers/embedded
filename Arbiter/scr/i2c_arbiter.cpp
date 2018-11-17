@@ -72,8 +72,6 @@ void cpu_irq_restore(irqflags_t irq_state)
 I2CArbiter::I2CArbiter() :
     mBusy(false)
 {
-    mDataRequestHandler = [this]() { this->DataRequestHandler(); };
-
     mBuffer.clear();
 }
 
@@ -103,7 +101,7 @@ bool I2CArbiter::Init(const I2C::Config& refConfig)
  * \brief   Check if I2C is initialized or not.
  * \returns True if initialized, else false.
  */
-bool I2CArbiter::IsInit(void) const
+bool I2CArbiter::IsInit() const
 {
     return mI2C.IsInit();
 }
@@ -113,7 +111,7 @@ bool I2CArbiter::IsInit(void) const
  *          then clear the buffer and put I2C bus to sleep.
  * \remarks When timeout is reached the I2C bus is forced to sleep regardless.
  */
-void I2CArbiter::Sleep(void)
+void I2CArbiter::Sleep()
 {
     while (mBusy) { __NOP() }                                               // Blocking wait until we can use the bus. Use __ASM instruction to prevent loop from being optimized away.
 
@@ -132,13 +130,14 @@ void I2CArbiter::Sleep(void)
  * \brief   Pass thru method to I2C Write method.
  * \details If the bus is busy the pointers to the data are queued and send when
  *          the bus becomes available.
- * \param   refHeader           The header containing the intended slave and write register.
- * \param   ptrSrc              The message to write.
- * \param   length              The length of the message.
- * \param   refCallbackDataSent Callback to call when data is sent.
+ * \param   refHeader       The header containing the intended slave and write register.
+ * \param   ptrSrc          The message to write.
+ * \param   length          The length of the message.
+ * \param   refCallback     Callback to call when data is sent.
+ * \returns True if the request could be handled, else false.
  * \note    Asserts when I2C is not yet initialized.
  */
-void I2CArbiter::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallbackDataSent)
+bool I2CArbiter::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallback)
 {
     assert(mI2C.IsInit());
 
@@ -147,7 +146,7 @@ void I2CArbiter::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t
         element.header           = refHeader;
         element.ptrData          = const_cast<uint8_t *>(ptrSrc);
         element.length           = length;
-        element.callbackDone     = refCallbackDataSent;
+        element.callbackDone     = refCallback;
 
     // The lock is needed to make a multiple producer of the CircularBuffer
     //  (which is single producer thread safe only).
@@ -159,11 +158,11 @@ void I2CArbiter::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t
 
     bool result = mBuffer.push(element);
     assert(result);
-    (void)(result);
 
     mLock.clear(std::memory_order_release);                                 // Release lock - end of critical section
     cpu_irq_restore(irq_state);                                             // Restore global interrupts
 
+    // Start the transmission, if not busy yet
     if (mI2C.IsInit())
     {
         if (!mBusy)
@@ -171,22 +170,26 @@ void I2CArbiter::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t
             mBusy = true;
 
             // Reroute the data received callback to the arbiter
-            mI2C.Write(refHeader, ptrSrc, length, mDataRequestHandler);
+            result = mI2C.Write(refHeader, ptrSrc, length, [this]() { this->DataRequestHandler(); });
+            assert(result);
         }
     }
+
+    return result;
 }
 
 /**
  * \brief   Pass thru method to I2C Read method.
  * \details If the bus is busy the pointers to the data are queued and send when
  *          the bus becomes available.
- * \param   refHeader               The header containing the intended slave and read register.
- * \param   ptrDest                 The buffer to store the read data.
- * \param   length                  The length of the message.
- * \param   refCallbackDataReceived Callback to call when data is received.
+ * \param   refHeader       The header containing the intended slave and read register.
+ * \param   ptrDest         The buffer to store the read data.
+ * \param   length          The length of the message.
+ * \param   refCallback     Callback to call when data is received.
+ * \returns True if the request could be handled, else false.
  * \note    Asserts when I2C is not yet initialized.
  */
-void I2CArbiter::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallbackDataReceived)
+bool I2CArbiter::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallback)
 {
     assert(mI2C.IsInit());
 
@@ -195,7 +198,7 @@ void I2CArbiter::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t lengt
         element.header           = refHeader;
         element.ptrData          = ptrDest;
         element.length           = length;
-        element.callbackDone     = refCallbackDataReceived;
+        element.callbackDone     = refCallback;
 
     // The lock is needed to make a multiple producer of the CircularBuffer
     //  (which is single producer thread safe only).
@@ -207,11 +210,11 @@ void I2CArbiter::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t lengt
 
     bool result = mBuffer.push(element);
     assert(result);
-    (void)(result);
 
     mLock.clear(std::memory_order_release);                                 // Release lock - end of critical section
     cpu_irq_restore(irq_state);                                             // Restore global interrupts
 
+    // Start the transmission, if not busy yet
     if (mI2C.IsInit())
     {
         if (!mBusy)
@@ -219,9 +222,12 @@ void I2CArbiter::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t lengt
             mBusy = true;
 
             // Reroute the data received callback to the arbiter
-            mI2C.Read(refHeader, ptrDest, length, mDataRequestHandler);
+            result = mI2C.Read(refHeader, ptrDest, length, [this]() { this->DataRequestHandler(); });
+            assert(result);
         }
     }
+
+    return result;
 }
 
 /**
@@ -236,9 +242,9 @@ void I2CArbiter::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t lengt
  */
 bool I2CArbiter::WriteBlocking(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length)
 {
-    bool result = false;
-
     assert(mI2C.IsInit());
+
+    bool result = false;
 
     if (mI2C.IsInit())
     {
@@ -246,6 +252,7 @@ bool I2CArbiter::WriteBlocking(const HeaderI2C& refHeader, const uint8_t* ptrSrc
 
         mBusy = true;
         result = mI2C.WriteBlocking(refHeader, ptrSrc, length);
+        assert(result);
         mBusy = false;
     }
 
@@ -264,9 +271,9 @@ bool I2CArbiter::WriteBlocking(const HeaderI2C& refHeader, const uint8_t* ptrSrc
  */
 bool I2CArbiter::ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length)
 {
-    bool result = false;
-
     assert(mI2C.IsInit());
+
+    bool result = false;
 
     if (mI2C.IsInit())
     {
@@ -274,6 +281,7 @@ bool I2CArbiter::ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size
 
         mBusy = true;
         result = mI2C.ReadBlocking(refHeader, ptrDest, length);
+        assert(result);
         mBusy = false;
     }
 
@@ -290,7 +298,7 @@ bool I2CArbiter::ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size
  * \details Checks if there is queued data, if so send it, else
  *          release the bus.
  */
-void I2CArbiter::DataRequestHandler(void)
+void I2CArbiter::DataRequestHandler()
 {
     ArbiterElementI2C element;
 
@@ -306,22 +314,28 @@ void I2CArbiter::DataRequestHandler(void)
         element.callbackDone();
     }
 
+    bool result = false;
+
     // Check if we need to handle the next item.
     if (mBuffer.peek(element))
     {
         if (element.is_write_request)
         {
             // Reroute the data to send callback to the arbiter
-            mI2C.Write(element.header, element.ptrData, element.length, mDataRequestHandler);
+            result = mI2C.Write(element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); });
+            assert(result);
         }
         else
         {
             // Reroute the data received callback to the arbiter
-            mI2C.Read(element.header, element.ptrData, element.length, mDataRequestHandler);
+            result = mI2C.Read(element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); });
+            assert(result);
         }
     }
     else
     {
         mBusy = false;
     }
+
+    (void)(result);     // Hide compiler warning: unused variable
 }

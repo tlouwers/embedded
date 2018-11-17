@@ -112,7 +112,7 @@ bool I2C::Init(const Config& refConfig) const
  * \brief   Check if I2C is initialized or not.
  * \returns True if initialized, else false.
  */
-bool I2C::IsInit(void) const
+bool I2C::IsInit() const
 {
     return mRefI2CVariables.initialized;
 }
@@ -126,57 +126,71 @@ void I2C::Sleep() const
 }
 
 /**
- * \brief   Asynchronous write. Calls refCallbackDataSent when done.
- * \param   refHeader           The header containing the intended slave and write register.
- * \param   ptrSrc              The message to write.
- * \param   length              The length of the message.
- * \param   refCallbackDataSent Callback to call when data is sent.
- * \note    Asserts when pointer to ptrSrc is null.
+ * \brief   Asynchronous write. Calls refCallback when done.
+ * \param   refHeader       The header containing the intended slave and write register.
+ * \param   ptrSrc          The message to write.
+ * \param   length          The length of the message.
+ * \param   refCallback     Callback to call when data is sent.
+ * \returns True if transaction can be setup, else false.
+ * \note    Asserts when ptrSrc is nullptr.
  * \note    Asserts when the length < 1.
  */
-void I2C::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallbackDataSent)
+bool I2C::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallback)
 {
     assert(ptrSrc);
     assert(length > 0);
 
-    mRefI2CVariables.ptrSrc       = ptrSrc;
-    mRefI2CVariables.length       = length;
-    mRefI2CVariables.callbackDone = refCallbackDataSent;
+    if ((ptrSrc != nullptr) && (length > 0))
+    {
+        mRefI2CVariables.ptrSrc       = ptrSrc;
+        mRefI2CVariables.length       = length;
+        mRefI2CVariables.callbackDone = refCallback;
 
-    // Do not care about the header, this is a stub.
+        // Do not care about the header, this is a stub.
 
-    // Small delay to mimic DMA setup
-    std::this_thread::sleep_for(std::chrono::milliseconds(3));
+        // Small delay to mimic DMA setup
+        std::this_thread::sleep_for(std::chrono::milliseconds(3));
 
-    // Setup and start DMA stub
-    std::async(std::launch::async, &I2C::AsyncCallbackStub, this);
+        // Setup and start DMA stub
+        std::async(std::launch::async, &I2C::AsyncCallbackStub, this);
+
+        return true;
+    }
+    return false;
 }
 
 /**
- * \brief   Asynchronous read. Calls refCallbackDataReceived when done.
- * \param   refHeader               The header containing the intended slave and read register.
- * \param   ptrDest                 The buffer to store the read data.
- * \param   length                  The length of the message.
- * \param   refCallbackDataReceived Callback to call when data is received.
- * \note    Asserts when pointer to ptrDest is null.
+ * \brief   Asynchronous read. Calls refCallback when done.
+ * \param   refHeader       The header containing the intended slave and read register.
+ * \param   ptrDest         The buffer to store the read data.
+ * \param   length          The length of the message.
+ * \param   refCallback     Callback to call when data is received.
+ * \returns True if transaction can be setup, else false.
+ * \note    Asserts when ptrDest is nullptr.
  * \note    Asserts when the length < 2.
  */
-void I2C::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallbackDataReceived)
+bool I2C::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallback)
 {
     assert(ptrDest);
     assert(length > 1);
 
-    mRefI2CVariables.ptrDest      = ptrDest;
-    mRefI2CVariables.length       = length;
-    mRefI2CVariables.callbackDone = refCallbackDataReceived;
+    if ((ptrDest != nullptr) && (length > 1))
+    {
+        mRefI2CVariables.ptrDest      = ptrDest;
+        mRefI2CVariables.length       = length;
+        mRefI2CVariables.callbackDone = refCallback;
 
-    // Do not care about the header, this is a stub.
+        // Do not care about the header, this is a stub.
 
-    // Small delay to mimic DMA setup
-    std::this_thread::sleep_for(std::chrono::milliseconds(3));
+        // Small delay to mimic DMA setup
+        std::this_thread::sleep_for(std::chrono::milliseconds(3));
 
-    // Setup and start DMA stub
-    std::async(std::launch::async, &I2C::AsyncCallbackStub, this);
+        // Setup and start DMA stub
+        std::async(std::launch::async, &I2C::AsyncCallbackStub, this);
+
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -228,7 +242,7 @@ bool I2C::ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t leng
 /* Private Methods                                                      */
 /************************************************************************/
 // Mimic ISR: DMA callback to call thus stub
-void I2C::AsyncCallbackStub(void)
+void I2C::AsyncCallbackStub()
 {
     // Small delay to mimic DMA transaction
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
