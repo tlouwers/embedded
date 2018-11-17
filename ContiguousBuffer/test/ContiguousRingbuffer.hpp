@@ -126,10 +126,10 @@ public:
     bool Peek(T* &dest, size_t& size);
     bool Read(const size_t size);
 
-    size_t Size(void) const;
-    void Clear(void);
+    size_t Size() const;
+    void Clear();
 
-    bool IsLockFree(void) const;
+    bool IsLockFree() const;
 
     // Debug
     void SetState(size_t write, size_t read, size_t wrap);
@@ -303,7 +303,8 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
  *          read pointer, meaning a race condition with the wrap is prevented.
  * \param   size    The size to advance the write pointer with.
  * \returns True if the write pointer could be advanced, else false. False if
- *          size is not within valid range.
+ *          size is not within valid range. True if size is 0, as no update is
+ *          done.
  */
 template<typename T>
 bool ContiguousRingbuffer<T>::Write(const size_t size)
@@ -352,6 +353,10 @@ bool ContiguousRingbuffer<T>::Write(const size_t size)
                 return true;
             }
         }
+    }
+    else if (size == 0)
+    {
+        return true;
     }
 
     return false;
@@ -439,12 +444,13 @@ bool ContiguousRingbuffer<T>::Peek(T* &dest, size_t& size)
  *          meaning a race condition with the wrap is prevented.
  * \param   size    The size to advance the read pointer with.
  * \returns True if the read pointer could be advanced, else false. False if
- *          size is not within valid range.
+ *          size is not within valid range. True if size is 0, as no update is
+ *          done.
  */
 template<typename T>
 bool ContiguousRingbuffer<T>::Read(const size_t size)
 {
-    if ((size > 0) && (size < mCapacity))               // Size is in valid range?
+    if ((size > 0) && (size < mCapacity))           // Size is in valid range?
     {
         const auto read  = mRead.load(std::memory_order_relaxed);
         const auto write = mWrite.load(std::memory_order_acquire);
@@ -491,6 +497,10 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
         }
         // Else: buffer empty
     }
+    else if (size == 0)
+    {
+        return true;
+    }
 
     return false;
 }
@@ -502,7 +512,7 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
  * \returns The total number of elements in the buffer.
  */
 template<typename T>
-size_t ContiguousRingbuffer<T>::Size(void) const
+size_t ContiguousRingbuffer<T>::Size() const
 {
     const auto write = mWrite.load(std::memory_order_acquire);
     const auto read  = mRead.load(std::memory_order_acquire);
@@ -526,7 +536,7 @@ size_t ContiguousRingbuffer<T>::Size(void) const
  * \details Resets the write/read/wrap pointers to the initial state.
  */
 template<typename T>
-void ContiguousRingbuffer<T>::Clear(void)
+void ContiguousRingbuffer<T>::Clear()
 {
     mWrite.store(0, std::memory_order_release);
     mRead.store(0, std::memory_order_release);
@@ -538,7 +548,7 @@ void ContiguousRingbuffer<T>::Clear(void)
  * \result  Returns true if the atomic operations are lock-free, else false.
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::IsLockFree(void) const
+bool ContiguousRingbuffer<T>::IsLockFree() const
 {
     return (mWrite.is_lock_free() && mRead.is_lock_free() && mWrap.is_lock_free());
 }
