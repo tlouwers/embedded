@@ -115,7 +115,7 @@ public:
     void Sleep() const;
 
     bool Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallback);
-    bool Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallbackData);
+    bool Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallback);
 
     bool WriteBlocking(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length);
     bool ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length);

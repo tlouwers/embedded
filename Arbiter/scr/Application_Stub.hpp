@@ -33,7 +33,6 @@
 /* Includes                                                             */
 /************************************************************************/
 #include <cstdint>
-#include <functional>
 #include "i2c_arbiter.hpp"
 #include "i2c_drv_stub.hpp"
 
@@ -47,8 +46,8 @@ public:
     Application_Stub();
     virtual ~Application_Stub();
 
-    bool Init(void);
-    void Test(void);
+    bool Init();
+    void Test();
 
 private:
     I2CArbiter mI2CArbiter;
@@ -56,8 +55,7 @@ private:
     HeaderI2C mHeader;
     const uint8_t mSrc[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
-    std::function<void()> mCallback;
-    void Callback(void);
+    void Callback();
 };
 
 

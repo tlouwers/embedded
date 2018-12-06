@@ -43,7 +43,7 @@
 Application_Stub::Application_Stub() :
     mI2CArbiter()
 {
-    mCallback = [this]() { this->Callback(); };
+   ;
 }
 
 /**
@@ -59,7 +59,7 @@ Application_Stub::~Application_Stub()
  * \returns True if the arbiter (and I2C stub) could be initialized, else
  *          false.
  */
-bool Application_Stub::Init(void)
+bool Application_Stub::Init()
 {
     bool result = mI2CArbiter.Init(I2C::Config(5, I2C::BusSpeed::Full));
     assert(result);
@@ -75,9 +75,9 @@ bool Application_Stub::Init(void)
  *          for instance to read a FIFO from a motion controller. The call
  *          is asynchronous.
  */
-void Application_Stub::Test(void)
+void Application_Stub::Test()
 {
-    mI2CArbiter.Write(mHeader, mSrc, sizeof(mSrc), mCallback);
+    mI2CArbiter.Write(mHeader, mSrc, sizeof(mSrc), [this]() { this->Callback(); });
 }
 
 
@@ -88,7 +88,7 @@ void Application_Stub::Test(void)
  * \brief   Example callback, called when the test method (asynchronous) is
  *          done with the mimicked I2C transaction.
  */
-void Application_Stub::Callback(void)
+void Application_Stub::Callback()
 {
     std::cout << "Callback called" << std::endl;
 }

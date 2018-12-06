@@ -90,7 +90,7 @@ public:
     I2CArbiter();
     ~I2CArbiter();
 
-    bool Init(const I2C::Config& refConfig);
+    bool Init(const I2C::Config& refConfig) const;
     bool IsInit() const;
     void Sleep();
 

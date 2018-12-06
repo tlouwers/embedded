@@ -92,9 +92,9 @@ I2CArbiter::~I2CArbiter()
  * \param   refConfig   Configuration of the I2C bus.
  * \returns True if initialized successful, else false.
  */
-bool I2CArbiter::Init(const I2C::Config& refConfig)
+bool I2CArbiter::Init(const I2C::Config& refConfig) const
 {
-    return (mI2C.Init(refConfig)) ? true : false;
+    return mI2C.Init(refConfig);
 }
 
 /**
