@@ -212,21 +212,20 @@ TEST_CASE( "ContiguousRingbuffer write and read operations", "[ContiguousRingbuf
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);     // 3 elements, 1 at end, other 2 at start not contiguous
-        REQUIRE(size == 1);
         REQUIRE(ringBuff.Write(1) == true);
         REQUIRE(ringBuff.CheckState(0, 3, 4) == true);
 
         ringBuff.SetState(0, 0, 4);                     // Set mWrite(0), mRead(0), mWrap(4) - 3 elements available at start
 
-        size = 1;
+        size = 3;
         REQUIRE(ringBuff.Poke(data, size) == true);     // 3 elements available at start
-        REQUIRE(size == 3);
+        REQUIRE(ringBuff.Size() == 0);                  // Nothing in buffer yet
         REQUIRE(ringBuff.Write(3) == true);
         REQUIRE(ringBuff.CheckState(3, 0, 4) == true);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);    // Buffer full: 3 elements placed
-        REQUIRE(size == 0);
+        REQUIRE(ringBuff.Size() == 3);
 
         REQUIRE(ringBuff.Read(1) == true);              // Remove 1 element, 2 elements remain in the middle
 

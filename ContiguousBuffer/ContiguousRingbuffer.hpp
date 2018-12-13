@@ -35,10 +35,10 @@
  *          int* data = nullptr;
  *          size_t size = 1;
  *          int val = 42;
- *          if (ringBuff.Poke(data, size))  // 'size' changes to the space available
+ *          if (ringBuff.Poke(data, size))  // 'size' does not change, still at 1
  *          {
  *              data[0] = val;
- *              ringBuff.Write(1);          // Administer the data is written, 1 element
+ *              ringBuff.Write(size);       // Administer the data is written, 1 element
  *          }
  *
  *          // Check if there is at least 1 element in buffer, then read it
@@ -117,7 +117,7 @@ public:
 
     bool Resize(const size_t size);
 
-    bool Poke(T* &dest, size_t& size);
+    bool Poke(T* &dest, const size_t size);
     bool Write(const size_t size);
 
     bool Peek(T* &dest, size_t& size);
@@ -212,22 +212,19 @@ bool ContiguousRingbuffer<T>::Resize(const size_t size)
  *                  points to the start of the contiguous block, else nullptr.
  *                  The contiguous block can be either at the end (if enough
  *                  space is available), else at the start of the buffer.
- * \param   size    Reference to size. If the method returns true it is set to
- *                  largest free contiguous block available, else to 0.
+ * \param   size    Requested size for the contiguous block.
  * \note    This has 1 exceptional case: if the buffer is empty and a block is
  *          requested equal to the size of the read pointer at that moment,
  *          Poke() will reset the write and read pointer to allow writing that
  *          block.
  * \returns True if a contiguous block of elements of 'size' could be found,
  *          else false. False if size is not within valid range.
- *          The 'size' will be set to the maximum size of elements in a
- *          contiguous block still free, else 0 (when false). Note that first
- *          the block at the end of the buffer is checked, then the start.
- *          The 'dest' will be set to the start of the contiguous block
- *          still free, else nullptr (when false).
+ *          Note that first the block at the end of the buffer is checked, then
+ *          the start. The 'dest' will be set to the start of the contiguous
+ *          block still free, else nullptr (when false).
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
+bool ContiguousRingbuffer<T>::Poke(T* &dest, const size_t size)
 {
     if ((size > 0) && (size < mCapacity))               // Size within valid range?
     {
@@ -243,7 +240,6 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
 
                 if (size <= available)                  // Does the requested block fit?
                 {
-                    size = available;
                     dest = mElements + write;
                     return true;
                 }
@@ -251,7 +247,6 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
                 {
                     if (size < read)                    // Does the requested block fit?
                     {
-                        size = read - 1;
                         dest = mElements;
                         return true;
                     }
@@ -272,7 +267,6 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
         {
             if ((write + size) < read)                  // Does the requested block fit?
             {
-                size = read - write - 1;
                 dest = mElements + write;
                 return true;
             }
@@ -280,7 +274,6 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
     }
 
     dest = nullptr;
-    size = 0;
     return false;
 }
 

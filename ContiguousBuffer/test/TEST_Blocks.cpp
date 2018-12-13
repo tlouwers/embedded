@@ -90,11 +90,11 @@ TEST_CASE( "ContiguousRingbuffer large blocks", "[ContiguousRingbuffer]" )
 
         size = block_size;
         REQUIRE(ringBuff_ext.Poke(data, size) == false);    // Cannot add another block
-        REQUIRE(size == 0);
+        REQUIRE(ringBuff_ext.CheckState(1024, 0, 1025) == true);
 
         size = 1;
         REQUIRE(ringBuff_ext.Poke(data, size) == false);    // Cannot even add a single element
-        REQUIRE(size == 0);
+        REQUIRE(ringBuff_ext.CheckState(1024, 0, 1025) == true);
 
         size = block_size;
         REQUIRE(ringBuff_ext.Peek(data, size) == true);     // Elements available from the start, 4 blocks
@@ -139,7 +139,7 @@ TEST_CASE( "ContiguousRingbuffer large blocks", "[ContiguousRingbuffer]" )
 
         size = block_size;
         REQUIRE(ringBuff_ext.Poke(data, size) == false);    // Cannot add another block
-        REQUIRE(size == 0);
+        REQUIRE(ringBuff_ext.CheckState(768, 1024, 1024) == true);
 
         size = block_size;
         REQUIRE(ringBuff_ext.Peek(data, size) == true);     // Elements available from the start, 3 blocks
