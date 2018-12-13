@@ -14,8 +14,9 @@ static ContiguousRingbuffer<int> ringBuff_ext;          // Our buffer used for t
 static bool AddBlock(int index_start, const size_t block_size)
 {
     int* data = nullptr;
+    size_t size = block_size;
 
-    if (ringBuff_ext.Poke(data, block_size))
+    if (ringBuff_ext.Poke(data, size))
     {
         // Fill the buffer with 'known' values
         for (size_t i = 0; i < block_size; i++)
@@ -55,7 +56,7 @@ TEST_CASE( "ContiguousRingbuffer speed check", "[ContiguousRingbuffer]" )
 {
     const size_t block_size = 7;
     uint32_t count = 0;
-    const uint32_t nrOfRuns = 200000;
+    const uint32_t nrOfRuns = 2000000;
 
     REQUIRE(ringBuff_ext.Resize(40) == true);
     REQUIRE(ringBuff_ext.Size() == 0);
@@ -84,6 +85,6 @@ TEST_CASE( "ContiguousRingbuffer speed check", "[ContiguousRingbuffer]" )
         WARN("Using DEBUG build - results are NOT accurate");
         #endif // NDEBUG
 
-        WARN("Duration of speed check in milliseconds: " << (std::chrono::duration<double, std::milli>(end - start).count()) );
+        WARN("Duration of speed check: " << (std::chrono::duration<double, std::milli>(end - start).count()) << " milliseconds");
     }
 }
