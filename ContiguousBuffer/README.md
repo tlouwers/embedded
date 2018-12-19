@@ -57,7 +57,7 @@ If Peek() / Read() use an old value of the write pointer this would mean the buf
 The race condition on the wrap pointer is prevented partly by not allowing Write() and Read() to overtake each other. In addition, Write() will be the first to pass the wrapping point, Read() at this point will not use the wrap pointer. When Read() passes the wrapping point Write() will not use the wrap pointer. In this case it is irrelevant whether Write() or Read() use an 'old' or 'new' state, at the time they need the wrap pointer the other is guaranteed not to alter it.
 
 ## Note
-There is no memcpy() in the buffer, meaning it is up to the user to make a copy of the data, the buffer will only manage the data here. This allows for DMA to fill the memory, or use a regular memcpy() or other construct to fill the buffer.
+There is no std::copy() in the buffer, meaning it is up to the user to make a copy of the data, the buffer will only manage the data here. This allows for DMA to fill the memory, or use a regular std::copy() or other construct to fill the buffer.
 
 ## Careful
 One can only prevent so much, once the user get access to the data (the pointer), it is up to the user to not write/read beyond the boundaries given by the size.

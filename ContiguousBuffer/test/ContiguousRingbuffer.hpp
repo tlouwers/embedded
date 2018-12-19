@@ -91,8 +91,8 @@
  *          https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.2
- * \date    09-2018
+ * \version 1.3
+ * \date    12-2018
  */
 
 #ifndef CONTIGUOUS_RING_BUFFER_HPP_
