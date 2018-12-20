@@ -13,6 +13,7 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
     size_t size = 0;
 
     REQUIRE( ringBuff.Size() == 0 );
+    REQUIRE( ringBuff.ContiguousSize() == 0 );
 
 
     SECTION( "smallest wrap possible" )

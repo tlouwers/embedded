@@ -123,6 +123,7 @@ public:
     bool Peek(T* &dest, size_t& size);
     bool Read(const size_t size);
 
+    size_t ContiguousSize() const;
     size_t Size() const;
     void Clear();
 
@@ -492,6 +493,42 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
 }
 
 /**
+ * \brief   Returns the number of elements in the buffer which can be read as
+ *          contiguous block. These are the available elements before the
+ *          wrapping point.
+ * \remark  This is a snapshot, either read or write can change the status
+ *          causing the size to be (slightly) incorrect.
+ * \returns The number of elements in the buffer up to the wrapping point.
+ */
+template<typename T>
+size_t ContiguousRingbuffer<T>::ContiguousSize() const
+{
+    const auto write = mWrite.load(std::memory_order_acquire);
+    const auto read  = mRead.load(std::memory_order_acquire);
+    const auto wrap  = mWrap.load(std::memory_order_acquire);
+
+    // Sanity checks: administration out-of-bounds, thus return a 'sane' value
+    if  (mCapacity == 0   ) { return 0; }   // Buffer not 'Resize()' yet
+    if ((read      == 0   ) && (write >= mCapacity)) { return mCapacity - 1; }
+    if  (read      >  wrap) { return 0; }
+    if ((read      == wrap) && (read == mCapacity) && (write > 0)) { return 0; }
+
+    size_t result = 0;
+
+    if (write > read)
+    {
+        result = write - read;
+    }
+    else if (write < read)
+    {
+        result = wrap - read;
+    }
+    // Else: write == read --> buffer empty, return 0
+
+	return (result < mCapacity) ? result : 0;
+}
+
+/**
  * \brief   Returns the number of elements in the buffer.
  * \remark  This is a snapshot, either read or write can change the status
  *          causing the size to be (slightly) incorrect.
@@ -504,17 +541,25 @@ size_t ContiguousRingbuffer<T>::Size() const
     const auto read  = mRead.load(std::memory_order_acquire);
     const auto wrap  = mWrap.load(std::memory_order_acquire);
 
+    // Sanity checks: administration out-of-bounds, thus return a 'sane' value
+    if  (mCapacity == 0   ) { return 0;             }   // Buffer not 'Resize()' yet
+    if  (write     >= wrap) { return mCapacity - 1; }
+    if  (read      >  wrap) { return 0;             }
+    if ((read      == wrap) && (read == mCapacity) && (write > 0)) { return 0; }
+
+    size_t result = 0;
+
     if (write > read)
     {
-        return write - read;
+        result = write - read;
     }
     else if (write < read)
     {
-        return (wrap - read) + write;
+        result = (wrap - read) + write;
     }
     // Else: write == read --> buffer empty, return 0
 
-	return 0;
+    return (result < mCapacity) ? result : 0;
 }
 
 /**

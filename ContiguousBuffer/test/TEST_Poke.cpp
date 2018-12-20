@@ -301,6 +301,9 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         REQUIRE(ringBuff.CheckState(4, 0, 4) == true);
 
+        REQUIRE(ringBuff.Size() == 3);
+        REQUIRE(ringBuff.ContiguousSize() == 3);
+
         // -----
 
         ringBuff.SetState(4, 1, 4);                     // Set mWrite(4), mRead(1), mWrap(4) - 1 element more than possible - buffer full
@@ -310,6 +313,9 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.Poke(data, size) == false);    // Handle as: buffer full
 
         REQUIRE(ringBuff.CheckState(4, 1, 4) == true);
+
+        REQUIRE(ringBuff.Size() == 3);
+        REQUIRE(ringBuff.ContiguousSize() == 3);
 
         // -----
 
@@ -321,6 +327,9 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         REQUIRE(ringBuff.CheckState(4, 2, 4) == true);
 
+        REQUIRE(ringBuff.Size() == 3);
+        REQUIRE(ringBuff.ContiguousSize() == 2);
+
         // -----
 
         ringBuff.SetState(4, 3, 4);                     // Set mWrite(4), mRead(3), mWrap(4) - 1 element more than possible - buffer full
@@ -331,6 +340,9 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         REQUIRE(ringBuff.CheckState(4, 3, 4) == true);
 
+        REQUIRE(ringBuff.Size() == 3);
+        REQUIRE(ringBuff.ContiguousSize() == 1);
+
         // -----
 
         ringBuff.SetState(5, 0, 4);                     // Set mWrite(5), mRead(0), mWrap(4) - 2 elements more than possible - buffer full
@@ -340,5 +352,8 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.Poke(data, size) == false);    // Handle as: buffer full
 
         REQUIRE(ringBuff.CheckState(5, 0, 4) == true);
+
+        REQUIRE(ringBuff.Size() == 3);
+        REQUIRE(ringBuff.ContiguousSize() == 3);
     }
 }
