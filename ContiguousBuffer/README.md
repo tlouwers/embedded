@@ -34,10 +34,10 @@ ringBuff.Resize(5);
 int* data = nullptr;
 size_t size = 1;
 int val = 42;
-if (ringBuff.Poke(data, size))  // 'size' does not change, still at 1
+if (ringBuff.Poke(data, size))  // 'size' changes to the space available
 {
     data[0] = val;
-    ringBuff.Write(size);       // Administer the data is written, 1 element
+    ringBuff.Write(1);          // Administer the data is written, 1 element
 }
 
 // Check if there is at least 1 element in buffer, then read it

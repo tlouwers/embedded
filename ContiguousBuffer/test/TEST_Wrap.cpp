@@ -75,11 +75,13 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
         data[0] = 4;                                    // Actually adding data, will be checked later
         REQUIRE(ringBuff.Write(1) == true);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);     // Only 1 element available at end, but 2 available at start
+        REQUIRE(size == 2);
         data[0] = 1;                                    // Actually adding data, will be checked later
         data[1] = 2;
         REQUIRE(ringBuff.Write(2) == true);             // Write block of 2 elements, shrinks wrap by 1
@@ -162,9 +164,11 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);     // 7 contiguous elements available at the end
+        REQUIRE(size == 7);
 
         size = 13;
         REQUIRE(ringBuff.Poke(data, size) == true);     // And 13 contiguous elements available at the start
+        REQUIRE(size == 13);
 
         REQUIRE(ringBuff.Write(10) == true);            // Wraps, leave 3 elements available
         REQUIRE(ringBuff.CheckState(10, 14, 14) == true);
@@ -176,6 +180,7 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);     // 3 elements available
+        REQUIRE(size == 3);
 
         REQUIRE(ringBuff.Read(3) == true);              // Read 3 elements, restores wrap, leaving 7 remaining
         REQUIRE(ringBuff.CheckState(10, 3, 21) == true);

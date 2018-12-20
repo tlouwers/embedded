@@ -23,18 +23,23 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 3);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 3);
 
         size = 3;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 3);
 
         size = 4;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(0, 0, 4) == true);
 
@@ -45,15 +50,19 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
 
         size = 3;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(1, 0, 4) == true);
 
@@ -64,12 +73,15 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 1);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(2, 0, 4) == true);
 
@@ -80,9 +92,11 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(3, 0, 4) == true);
     }
@@ -94,9 +108,11 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(0, 1, 4) == true);
 
@@ -107,18 +123,23 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 3);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 3);
 
         size = 3;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 3);
 
         size = 4;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(1, 1, 4) == true);
 
@@ -129,15 +150,19 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
 
         size = 3;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(2, 1, 4) == true);
 
@@ -148,12 +173,15 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 1);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(3, 1, 4) == true);
     }
@@ -165,12 +193,15 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 1);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(0, 2, 4) == true);
 
@@ -181,9 +212,11 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(1, 2, 4) == true);
 
@@ -194,15 +227,19 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
 
         size = 3;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(2, 2, 4) == true);
 
@@ -213,12 +250,15 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 1);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(3, 2, 4) == true);
     }
@@ -230,15 +270,19 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
 
         size = 3;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(0, 3, 4) == true);
 
@@ -249,12 +293,15 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 1);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(1, 3, 4) == true);
 
@@ -265,9 +312,11 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(2, 3, 4) == true);
 
@@ -278,15 +327,19 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 0;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);     // Can use the available element at the end
+        REQUIRE(size == 1);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);     // Can use the available elements at the start
+        REQUIRE(size == 2);
 
         size = 3;
         REQUIRE(ringBuff.Poke(data, size) == true);     // Exception: if write == read and size == read allow Poke() to reset mWrite and mRead
+        REQUIRE(size == 3);
 
         REQUIRE(ringBuff.CheckState(0, 0, 4) == true);  // Check the reset of mWrite and mRead
     }
@@ -298,6 +351,7 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);    // Handle as: buffer full
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(4, 0, 4) == true);
 
@@ -311,6 +365,7 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);    // Handle as: buffer full
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(4, 1, 4) == true);
 
@@ -324,6 +379,7 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);    // Handle as: buffer full
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(4, 2, 4) == true);
 
@@ -337,6 +393,7 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);    // Handle as: buffer full
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(4, 3, 4) == true);
 
@@ -350,6 +407,7 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);    // Handle as: buffer full
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff.CheckState(5, 0, 4) == true);
 
