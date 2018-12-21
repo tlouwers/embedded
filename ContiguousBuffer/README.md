@@ -89,7 +89,7 @@ void ProcessRx(void)
 	bool result = false;
 
 	// Check if there is room in the buffer. Received now indicates the largest contiguous block available,
-    // not necessarily the first block - this means some space may remain unused.
+	// not necessarily the first block - this means some space may remain unused.
 	uint8_t ptrDest = nullptr;
 	size_t received = 1;
 	if (buffRx.Poke(ptrDest, received)
