@@ -35,10 +35,10 @@
  *          int* data = nullptr;
  *          size_t size = 1;
  *          int val = 42;
- *          if (ringBuff.Poke(data, size))  // 'size' does not change, still at 1
+ *          if (ringBuff.Poke(data, size))  // 'size' changes to the space available
  *          {
  *              data[0] = val;
- *              ringBuff.Write(size);       // Administer the data is written, 1 element
+ *              ringBuff.Write(1);          // Administer the data is written, 1 element
  *          }
  *
  *          // Check if there is at least 1 element in buffer, then read it
@@ -117,13 +117,15 @@ public:
 
     bool Resize(const size_t size);
 
-    bool Poke(T* &dest, const size_t size);
+    bool Poke(T* &dest, size_t& size);
     bool Write(const size_t size);
 
     bool Peek(T* &dest, size_t& size);
     bool Read(const size_t size);
 
+    size_t ContiguousSize() const;
     size_t Size() const;
+
     void Clear();
 
     bool IsLockFree() const;
@@ -212,19 +214,22 @@ bool ContiguousRingbuffer<T>::Resize(const size_t size)
  *                  points to the start of the contiguous block, else nullptr.
  *                  The contiguous block can be either at the end (if enough
  *                  space is available), else at the start of the buffer.
- * \param   size    Requested size for the contiguous block.
+ * \param   size    Reference to size. If the method returns true it is set to
+ *                  largest free contiguous block available, else to 0.
  * \note    This has 1 exceptional case: if the buffer is empty and a block is
  *          requested equal to the size of the read pointer at that moment,
  *          Poke() will reset the write and read pointer to allow writing that
  *          block.
  * \returns True if a contiguous block of elements of 'size' could be found,
  *          else false. False if size is not within valid range.
- *          Note that first the block at the end of the buffer is checked, then
- *          the start. The 'dest' will be set to the start of the contiguous
- *          block still free, else nullptr (when false).
+ *          The 'size' will be set to the maximum size of elements in a
+ *          contiguous block still free, else 0 (when false). Note that first
+ *          the block at the end of the buffer is checked, then the start.
+ *          The 'dest' will be set to the start of the contiguous block
+ *          still free, else nullptr (when false).
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::Poke(T* &dest, const size_t size)
+bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
 {
     if ((size > 0) && (size < mCapacity))               // Size within valid range?
     {
@@ -240,6 +245,7 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, const size_t size)
 
                 if (size <= available)                  // Does the requested block fit?
                 {
+                    size = available;
                     dest = mElements + write;
                     return true;
                 }
@@ -247,6 +253,7 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, const size_t size)
                 {
                     if (size < read)                    // Does the requested block fit?
                     {
+                        size = read - 1;
                         dest = mElements;
                         return true;
                     }
@@ -267,6 +274,7 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, const size_t size)
         {
             if ((write + size) < read)                  // Does the requested block fit?
             {
+                size = read - write - 1;
                 dest = mElements + write;
                 return true;
             }
@@ -274,6 +282,7 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, const size_t size)
     }
 
     dest = nullptr;
+    size = 0;
     return false;
 }
 
@@ -492,6 +501,43 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
 }
 
 /**
+ * \brief   Returns the number of elements in the buffer which can be read as
+ *          contiguous block. These are the available elements before the
+ *          wrapping point. There may be a larger block after the wrapping
+ *          point, which will be indicated after the smaller has been Read().
+ * \remark  This is a snapshot, either read or write can change the status
+ *          causing the size to be (slightly) incorrect.
+ * \returns The number of elements in the buffer up to the wrapping point.
+ */
+template<typename T>
+size_t ContiguousRingbuffer<T>::ContiguousSize() const
+{
+    if (mCapacity == 0) { return 0; }                   // Buffer not 'Resize()' yet
+
+    const auto write = mWrite.load(std::memory_order_acquire);
+    const auto read  = mRead.load(std::memory_order_acquire);
+    const auto wrap = mWrap.load(std::memory_order_acquire);
+
+    if (write >  mCapacity) { return mCapacity - 1; }    // Invalid value for write
+    if (read  >  wrap     ) { return 0;             }    // Invalid value for read
+
+    if (write > read)
+    {
+        // Single block in the middle, but protect against being too large
+        const auto result = write - read;
+        return (result < mCapacity) ? result : mCapacity - 1;
+    }
+    else if (write < read)
+    {
+        // If wrap was shrunk return write (block at the start), else the block at the end
+        return ((wrap == read) && (wrap < mCapacity)) ? write : wrap - read;
+    }
+
+    // Else: write == read, buffer empty
+    return 0;
+}
+
+/**
  * \brief   Returns the number of elements in the buffer.
  * \remark  This is a snapshot, either read or write can change the status
  *          causing the size to be (slightly) incorrect.
@@ -500,21 +546,30 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
 template<typename T>
 size_t ContiguousRingbuffer<T>::Size() const
 {
+    if (mCapacity == 0) { return 0; }   // Buffer not 'Resize()' yet
+
     const auto write = mWrite.load(std::memory_order_acquire);
     const auto read  = mRead.load(std::memory_order_acquire);
     const auto wrap  = mWrap.load(std::memory_order_acquire);
 
+    // Sanity checks: administration out-of-bounds, thus return a 'sane' value
+    if  (write >= wrap) { return mCapacity - 1; }
+    if  (read  >  wrap) { return 0;             }
+    if ((read  == wrap) && (read == mCapacity) && (write > 0)) { return 0; }
+
+    size_t result = 0;
+
     if (write > read)
     {
-        return write - read;
+        result = write - read;
     }
     else if (write < read)
     {
-        return (wrap - read) + write;
+        result = (wrap - read) + write;
     }
     // Else: write == read --> buffer empty, return 0
 
-	return 0;
+    return (result < mCapacity) ? result : 0;
 }
 
 /**

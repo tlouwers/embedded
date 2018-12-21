@@ -13,6 +13,7 @@ TEST_CASE( "ContiguousRingbuffer Resize() operations", "[ContiguousRingbuffer]" 
     size_t size = 0;
 
     REQUIRE( ringBuff.Size() == 0 );
+    REQUIRE( ringBuff.ContiguousSize() == 0 );
 
 
     SECTION( "resize small to large" )
@@ -24,6 +25,7 @@ TEST_CASE( "ContiguousRingbuffer Resize() operations", "[ContiguousRingbuffer]" 
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 5);
         REQUIRE(ringBuff.CheckState(0, 0, 6) == true);
         REQUIRE(ringBuff.Write(2) == true);
         REQUIRE(ringBuff.Size() == 2);
@@ -35,6 +37,7 @@ TEST_CASE( "ContiguousRingbuffer Resize() operations", "[ContiguousRingbuffer]" 
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 50);
         REQUIRE(ringBuff.CheckState(0, 0, 51) == true);
         REQUIRE(ringBuff.Write(2) == true);
         REQUIRE(ringBuff.Size() == 2);
@@ -52,6 +55,7 @@ TEST_CASE( "ContiguousRingbuffer Resize() operations", "[ContiguousRingbuffer]" 
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 50);
         REQUIRE(ringBuff.CheckState(0, 0, 51) == true);
         REQUIRE(ringBuff.Write(2) == true);
         REQUIRE(ringBuff.Size() == 2);
@@ -63,6 +67,7 @@ TEST_CASE( "ContiguousRingbuffer Resize() operations", "[ContiguousRingbuffer]" 
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 5);
         REQUIRE(ringBuff.CheckState(0, 0, 6) == true);
         REQUIRE(ringBuff.Write(2) == true);
         REQUIRE(ringBuff.Size() == 2);

@@ -135,18 +135,22 @@ TEST_CASE( "ContiguousRingbuffer Historical Issues", "[ContiguousRingbuffer]" )
 
         size = 2;
         REQUIRE(ringBuff_ext.Poke(data, size) == true);     // 2 elements available at end
+        REQUIRE(size == 2);
 
         size = 3;
         REQUIRE(ringBuff_ext.Poke(data, size) == true);     // Larger than 2, thus 4 elements available at start
+        REQUIRE(size == 4);
 
         size = 5;
         REQUIRE(ringBuff_ext.Poke(data, size) == false);    // Although 6 available, only 2 or 4 contiguous
+        REQUIRE(size == 0);
 
         REQUIRE(ringBuff_ext.CheckState(7, 5, 9) == true);
         REQUIRE(ringBuff_ext.Size() == 2);
 
         size = 4;
         REQUIRE(ringBuff_ext.Poke(data, size) == true);     // Largest contiguous block is 4
+        REQUIRE(size == 4);
         data[0] = 1;
         data[1] = 2;
         data[2] = 3;
@@ -191,6 +195,7 @@ TEST_CASE( "ContiguousRingbuffer Historical Issues", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == false);
+        REQUIRE(size == 0);
         REQUIRE(ringBuff.CheckState(4, 0, 5) == true);
         REQUIRE(ringBuff.Size() == 4);
 
@@ -198,6 +203,7 @@ TEST_CASE( "ContiguousRingbuffer Historical Issues", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 1);
         REQUIRE(ringBuff.CheckState(3, 0, 5) == true);
         REQUIRE(ringBuff.Size() == 3);
 
@@ -205,6 +211,7 @@ TEST_CASE( "ContiguousRingbuffer Historical Issues", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 4);
         REQUIRE(ringBuff.CheckState(0, 0, 5) == true);
         REQUIRE(ringBuff.Size() == 0);
 
@@ -212,10 +219,12 @@ TEST_CASE( "ContiguousRingbuffer Historical Issues", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 1);
         REQUIRE(ringBuff.Size() == 0);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 3);
         REQUIRE(ringBuff.Size() == 0);
 
         REQUIRE(ringBuff.CheckState(4, 4, 5) == true);
@@ -284,12 +293,14 @@ TEST_CASE( "ContiguousRingbuffer Historical Issues", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff_ext.Poke(data, size) == true);     // 4 elements available at end
+        REQUIRE(size == 4);
 
         REQUIRE(AddBlock(1021, 4) == true);                 // Fill the remaining 4 elements
         REQUIRE(ringBuff_ext.CheckState(1024, 0, 1025) == true);
 
         size = 1;
         REQUIRE(ringBuff_ext.Poke(data, size) == false);    // Buffer full
+        REQUIRE(size == 0);
         REQUIRE(ringBuff_ext.CheckState(1024, 0, 1025) == true);
         REQUIRE(ringBuff_ext.Size() == 1024);
 

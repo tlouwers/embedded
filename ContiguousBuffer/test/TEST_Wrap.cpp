@@ -13,6 +13,7 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
     size_t size = 0;
 
     REQUIRE( ringBuff.Size() == 0 );
+    REQUIRE( ringBuff.ContiguousSize() == 0 );
 
 
     SECTION( "smallest wrap possible" )
@@ -31,10 +32,12 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
         REQUIRE(size == 2);
 
         REQUIRE(ringBuff.Write(2) == true);             // Write block of 2 elements, shrinks wrap by 1
+        REQUIRE(ringBuff.ContiguousSize() == 2);
         REQUIRE(ringBuff.CheckState(2, 3, 3) == true);
         REQUIRE(ringBuff.Size() == 2);
 
         REQUIRE(ringBuff.Read(1) == true);              // Read 1 element, restores wrap
+        REQUIRE(ringBuff.ContiguousSize() == 1);
         REQUIRE(ringBuff.CheckState(2, 1, 4) == true);
         REQUIRE(ringBuff.Size() == 1);
 
@@ -45,10 +48,12 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.Size() == 0);
 
         REQUIRE(ringBuff.Write(2) == true);             // Write block of 2 elements, shrinks wrap by 1
+        REQUIRE(ringBuff.ContiguousSize() == 2);
         REQUIRE(ringBuff.CheckState(2, 3, 3) == true);
         REQUIRE(ringBuff.Size() == 2);
 
         REQUIRE(ringBuff.Read(2) == true);              // Read 2 elements, restores wrap
+        REQUIRE(ringBuff.ContiguousSize() == 0);
         REQUIRE(ringBuff.CheckState(2, 2, 4) == true);
         REQUIRE(ringBuff.Size() == 0);
 
@@ -74,16 +79,20 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 2);
         data[0] = 4;                                    // Actually adding data, will be checked later
         REQUIRE(ringBuff.Write(1) == true);
+        REQUIRE(ringBuff.ContiguousSize() == 1);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);     // Only 1 element available at end, but 2 available at start
+        REQUIRE(size == 2);
         data[0] = 1;                                    // Actually adding data, will be checked later
         data[1] = 2;
         REQUIRE(ringBuff.Write(2) == true);             // Write block of 2 elements, shrinks wrap by 1
         REQUIRE(ringBuff.CheckState(2, 3, 4) == true);
         REQUIRE(ringBuff.Size() == 3);
+        REQUIRE(ringBuff.ContiguousSize() == 1);
 
         size = 2;
         REQUIRE(ringBuff.Peek(data, size) == false);    // Only 1 element present at end, 2 elements present at start, buffer wrapped
@@ -95,6 +104,7 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.Read(1) == true);              // Read 1 element, restores wrap
         REQUIRE(ringBuff.CheckState(2, 0, 5) == true);
         REQUIRE(ringBuff.Size() == 2);
+        REQUIRE(ringBuff.ContiguousSize() == 2);
 
         size = 1;
         REQUIRE(ringBuff.Peek(data, size) == true);     // 2 elements present at start
@@ -112,6 +122,7 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.Read(2) == true);              // Read 2 elements
         REQUIRE(ringBuff.CheckState(2, 2, 5) == true);
         REQUIRE(ringBuff.Size() == 0);
+        REQUIRE(ringBuff.ContiguousSize() == 0);
     }
 
     SECTION( "wrap with small buffer - read starts equal to wrap" )
@@ -161,9 +172,11 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);     // 7 contiguous elements available at the end
+        REQUIRE(size == 7);
 
         size = 13;
         REQUIRE(ringBuff.Poke(data, size) == true);     // And 13 contiguous elements available at the start
+        REQUIRE(size == 13);
 
         REQUIRE(ringBuff.Write(10) == true);            // Wraps, leave 3 elements available
         REQUIRE(ringBuff.CheckState(10, 14, 14) == true);
@@ -175,6 +188,7 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);     // 3 elements available
+        REQUIRE(size == 3);
 
         REQUIRE(ringBuff.Read(3) == true);              // Read 3 elements, restores wrap, leaving 7 remaining
         REQUIRE(ringBuff.CheckState(10, 3, 21) == true);
