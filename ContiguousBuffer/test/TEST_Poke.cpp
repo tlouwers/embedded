@@ -356,7 +356,6 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(4, 0, 4) == true);
 
         REQUIRE(ringBuff.Size() == 3);
-        REQUIRE(ringBuff.ContiguousSize() == 3);
 
         // -----
 
@@ -370,7 +369,6 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(4, 1, 4) == true);
 
         REQUIRE(ringBuff.Size() == 3);
-        REQUIRE(ringBuff.ContiguousSize() == 3);
 
         // -----
 
@@ -384,7 +382,6 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(4, 2, 4) == true);
 
         REQUIRE(ringBuff.Size() == 3);
-        REQUIRE(ringBuff.ContiguousSize() == 2);
 
         // -----
 
@@ -398,7 +395,6 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(4, 3, 4) == true);
 
         REQUIRE(ringBuff.Size() == 3);
-        REQUIRE(ringBuff.ContiguousSize() == 1);
 
         // -----
 
@@ -412,6 +408,5 @@ TEST_CASE( "ContiguousRingbuffer Poke() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(5, 0, 4) == true);
 
         REQUIRE(ringBuff.Size() == 3);
-        REQUIRE(ringBuff.ContiguousSize() == 3);
     }
 }

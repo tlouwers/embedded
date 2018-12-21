@@ -1,4 +1,7 @@
 
+
+
+
 # ContiguousRingbuffer
 A thread-safe, lock-free, single producer, single consumer, contiguous ringbuffer.
 
@@ -59,5 +62,71 @@ The race condition on the wrap pointer is prevented partly by not allowing Write
 ## Note
 There is no std::copy() in the buffer, meaning it is up to the user to make a copy of the data, the buffer will only manage the data here. This allows for DMA to fill the memory, or use a regular std::copy() or other construct to fill the buffer.
 
+## Consideration
+This buffer may not be as efficient in filling the full buffer since it works in blocks. The smaller the blocks the more efficiently the memory can be filled, but the larger the blocks the more effectively the buffer can be used (with DMA for instance). This is a tradeoff and should be consider before choosing this buffer.
+
 ## Careful
 One can only prevent so much, once the user get access to the data (the pointer), it is up to the user to not write/read beyond the boundaries given by the size.
+
+## Explored options
+
+ - Do not change the 'size' parameter in 'Poke()'. This is hard to do since it requires another method like 'ContiguousAvailable()', which will indicate the largest size of a contiguous block of elements available. Since there can be 1 or 2 blocks available: the 2 blocks where either the first or the last can be the biggest - it depends of the size of the block requested which is taken. Note that the 'dest' will point to the block in which 'size' will fit, which may be the first or second block. Decided not to implement this due to added complexity for the end user and a larger implementation.
+ - Having a method called 'ContiguousSize()', which indicates the first contiguous block of elements available - if any. This information is already provided with 'Peek()', which then can be used immediate. Decided not to implement this due to added complexity for the end user and a larger implementation. Will be slower too as yet another call to 'Peek()' has to be made after calling 'ContiguousSize()'.
+
+## More examples
+Loop to move data from buffer to peripheral component, like Bluetooth or UART (also buffers).  The latter buffers may not be emptied quickly due to data being transmitted.
+```cpp
+// Assuming these buffers
+ContiguousRingbuffer<uint8_t> buffRx;	// Used to hold received data from peripheral
+ContiguousRingbuffer<uint8_t> buffRx;	// Used to hold data to send to peripheral
+
+// <initialization, etc omitted for brevity>
+
+// Method to get data from peripheral into buffer.
+// Should be called many times from a main loop.
+void ProcessRx(void)
+{
+	bool result = false;
+
+	// Check if there is room in the buffer. Received now indicates the largest contiguous block available, not nessecairily the first block - this means some space may remain unused.
+	uint8_t ptrDest = nullptr;
+	size_t received = 1;
+	if (buffRx.Poke(ptrDest, received)
+	{
+		// The Rx() is entered with a pointer where to store the data retrieved from Bluetooth, requesting 'received' number of elements. Rx() will do the std::copy() to 'ptrDest'. Rx() will return with the actual number of elements retrieved, maybe 0.
+		received = mBluetooth.Rx(ptrDest, reveived);
+	
+		if (received > 0)
+		{
+			// 'commit' the written bytes to 'buffRx'.
+			result = buffRx.Write(received);
+			assert(result);
+		}
+	}
+
+	// <do something with the read bytes>
+}
+
+// Method to get data from buffer into peripheral.
+// Should be called many times from a main loop.
+void ProcessTx(void)
+{
+	bool result = false;
+
+	// Check if there is data in the buffer. Available now indicates the first contiguous block available, upto the wrapping point.
+	uint8_t ptrSrc = nullptr;
+	size_t available = 1;
+	if (buffRx.Peek(ptrSrc , available)
+	{
+		// The Tx() is entered with a pointer to the data to send via Bluetooth, along with the number of available bytes. Tx() will do the std::copy() from 'ptrSrc' to Bluetooth internal buffer. Tx() will return with the actual number of elements consumed, maybe 0.
+		available = mBluetooth.Tx(ptrSrc, available);
+	
+		if (available> 0)
+		{
+			// 'release' the read bytes to 'buffTx'.
+			result = buffTx.Read(available);
+			assert(result);
+		}
+	}
+}
+```

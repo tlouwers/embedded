@@ -213,7 +213,6 @@ TEST_CASE( "ContiguousRingbuffer write and read operations", "[ContiguousRingbuf
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);     // 3 elements, 1 at end, other 2 at start not contiguous
         REQUIRE(ringBuff.Write(1) == true);
-        REQUIRE(ringBuff.ContiguousSize() == 1);
         REQUIRE(ringBuff.CheckState(0, 3, 4) == true);
 
         ringBuff.SetState(0, 0, 4);                     // Set mWrite(0), mRead(0), mWrap(4) - 3 elements available at start
@@ -222,7 +221,6 @@ TEST_CASE( "ContiguousRingbuffer write and read operations", "[ContiguousRingbuf
         REQUIRE(ringBuff.Poke(data, size) == true);     // 3 elements available at start
         REQUIRE(ringBuff.Size() == 0);                  // Nothing in buffer yet
         REQUIRE(ringBuff.Write(3) == true);
-        REQUIRE(ringBuff.ContiguousSize() == 3);
         REQUIRE(ringBuff.CheckState(3, 0, 4) == true);
 
         size = 1;
@@ -230,13 +228,11 @@ TEST_CASE( "ContiguousRingbuffer write and read operations", "[ContiguousRingbuf
         REQUIRE(ringBuff.Size() == 3);
 
         REQUIRE(ringBuff.Read(1) == true);              // Remove 1 element, 2 elements remain in the middle
-        REQUIRE(ringBuff.ContiguousSize() == 2);
 
         size = 1;
         REQUIRE(ringBuff.Poke(data, size) == true);     // 1 element available at end
         REQUIRE(size == 1);
         REQUIRE(ringBuff.Write(1) == true);
-        REQUIRE(ringBuff.ContiguousSize() == 3);
         REQUIRE(ringBuff.CheckState(0, 1, 4) == true);
     }
 
@@ -249,50 +245,38 @@ TEST_CASE( "ContiguousRingbuffer write and read operations", "[ContiguousRingbuf
 
         REQUIRE(AddOne(1) == true);         // Add 5 elements
         REQUIRE(ringBuff_ext.Size() == 1);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 1);
         REQUIRE(AddOne(2) == true);
         REQUIRE(ringBuff_ext.Size() == 2);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 2);
         REQUIRE(AddOne(3) == true);
         REQUIRE(ringBuff_ext.Size() == 3);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 3);
         REQUIRE(AddOne(4) == true);
         REQUIRE(ringBuff_ext.Size() == 4);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 4);
         REQUIRE(AddOne(5) == true);
         REQUIRE(ringBuff_ext.Size() == 5);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 5);
 
         REQUIRE(RemoveOne(val) == true);    // Remove 3 elements
         REQUIRE(val == 1);
         REQUIRE(ringBuff_ext.Size() == 4);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 4);
         REQUIRE(RemoveOne(val) == true);
         REQUIRE(val == 2);
         REQUIRE(ringBuff_ext.Size() == 3);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 3);
         REQUIRE(RemoveOne(val) == true);
         REQUIRE(val == 3);
         REQUIRE(ringBuff_ext.Size() == 2);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 2);
 
         REQUIRE(AddOne(6) == true);         // Write wraps, value at end of buffer
         REQUIRE(ringBuff_ext.Size() == 3);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 3);
         REQUIRE(ringBuff_ext.CheckState(0, 3, 6) == true);
 
         REQUIRE(RemoveOne(val) == true);
         REQUIRE(val == 4);
         REQUIRE(ringBuff_ext.Size() == 2);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 2);
         REQUIRE(RemoveOne(val) == true);
         REQUIRE(val == 5);
         REQUIRE(ringBuff_ext.Size() == 1);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 1);
         REQUIRE(RemoveOne(val) == true);
         REQUIRE(val == 6);
         REQUIRE(ringBuff_ext.Size() == 0);
-        REQUIRE(ringBuff_ext.ContiguousSize() == 0);
     }
 
     SECTION( "regression check: threading issue due to incorrect available space calculation" )
