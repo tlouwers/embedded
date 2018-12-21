@@ -63,7 +63,7 @@ The race condition on the wrap pointer is prevented partly by not allowing Write
 There is no std::copy() in the buffer, meaning it is up to the user to make a copy of the data, the buffer will only manage the data here. This allows for DMA to fill the memory, or use a regular std::copy() or other construct to fill the buffer.
 
 ## Consideration
-This buffer may not be as efficient in filling the full buffer since it works in blocks. The smaller the blocks the more efficiently the memory can be filled, but the larger the blocks the more effectively the buffer can be used (with DMA for instance). This is a tradeoff and should be consider before choosing this buffer.
+This buffer may not be as efficient in filling the full buffer since it works in blocks. The smaller the blocks the more efficiently the memory can be filled, but the larger the blocks the more effectively the buffer can be used (with DMA for instance). This is a trade-off and should be considered before choosing this buffer.
 
 ## Careful
 One can only prevent so much, once the user get access to the data (the pointer), it is up to the user to not write/read beyond the boundaries given by the size.
@@ -88,13 +88,16 @@ void ProcessRx(void)
 {
 	bool result = false;
 
-	// Check if there is room in the buffer. Received now indicates the largest contiguous block available, not nessecairily the first block - this means some space may remain unused.
+	// Check if there is room in the buffer. Received now indicates the largest contiguous block available,
+    // not necessarily the first block - this means some space may remain unused.
 	uint8_t ptrDest = nullptr;
 	size_t received = 1;
 	if (buffRx.Poke(ptrDest, received)
 	{
-		// The Rx() is entered with a pointer where to store the data retrieved from Bluetooth, requesting 'received' number of elements. Rx() will do the std::copy() to 'ptrDest'. Rx() will return with the actual number of elements retrieved, maybe 0.
-		received = mBluetooth.Rx(ptrDest, reveived);
+		// The Rx() is entered with a pointer where to store the data retrieved from Bluetooth, requesting
+        // 'received' number of elements. Rx() will do the std::copy() to 'ptrDest'. Rx() will return with
+		// the actual number of elements retrieved, maybe 0.
+		received = mBluetooth.Rx(ptrDest, received);
 	
 		if (received > 0)
 		{
@@ -113,12 +116,15 @@ void ProcessTx(void)
 {
 	bool result = false;
 
-	// Check if there is data in the buffer. Available now indicates the first contiguous block available, upto the wrapping point.
+	// Check if there is data in the buffer. Available now indicates the first contiguous block available,
+    // up to the wrapping point.
 	uint8_t ptrSrc = nullptr;
 	size_t available = 1;
 	if (buffRx.Peek(ptrSrc , available)
 	{
-		// The Tx() is entered with a pointer to the data to send via Bluetooth, along with the number of available bytes. Tx() will do the std::copy() from 'ptrSrc' to Bluetooth internal buffer. Tx() will return with the actual number of elements consumed, maybe 0.
+		// The Tx() is entered with a pointer to the data to send via Bluetooth, along with the number of
+        // available bytes. Tx() will do the std::copy() from 'ptrSrc' to Bluetooth internal buffer.
+		// Tx() will return with the actual number of elements consumed, maybe 0.
 		available = mBluetooth.Tx(ptrSrc, available);
 	
 		if (available> 0)
