@@ -133,10 +133,13 @@ TEST_CASE( "ContiguousRingbuffer large blocks", "[ContiguousRingbuffer]" )
         ringBuff_ext.SetState(1024, 1024, 1025);            // Filled 4 blocks, removed 4 blocks
 
         REQUIRE(AddBlock(index, block_size) == true);       // Block written at the start, wrap reduced from 1025 to 1024
+        REQUIRE(ringBuff_ext.Size() == 256);
         index += block_size;                                // 1 block = 256 elements in buffer
         REQUIRE(AddBlock(index, block_size) == true);
+        REQUIRE(ringBuff_ext.Size() == 512);
         index += block_size;                                // 2 blocks = 512 elements in buffer
         REQUIRE(AddBlock(index, block_size) == true);
+        REQUIRE(ringBuff_ext.Size() == 768);
         index += block_size;                                // 3 blocks = 768 elements in buffer
 
         size = block_size;
@@ -153,7 +156,6 @@ TEST_CASE( "ContiguousRingbuffer large blocks", "[ContiguousRingbuffer]" )
 
         REQUIRE(RemoveBlock(index, block_size) == true);    // Read 1 block, 2 remaining
         index += block_size;
-
         REQUIRE(ringBuff_ext.CheckState(768, 256, 1025) == true);
         REQUIRE(ringBuff_ext.Size() == 512);                // After read still 2 blocks available
 

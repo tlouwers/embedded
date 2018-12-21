@@ -534,9 +534,9 @@ size_t ContiguousRingbuffer<T>::Size() const
     const auto wrap  = mWrap.load(std::memory_order_acquire);
 
     // Sanity checks: administration out-of-bounds, thus return a 'sane' value
-    if  (write >= wrap) { return mCapacity - 1; }
-    if  (read  >  wrap) { return 0;             }
-    if ((read  == wrap) && (read == mCapacity) && (write > 0)) { return 0; }
+    if  (write >= wrap) { return mCapacity - 1; }           // Write out of bounds
+    if  (read  >  wrap) { return 0;             }           // Read out of bounds
+    if ((read  == wrap) && (read == mCapacity) && (write > 0)) { return 0; }    // More elements than specified in mCapacity
 
     size_t result = 0;
 
@@ -550,7 +550,7 @@ size_t ContiguousRingbuffer<T>::Size() const
     }
     // Else: write == read --> buffer empty, return 0
 
-    return (result < mCapacity) ? result : 0;
+    return result;
 }
 
 /**

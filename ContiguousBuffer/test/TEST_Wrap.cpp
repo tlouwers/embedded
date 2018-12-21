@@ -13,7 +13,6 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
     size_t size = 0;
 
     REQUIRE( ringBuff.Size() == 0 );
-    REQUIRE( ringBuff.ContiguousSize() == 0 );
 
 
     SECTION( "smallest wrap possible" )
@@ -78,6 +77,7 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
         REQUIRE(size == 2);
         data[0] = 4;                                    // Actually adding data, will be checked later
         REQUIRE(ringBuff.Write(1) == true);
+        REQUIRE(ringBuff.Size() == 1);
 
         size = 2;
         REQUIRE(ringBuff.Poke(data, size) == true);     // Only 1 element available at end, but 2 available at start
@@ -133,6 +133,7 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
         data[1] = 8;
         REQUIRE(ringBuff.Write(2) == true);             // Write block of 2 elements, shrinks wrap by 1
         REQUIRE(ringBuff.CheckState(2, 4, 4) == true);
+        REQUIRE(ringBuff.Size() == 2);
 
         size = 1;
         REQUIRE(ringBuff.Peek(data, size) == true);     // 2 elements present at start, buffer wrapped
@@ -151,6 +152,7 @@ TEST_CASE( "ContiguousRingbuffer wrap operations", "[ContiguousRingbuffer]" )
         REQUIRE(data[1] == 8);
         REQUIRE(ringBuff.Read(2) == true);              // Read 2 elements, restores wrap
         REQUIRE(ringBuff.CheckState(2, 2, 5) == true);
+        REQUIRE(ringBuff.Size() == 0);
     }
 
     SECTION( "wrap with large buffer" )

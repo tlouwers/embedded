@@ -302,6 +302,7 @@ TEST_CASE( "ContiguousRingbuffer Write() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(4, 0, 4) == true);
 
         REQUIRE(ringBuff.Write(1) == false);            // Handle as: buffer full
+        REQUIRE(ringBuff.Size() == 3);
 
         // -----
 
@@ -309,6 +310,7 @@ TEST_CASE( "ContiguousRingbuffer Write() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(4, 1, 4) == true);
 
         REQUIRE(ringBuff.Write(1) == false);            // Handle as: buffer full
+        REQUIRE(ringBuff.Size() == 3);
 
         // -----
 
@@ -316,6 +318,7 @@ TEST_CASE( "ContiguousRingbuffer Write() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(4, 2, 4) == true);
 
         REQUIRE(ringBuff.Write(1) == false);            // Handle as: buffer full
+        REQUIRE(ringBuff.Size() == 3);
 
         // -----
 
@@ -323,6 +326,7 @@ TEST_CASE( "ContiguousRingbuffer Write() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(4, 3, 4) == true);
 
         REQUIRE(ringBuff.Write(1) == false);            // Handle as: buffer full
+        REQUIRE(ringBuff.Size() == 3);
 
         // -----
 
@@ -330,5 +334,6 @@ TEST_CASE( "ContiguousRingbuffer Write() operations", "[ContiguousRingbuffer]" )
         REQUIRE(ringBuff.CheckState(5, 0, 4) == true);
 
         REQUIRE(ringBuff.Write(1) == false);            // Handle as: buffer full
+        REQUIRE(ringBuff.Size() == 3);
     }
 }
