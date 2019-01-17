@@ -42,8 +42,8 @@
  *          so I can update the buffer.
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    08-2018
+ * \version 1.2
+ * \date    01-2019
  */
 
 #ifndef MOVING_AVERAGE_HPP_
@@ -72,13 +72,16 @@ public:
 
     bool Add(T value);
 
-    T GetAverage(void);
+    T GetAverage();
 
 private:
     uint16_t mCapacity;
     uint16_t mIndex;
     uint16_t mItemsInBuffer;
+    double   mSum;              // Use a known large type which supports fractional numbers
     T* mElements;
+
+    void DeleteBuffer();
 };
 
 
@@ -89,7 +92,7 @@ private:
  */
 template<class T>
 MovingAverage<T>::MovingAverage() noexcept :
-    mCapacity(0), mIndex(0), mItemsInBuffer(0), mElements(nullptr)
+    mCapacity(0), mIndex(0), mItemsInBuffer(0), mSum(0), mElements(nullptr)
 {
     ;
 }
@@ -101,11 +104,7 @@ MovingAverage<T>::MovingAverage() noexcept :
 template<class T>
 MovingAverage<T>::~MovingAverage()
 {
-    if (mElements != nullptr)
-    {
-        delete [] mElements;
-        mElements = nullptr;
-    }
+    DeleteBuffer();
 }
 
 /**
@@ -131,17 +130,14 @@ bool MovingAverage<T>::Resize(const uint16_t size)
     if (std::is_same<int64_t,  T>::value) { return false; }
     if (std::is_same<uint64_t, T>::value) { return false; }
 
-    if (mElements != nullptr)
-    {
-        delete [] mElements;
-        mElements = nullptr;
-    }
+    DeleteBuffer();
 
     if (size > 0)
     {
         mIndex         = 0;
         mItemsInBuffer = 0;
         mCapacity      = size;
+        mSum           = 0;
 
         mElements = new T[size];
 
@@ -171,6 +167,9 @@ bool MovingAverage<T>::Fill(T value)
         // Fill the entire internal buffer with 'value'
         std::fill(mElements, (mElements + mCapacity), value);
 
+        // Update mSum accordingly
+        mSum = mCapacity * value;
+
         // Reset the counters
         mIndex         = 0;
         mItemsInBuffer = mCapacity;
@@ -184,6 +183,8 @@ bool MovingAverage<T>::Fill(T value)
  * \brief   Add the given value to the internal buffer. If the buffer is full,
  *          the oldest value gets overwritten. It also updates the index of the
  *          number of elements in the buffer.
+ * \details In 'mSum' the current accumulated contents of the buffer is kept,
+ *          to prevent iterating over all elements in GetAverage().
  * \param   value   The value to add to internal buffer.
  * \returns True if the value could be added to internal buffer, else false.
  */
@@ -192,8 +193,16 @@ bool MovingAverage<T>::Add(T value)
 {
     if (mElements != nullptr)
     {
+        // If the buffer is already full...
+        if (mItemsInBuffer == mCapacity)
+        {
+            // Remove the oldest sample from the sum
+            mSum -= mElements[mIndex];
+        }
+
         // Add to the moving average (ring) buffer
         mElements[mIndex] = value;
+        mSum += value;
 
         // Increase the index and wrap around if needed
         if (++mIndex >= mCapacity)
@@ -213,29 +222,38 @@ bool MovingAverage<T>::Add(T value)
 }
 
 /**
- * \brief   Iterates over the internal buffer to calculate a sum, which is
- *          divided by the number of available element in the buffer.
+ * \brief   Get the averaged sum of the elements in the internal buffer (if
+ *          any).
  * \returns The averaged sum of the number of available elements if successful,
  *          0 if the buffer has no elements.
  */
 template<class T>
-T MovingAverage<T>::GetAverage(void)
+T MovingAverage<T>::GetAverage()
 {
-    if ((mElements != nullptr) && (mItemsInBuffer > 0))
+    if (mItemsInBuffer > 0)
     {
-        // Use a known large type which supports fractional numbers
-        double sum = 0;
-
-        // Iterate over the number of items in the buffer, not buffer size
-        for (size_t i = 0; i < mItemsInBuffer; i++)
-        {
-            sum += mElements[i];
-        }
-
         // Return average of the buffered items
-        return static_cast<T>(sum / mItemsInBuffer);
+        return static_cast<T>(mSum / mItemsInBuffer);
     }
     return 0;
+}
+
+
+/************************************************************************/
+/* Private Members                                                      */
+/************************************************************************/
+/**
+ * \brief   Delete the buffer, set pointer to nullptr.
+ * \details No effect when buffer already deleted.
+ */
+template<class T>
+void MovingAverage<T>::DeleteBuffer()
+{
+    if (mElements != nullptr)
+    {
+        delete [] mElements;
+        mElements = nullptr;
+    }
 }
 
 
