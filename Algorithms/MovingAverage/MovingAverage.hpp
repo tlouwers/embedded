@@ -185,6 +185,9 @@ bool MovingAverage<T>::Fill(T value)
  *          number of elements in the buffer.
  * \details In 'mSum' the current accumulated contents of the buffer is kept,
  *          to prevent iterating over all elements in GetAverage().
+ *          For floating point types: every time the buffer wraps 'mSum' is
+ *          refilled with the buffer contents to prevent rounding issues
+ *          accumulate over time.
  * \param   value   The value to add to internal buffer.
  * \returns True if the value could be added to internal buffer, else false.
  */
@@ -208,6 +211,16 @@ bool MovingAverage<T>::Add(T value)
         if (++mIndex >= mCapacity)
         {
             mIndex = 0;
+
+            // If type is float, reset mSum to buffer contents at wrap around to prevent accumulating rounding error
+            if (std::is_same<float, T>::value)
+            {
+                mSum = 0;
+                for (auto i = 0; i < mCapacity; i++)
+                {
+                    mSum += mElements[i];
+                }
+            }
         }
 
         // Keep track of the number of items in the buffer, up to buffer full

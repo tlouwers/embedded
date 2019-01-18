@@ -29,6 +29,7 @@
 		<Unit filename="TEST_Float.cpp" />
 		<Unit filename="TEST_Integer.cpp" />
 		<Unit filename="TEST_Limits.cpp" />
+		<Unit filename="TEST_LongRunning.cpp" />
 		<Unit filename="TEST_Main.cpp" />
 		<Unit filename="TEST_Resize.cpp" />
 		<Extensions>
