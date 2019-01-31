@@ -118,7 +118,7 @@ public:
     ContiguousRingbuffer() noexcept;
     ~ContiguousRingbuffer();
 
-    bool Resize(const size_t size);
+    bool Resize(const size_t size) noexcept;
 
     bool Poke(T* &dest, size_t& size);
     bool Write(const size_t size);
@@ -142,6 +142,8 @@ private:
     std::atomic<size_t> mWrap;
     size_t mCapacity;
     T* mElements;
+
+    void DeleteBuffer();
 };
 
 /**
@@ -163,11 +165,7 @@ ContiguousRingbuffer<T>::ContiguousRingbuffer() noexcept :
 template<typename T>
 ContiguousRingbuffer<T>::~ContiguousRingbuffer()
 {
-    if (mElements != nullptr)
-    {
-        delete [] mElements;
-        mElements = nullptr;
-    }
+    DeleteBuffer();
 }
 
 /**
@@ -185,13 +183,9 @@ ContiguousRingbuffer<T>::~ContiguousRingbuffer()
  *          the requested size equals 0.
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::Resize(const size_t size)
+bool ContiguousRingbuffer<T>::Resize(const size_t size) noexcept
 {
-    if (mElements != nullptr)
-    {
-        delete [] mElements;
-        mElements = nullptr;
-    }
+    DeleteBuffer();
 
     if (size > 0)
     {
@@ -200,7 +194,7 @@ bool ContiguousRingbuffer<T>::Resize(const size_t size)
         mWrap       = size + 1;
         mCapacity   = size + 1;
 
-        mElements = new T[size + 1];
+        mElements = new(std::nothrow) T[size + 1];
 
         if (mElements != nullptr)
         {
@@ -612,6 +606,23 @@ bool ContiguousRingbuffer<T>::CheckState(size_t write, size_t read, size_t wrap)
     return ( ( write == current_write ) &&
              ( read  == current_read  ) &&
              ( wrap  == current_wrap  ) );
+}
+
+/************************************************************************/
+/* Private Members                                                      */
+/************************************************************************/
+/**
+ * \brief   Delete the buffer, set pointer to nullptr.
+ * \details No effect when buffer already deleted.
+ */
+template<class T>
+void ContiguousRingbuffer<T>::DeleteBuffer()
+{
+    if (mElements != nullptr)
+    {
+        delete [] mElements;
+        mElements = nullptr;
+    }
 }
 
 
