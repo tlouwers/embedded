@@ -108,21 +108,23 @@ public:
     Ringbuffer() noexcept;
     ~Ringbuffer();
 
-    bool Resize(const size_t size);
+    bool Resize(const size_t size) noexcept;
 
     bool TryPush(const T* src, const size_t size = 1);
     bool TryPop(T* &dest, const size_t size = 1);
 
-    size_t Size(void) const;
-    void Clear(void);
+    size_t Size() const;
+    void Clear();
 
-    bool IsLockFree(void) const;
+    bool IsLockFree() const;
 
 private:
     std::atomic<size_t> mWrite;
     std::atomic<size_t> mRead;
     size_t mCapacity;
     T* mElements;
+
+    void DeleteBuffer();
 };
 
 
@@ -145,11 +147,7 @@ Ringbuffer<T>::Ringbuffer() noexcept :
 template<typename T>
 Ringbuffer<T>::~Ringbuffer()
 {
-    if (mElements != nullptr)
-    {
-        delete [] mElements;
-        mElements = nullptr;
-    }
+    DeleteBuffer();
 }
 
 /**
@@ -167,13 +165,9 @@ Ringbuffer<T>::~Ringbuffer()
  *          the requested size equals 0.
  */
 template<typename T>
-bool Ringbuffer<T>::Resize(const size_t size)
+bool Ringbuffer<T>::Resize(const size_t size) noexcept
 {
-    if (mElements != nullptr)
-    {
-        delete [] mElements;
-        mElements = nullptr;
-    }
+    DeleteBuffer();
 
     if (size > 0)
     {
@@ -181,7 +175,7 @@ bool Ringbuffer<T>::Resize(const size_t size)
         mRead     = 0;
         mCapacity = size + 1;
 
-        mElements = new T[size + 1];
+        mElements = new(std::nothrow) T[size + 1];
 
         if (mElements != nullptr)
         {
@@ -334,7 +328,7 @@ bool Ringbuffer<T>::TryPop(T* &dest, const size_t size)
  * \returns The total number of elements in the buffer.
  */
 template<typename T>
-size_t Ringbuffer<T>::Size(void) const
+size_t Ringbuffer<T>::Size() const
 {
     const auto write = mWrite.load(std::memory_order_acquire);
     const auto read  = mRead.load(std::memory_order_acquire);
@@ -359,7 +353,7 @@ size_t Ringbuffer<T>::Size(void) const
  *          overwritten or the buffer is destructed.
  */
 template<typename T>
-void Ringbuffer<T>::Clear(void)
+void Ringbuffer<T>::Clear()
 {
     mWrite.store(0, std::memory_order_release);
     mRead.store(0, std::memory_order_release);
@@ -370,9 +364,27 @@ void Ringbuffer<T>::Clear(void)
  * \result  Returns true if the atomic operations are lock-free, else false.
  */
 template<typename T>
-bool Ringbuffer<T>::IsLockFree(void) const
+bool Ringbuffer<T>::IsLockFree() const
 {
     return (mWrite.is_lock_free() && mRead.is_lock_free());
+}
+
+
+/************************************************************************/
+/* Private Members                                                      */
+/************************************************************************/
+/**
+ * \brief   Delete the buffer, set pointer to nullptr.
+ * \details No effect when buffer already deleted.
+ */
+template<class T>
+void Ringbuffer<T>::DeleteBuffer()
+{
+    if (mElements != nullptr)
+    {
+        delete [] mElements;
+        mElements = nullptr;
+    }
 }
 
 
