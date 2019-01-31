@@ -74,11 +74,11 @@ template <typename T>
 int32_t Partition(T arr[], int32_t start, int32_t end)
 {
     // The pivot element is taken to be the element at the start of the subrange to be partitioned.
-    T      pivotValue    = arr[start];
+    T       pivotValue    = arr[start];
     int32_t pivotPosition = start;
 
     // Rearrange the rest of the array elements to partition the subrange from start to end.
-    for (int32_t pos = start + 1; pos <= end; pos++)
+    for (int32_t pos = (start + 1); pos <= end; pos++)
     {
         if (arr[pos] < pivotValue)
         {
@@ -119,13 +119,13 @@ bool QuickSort(T arr[], int32_t start, int32_t end)
             if ((p - start) < (end - p))
             {
                 QuickSort(arr, start, (p - 1));
-                start = p + 1;
+                start = (p + 1);
             }
             // Recurse for the right part
             else
             {
                 QuickSort(arr, (p + 1), end);
-                end = p - 1;
+                end = (p - 1);
             }
         }
         return true;

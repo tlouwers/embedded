@@ -67,7 +67,7 @@ public:
     MovingAverage() noexcept;
     ~MovingAverage();
 
-    bool Resize(uint16_t size);
+    bool Resize(uint16_t size) noexcept;
     bool Fill(T value);
 
     bool Add(T value);
@@ -123,7 +123,7 @@ MovingAverage<T>::~MovingAverage()
  *          False if the type T is too large: double, int64_t, uint64_t.
  */
 template<class T>
-bool MovingAverage<T>::Resize(const uint16_t size)
+bool MovingAverage<T>::Resize(const uint16_t size) noexcept
 {
     // Disallow the use of larger types
     if (std::is_same<double,   T>::value) { return false; }
@@ -139,7 +139,7 @@ bool MovingAverage<T>::Resize(const uint16_t size)
         mCapacity      = size;
         mSum           = 0;
 
-        mElements = new T[size];
+        mElements = new(std::nothrow) T[size];
 
         if (mElements != nullptr)
         {
