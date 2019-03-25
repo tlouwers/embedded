@@ -10,6 +10,8 @@
  *
  * \brief   Heap check functions for Atmel Cortex-M4.
  *
+ * \note    https://github.com/tlouwers/embedded/tree/master/HeapCheck
+ *
  * \details This code is intended to be used to determine the heap usage at
  *          runtime. The code is implemented in 'C', to be usable in both 'C'
  *          and 'C++' projects.
@@ -96,9 +98,10 @@
 /* Externals                                                            */
 /************************************************************************/
 /**
- * \brief   Notify we use _estack provided by linker.
+ * \brief   Notify we use _estack provided by linker. It points to the first
+ *          address after the top of the stack and marks the start of the heap.
  */
-extern uint32_t _estack;            // Top of stack
+extern uint32_t _estack;
 
 /**
  * \brief   External declaration for _sbrk, in newlib_stubs.c.
@@ -111,7 +114,11 @@ extern caddr_t _sbrk(int incr);
 /************************************************************************/
 /* Static variables                                                     */
 /************************************************************************/
-const uint32_t HEAP_END_VALUE = 0xFAFBFCFD;
+/**
+ * \brief   A 'magic' marker indicating the end of the heap. Must be equal
+ *          to the one used in _sbrk.
+ */
+const uint32_t HEAP_END_MARKER = 0xFAFBFCFD;
 
 
 /************************************************************************/
@@ -153,5 +160,6 @@ bool end_of_heap_overrun(void)
         return true;
     }
 
-    return (*((uint32_t*)((void*)heap_end)) != HEAP_END_VALUE );
+    // Note: the casting is to prevent compiler warnings.
+    return (*((uint32_t*)((void*)heap_end)) != HEAP_END_MARKER );
 }

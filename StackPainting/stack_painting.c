@@ -10,6 +10,8 @@
  *
  * \brief   Stack painting functions for Atmel Cortex-M4.
  *
+ * \note    https://github.com/tlouwers/embedded/tree/master/StackPainting
+ *
  * \details This code is intended to be used to determine the stack usage at
  *          runtime. The code is implemented in 'C', to be usable in both 'C'
  *          and 'C++' projects.
@@ -70,21 +72,23 @@
 /* Externals                                                            */
 /************************************************************************/
 /**
- * \brief   Notify we use _sstack provided by linker.
+ * \brief   Use bottom of stack as specified in the linker control script.
  */
-extern uint32_t _sstack;            // Bottom of stack
+extern uint32_t _sstack;
 
 /**
- * \brief   Notify we use _estack provided by linker.
+ * \brief   Use top of stack as specified in the linker control script.
  */
-extern uint32_t _estack;            // Top of stack
+extern uint32_t _estack;
 
 
 /************************************************************************/
 /* Constants                                                            */
 /************************************************************************/
 /**
- * \brief   The value used as 'paint'.
+ * \brief   A 'magic' number to 'paint' the stack. Although theoretically
+ *          possible a stack value is the same as the number, it is
+ *          very unlikely and not repeated for long.
  */
 const uint32_t PAINT_VALUE = 0xC5C5C5C5;
 
@@ -105,19 +109,19 @@ static uint32_t used_stack_size  = 0;
  */
 void paint_stack(void)
 {
-    // Find the top and bottom of the stack in the linker file: 'flash.ld'
+    // Find the top and bottom of the stack as specified in the linker control script
     uint32_t* bottom_of_stack = &_sstack;
 
     // Get the space occupied by the application: stack_pointer since start of SRAM
     uint32_t application = __get_MSP();
 
-    // Find out what needs to be 'painted'
+    // Find out what needs to be 'painted' - in sizeof(uint32_t)
     uint32_t area_to_paint = (application - (uint32_t)bottom_of_stack) / 4;
 
     // Paint that area
     for (uint32_t i = 0; i < area_to_paint; i++)
     {
-        bottom_of_stack[i] = PAINT_VALUE;
+        *bottom_of_stack++ = PAINT_VALUE;
     }
 }
 
@@ -145,16 +149,17 @@ uint32_t get_used_stack(void)
     // Prevent interrupts during this section
     irqflags_t irq_state = cpu_irq_save();
 
-    // Find the top and bottom of the stack in the linker file: 'flash.ld'
+    // Find the top and bottom of the stack as specified in the linker control script
     uint32_t* bottom_of_stack = &_sstack;
     uint32_t* top_of_stack    = &_estack;
 
+    // Find out what needs to be searched - in sizeof(uint32_t)
     uint32_t area_to_search = (top_of_stack - bottom_of_stack);
 
     uint32_t i;
-    for (i = 1; i < area_to_search; ++i)
+    for (i = 0; i < area_to_search; i++)
     {
-        if (bottom_of_stack[i] != PAINT_VALUE)
+        if (*bottom_of_stack++ != PAINT_VALUE)
         {
             break;
         }
@@ -163,7 +168,7 @@ uint32_t get_used_stack(void)
     // Restore interrupts
     cpu_irq_restore(irq_state);
 
-    total_stack_size = (area_to_search * 4);            // * 4: byte to uint32_t
+    total_stack_size = (area_to_search * 4);            // * 4: uint32_t to byte
     used_stack_size  = (total_stack_size) - (i * 4);
 
     return used_stack_size;

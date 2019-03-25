@@ -10,6 +10,8 @@
  *
  * \brief   Stack painting functions for Atmel Cortex-M4.
  *
+ * \note    https://github.com/tlouwers/embedded/tree/master/StackPainting
+ *
  * \details This code is intended to be used to determine the stack usage at
  *          runtime. The code is implemented in 'C', to be usable in both 'C'
  *          and 'C++' projects.
