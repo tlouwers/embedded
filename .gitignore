@@ -40,3 +40,9 @@ Ringbuffer/test/*.layout
 Ringbuffer/test/*.depend
 Ringbuffer/test/bin/*
 Ringbuffer/test/obj/*
+
+# SlimAssert
+SlimAssert/test/*.layout
+SlimAssert/test/*.depend
+SlimAssert/test/bin/*
+SlimAssert/test/obj/*
