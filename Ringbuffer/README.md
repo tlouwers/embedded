@@ -41,7 +41,7 @@ size_t size = 4;                        // The amount of elements to add to buff
 bool result = TryPush(src_arr, size);
 
 // Assuming the Consumer has a 'destination' to place retrieved data
- int dest_arr[10] = { };
+int dest_arr[10] = { };
 
 // Reading data from the buffer
 size_t size = 4;                        // The amount of elements to retrieve from buffer
