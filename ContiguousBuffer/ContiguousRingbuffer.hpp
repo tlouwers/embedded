@@ -101,8 +101,8 @@
 /******************************************************************************
  * Includes                                                                   *
  *****************************************************************************/
+#include <cstddef>
 #include <atomic>
-#include <cstddef>      // size_t
 
 
 /******************************************************************************
@@ -147,9 +147,7 @@ private:
 template<typename T>
 ContiguousRingbuffer<T>::ContiguousRingbuffer() noexcept :
     mWrite(0), mRead(0), mWrap(0), mCapacity(0), mElements(nullptr)
-{
-    ;
-}
+{ }
 
 /**
  * \brief   Destructor.
