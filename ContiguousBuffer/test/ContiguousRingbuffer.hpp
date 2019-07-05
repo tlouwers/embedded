@@ -103,6 +103,7 @@
  *****************************************************************************/
 #include <cstddef>
 #include <atomic>
+#include <memory>
 
 // Debugging only!
 #include <iostream>
@@ -116,7 +117,6 @@ class ContiguousRingbuffer
 {
 public:
     ContiguousRingbuffer() noexcept;
-    ~ContiguousRingbuffer();
 
     bool Resize(const size_t size) noexcept;
 
@@ -141,9 +141,7 @@ private:
     std::atomic<size_t> mRead;
     std::atomic<size_t> mWrap;
     size_t mCapacity;
-    T* mElements;
-
-    void DeleteBuffer();
+    std::unique_ptr<T[]> mElements;
 };
 
 /**
@@ -153,18 +151,8 @@ private:
  */
 template<typename T>
 ContiguousRingbuffer<T>::ContiguousRingbuffer() noexcept :
-    mWrite(0), mRead(0), mWrap(0), mCapacity(0), mElements(nullptr)
+    mWrite(0), mRead(0), mWrap(0), mCapacity(0)
 { }
-
-/**
- * \brief   Destructor.
- * \details Frees memory allocated to the buffer if needed.
- */
-template<typename T>
-ContiguousRingbuffer<T>::~ContiguousRingbuffer()
-{
-    DeleteBuffer();
-}
 
 /**
  * \brief   Resizes the buffer to the given size by freeing and (re)allocating
@@ -183,7 +171,7 @@ ContiguousRingbuffer<T>::~ContiguousRingbuffer()
 template<typename T>
 bool ContiguousRingbuffer<T>::Resize(const size_t size) noexcept
 {
-    DeleteBuffer();
+    mElements.reset();
 
     if (size > 0)
     {
@@ -192,9 +180,9 @@ bool ContiguousRingbuffer<T>::Resize(const size_t size) noexcept
         mWrap       = size + 1;
         mCapacity   = size + 1;
 
-        mElements = new(std::nothrow) T[size + 1];
+        mElements = std::unique_ptr<T[]>(new(std::nothrow) T[size + 1]);
 
-        if (mElements != nullptr)
+        if (mElements)
         {
             return true;
         }
@@ -252,7 +240,7 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
                 if (size <= available)                      // Does the requested block fit?
                 {
                     size = available;
-                    dest = mElements + write;
+                    dest = &mElements[write];
                     return true;
                 }
                 else                                        // Space at the start?
@@ -260,7 +248,7 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
                     if (size < read)                        // Does the requested block fit?
                     {
                         size = read - 1;
-                        dest = mElements;
+                        dest = &mElements[0];
                         return true;
                     }
                     // If the buffer is empty and the next block would fill it completely, allow this exception
@@ -268,7 +256,7 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
                     {
                         // Allowed as buffer is empty, we are Producer and will not call Write() before this.
                         // The Consumer will use Peek() which at the moment mWrite is used will also have an update mRead.
-                        dest = mElements;
+                        dest = &mElements[0];
                         mRead.store(0, std::memory_order_release);      // Note: Poke() modifies mWrite and mRead!
                         mWrite.store(0, std::memory_order_release);
                         return true;
@@ -281,7 +269,7 @@ bool ContiguousRingbuffer<T>::Poke(T* &dest, size_t& size)
             if ((write + size) < read)                      // Does the requested block fit?
             {
                 size = read - write - 1;
-                dest = mElements + write;
+                dest = &mElements[write];
                 return true;
             }
         }
@@ -401,7 +389,7 @@ bool ContiguousRingbuffer<T>::Peek(T* &dest, size_t& size)
             if ((read + size) <= write)                     // Requested size available?
             {
                 size = write - read;
-                dest = mElements + read;
+                dest = &mElements[read];
                 return true;
             }
         }
@@ -414,7 +402,7 @@ bool ContiguousRingbuffer<T>::Peek(T* &dest, size_t& size)
                 if ((read + size) <= wrap)                  // Requested size available?
                 {
                     size = wrap - read;
-                    dest = mElements + read;
+                    dest = &mElements[read];
                     return true;
                 }
                 // Exception: when read/write were equal at the end of the buffer and a large block was written,
@@ -424,7 +412,7 @@ bool ContiguousRingbuffer<T>::Peek(T* &dest, size_t& size)
                     if (size <= write)                      // Requested size available?
                     {
                         size = write;
-                        dest = mElements;
+                        dest = &mElements[0];
                         return true;
                     }
                 }
@@ -604,23 +592,6 @@ bool ContiguousRingbuffer<T>::CheckState(size_t write, size_t read, size_t wrap)
     return ( ( write == current_write ) &&
              ( read  == current_read  ) &&
              ( wrap  == current_wrap  ) );
-}
-
-/************************************************************************/
-/* Private Members                                                      */
-/************************************************************************/
-/**
- * \brief   Delete the buffer, set pointer to nullptr.
- * \details No effect when buffer already deleted.
- */
-template<class T>
-void ContiguousRingbuffer<T>::DeleteBuffer()
-{
-    if (mElements != nullptr)
-    {
-        delete [] mElements;
-        mElements = nullptr;
-    }
 }
 
 
