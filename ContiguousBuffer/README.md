@@ -1,7 +1,3 @@
-
-
-
-
 # ContiguousRingbuffer
 A thread-safe, lock-free, single producer, single consumer, contiguous ringbuffer.
 
@@ -9,11 +5,9 @@ A thread-safe, lock-free, single producer, single consumer, contiguous ringbuffe
 This code is intended to be used to feed DMA handling of a Cortex-M4 microcontroller, but can see its share of use in other scenarios as well. Be sure to read up on the documentation, as it has some other-than-usual behavior.
 
 ## Requirements
-
  - C++11
 
 ## Contents
-
 | Folder | Contents |
 | ------ | -------- |
 | test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
@@ -22,7 +16,6 @@ This code is intended to be used to feed DMA handling of a Cortex-M4 microcontro
 Although care has been taken to make the code work like a charm, use it at your own risk.
 
 ## Example
-
 ```cpp
 // Producer will fill the buffer, Consumer will empty the buffer.
 // Note: do check for the result values, the example omits them for clarity.
@@ -44,7 +37,7 @@ if (ringBuff.Poke(data, size))  // 'size' changes to the space available
 }
 
 // Check if there is at least 1 element in buffer, then read it
-size_t size = 1;
+size = 1;
 if (ringBuff.Peek(data, size))  // 'size' changes to the elements available
 {
     val = data[0];
@@ -69,7 +62,6 @@ This buffer may not be as efficient in filling the full buffer since it works in
 One can only prevent so much, once the user get access to the data (the pointer), it is up to the user to not write/read beyond the boundaries given by the size.
 
 ## Explored options
-
  - Do not change the 'size' parameter in 'Poke()'. This is hard to do since it requires another method like 'ContiguousAvailable()', which will indicate the largest size of a contiguous block of elements available. Since there can be 1 or 2 blocks available: the 2 blocks where either the first or the last can be the biggest - it depends of the size of the block requested which is taken. Note that the 'dest' will point to the block in which 'size' will fit, which may be the first or second block. Decided not to implement this due to added complexity for the end user and a larger implementation.
  - Having a method called 'ContiguousSize()', which indicates the first contiguous block of elements available - if any. This information is already provided with 'Peek()', which then can be used immediate. Decided not to implement this due to added complexity for the end user and a larger implementation. Will be slower too as yet another call to 'Peek()' has to be made after calling 'ContiguousSize()'.
 

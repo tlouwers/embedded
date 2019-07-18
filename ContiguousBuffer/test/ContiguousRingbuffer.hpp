@@ -42,7 +42,7 @@
  *          }
  *
  *          // Check if there is at least 1 element in buffer, then read it
- *          size_t size = 1;
+ *          size = 1;
  *          if (ringBuff.Peek(data, size))  // 'size' changes to the elements available
  *          {
  *              val = data[0];
