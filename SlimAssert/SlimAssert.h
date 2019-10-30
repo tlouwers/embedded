@@ -66,10 +66,10 @@ extern "C" {
 /**
  * \brief   Handler for the assert.
  * \param   expression  The expression which failed as character string.
- * \param   file        The file (name) in which the assert tripped.
  * \param   line        The line on which the assert tripped.
- */
-inline void _assert(const char* expression, const char* file, int line)
+ * \param   file        The file (name) in which the assert tripped.
+  */
+inline void _assert(const char* expression, int line, const char* file)
 {
     abort();
 }
@@ -79,9 +79,9 @@ inline void _assert(const char* expression, const char* file, int line)
 /* Macros                                                               */
 /************************************************************************/
 #ifdef NDEBUG
-#define ASSERT( expr ) ( (void)0 )
+#define ASSERT( expr ) ( (void)(expr) )
 #else
-#define ASSERT( expr ) ( (expr) ? (void)0 : _assert(#expr, __FILE__, __LINE__) )
+#define ASSERT( expr ) ( (expr) ? (void)(expr) : _assert(#expr, __LINE__, __FILE__) )
 #endif
 
 
