@@ -2,7 +2,7 @@
 #include "../../Catch/catch.hpp"
 
 #include <cstdint>              // uint16_t
-#include "Sawtooth.hpp"
+#include "../Sawtooth.hpp"
 
 
 TEST_CASE( "Normal ranges", "[Sawtooth]" )

@@ -39,7 +39,6 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
-		<Unit filename="Sawtooth.hpp" />
 		<Unit filename="TEST_Main.cpp" />
 		<Unit filename="TEST_Ranges.cpp" />
 		<Extensions>

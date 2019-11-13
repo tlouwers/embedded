@@ -1,5 +1,3 @@
-
-
 # BitmaskEnum
 Template class to use strongly typed enum classes as bitmask,
 
@@ -7,11 +5,9 @@ Template class to use strongly typed enum classes as bitmask,
 This code is intended to use strongly typed enum classes as bitmasks. Doing so will improve readability and reduce the chance of errors, getting feedback at compile time.
 
 ## Requirements
-
- - C++11
+- C++11
 
 ## Contents
-
 | Folder | Contents |
 | ------ | -------- |
 | test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
@@ -20,7 +16,6 @@ This code is intended to use strongly typed enum classes as bitmasks. Doing so w
 Although care has been taken to make the code work like a charm, use it at your own risk.
 
 ## Example
-
 ```cpp
 // Include this file (only) to the header files listing the enum
 #include "BitmaskEnum.hpp"
