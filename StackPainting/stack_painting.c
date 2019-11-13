@@ -17,11 +17,8 @@
  *          and 'C++' projects.
  *
  *          As example:
- *          // Include the header as 'C' file
- *          extern "C"
- *          {
- *              #include "stack_painting.h"
- *          }
+ *          // Include the header file
+ *          #include "stack_painting.h"
  *
  *          // Right after the start of main(), 'paint' the stack:
  *          void main(void)

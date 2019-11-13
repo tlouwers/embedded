@@ -17,11 +17,8 @@
  *          and 'C++' projects.
  *
  *          As example:
- *          // Include the header as 'C' file
- *          extern "C"
- *          {
- *              #include "heap_check.h"
- *          }
+ *          // Include the header file
+ *          #include "heap_check.h"
  *
  *          // At a later point check where the block of memory can be allocated:
  *          static volatile uint32_t used_heap = 0;         <-- global to store the (growing) heap value
@@ -98,8 +95,8 @@ extern "C" {
 /************************************************************************/
 /* Includes                                                             */
 /************************************************************************/
-#include <stdint.h>     // uint32_t
-#include <stdbool.h>    // bool
+#include <stdint.h>
+#include <stdbool.h>
 
 
 /************************************************************************/

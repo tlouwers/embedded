@@ -17,11 +17,8 @@
  *          and 'C++' projects.
  *
  *          As example:
- *          // Include the header as 'C' file
- *          extern "C"
- *          {
- *              #include "heap_check.h"
- *          }
+ *          // Include the header file
+ *          #include "heap_check.h"
  *
  *          // At a later point check where the block of memory can be allocated:
  *          static volatile uint32_t used_heap = 0;         <-- global to store the (growing) heap value
@@ -161,5 +158,5 @@ bool end_of_heap_overrun(void)
     }
 
     // Note: the casting is to prevent compiler warnings.
-    return (*((uint32_t*)((void*)heap_end)) != HEAP_END_MARKER );
+    return ( *((uint32_t*)((void*)heap_end)) != HEAP_END_MARKER );
 }
