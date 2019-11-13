@@ -41,6 +41,12 @@ Ringbuffer/test/*.depend
 Ringbuffer/test/bin/*
 Ringbuffer/test/obj/*
 
+# Sawtooth
+Sawtooth/test/*.layout
+Sawtooth/test/*.depend
+Sawtooth/test/bin/*
+Sawtooth/test/obj/*
+
 # SlimAssert
 SlimAssert/test/*.layout
 SlimAssert/test/*.depend
