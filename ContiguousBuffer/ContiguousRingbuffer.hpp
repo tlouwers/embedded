@@ -125,6 +125,8 @@ public:
 
     size_t Size() const;
 
+    size_t Capacity() const;
+
     void Clear();
 
     bool IsLockFree() const;
@@ -524,6 +526,16 @@ size_t ContiguousRingbuffer<T>::Size() const
     // Else: write == read --> buffer empty, return 0
 
     return result;
+}
+
+/**
+ * \brief   Returns the maximum number of elements the buffer may contain.
+ * \returns The max number of elements the buffer may contain.
+ */
+template<typename T>
+size_t ContiguousRingbuffer<T>::Capacity() const
+{
+    return mCapacity - 1;
 }
 
 /**
