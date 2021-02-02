@@ -93,8 +93,6 @@ private:
     uint16_t mMaxValue;
     uint16_t mStepSize;
     uint16_t mValue;
-
-    uint16_t Power(uint8_t exp);
 };
 
 
