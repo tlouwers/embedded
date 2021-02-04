@@ -12,6 +12,7 @@ Various C/C++ code fragments for use on an embedded platform, like a Cortex-M4.
 | Catch | Code of the Catch2 test framework, used for unit tests. |
 | CircularFifo | A thread-safe, lock-free, single producer, single consumer, ringbuffer. Works on per-element basis.  |
 | ContiguousRingbuffer | A thread-safe, lock-free, single producer, single consumer, contiguous ringbuffer. |
+| FloatToString | A float or double integral to string conversion function. |
 | HeapCheck | Example code to determine heap usage on Cortex-M4. |
 | Ringbuffer | A thread-safe, lock-free, single producer, single consumer, ringbuffer. |
 | Sawtooth | Simple sawtooth generator class. |
