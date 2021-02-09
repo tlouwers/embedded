@@ -7,9 +7,11 @@
  *          meet some day, and you think this stuff is worth it, you can buy me
  *          a beer in return.
  *                                                                Terry Louwers
- * \brief   SoftTimer utility class.
+ * \class   SoftTimer
  *
- * \note    https://github.com/tlouwers/STM32F4-DISCOVERY/tree/develop/utility/SoftTimer
+ * \brief   Flexible software timer helper class..
+ *
+ * \note    https://github.com/tlouwers/embedded/tree/master/SoftTimer
  *
  * \details Intended use is to provide a simple and extendable number of software
  *          timers, based upon a defined hardware timer tick.
