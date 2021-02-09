@@ -17,4 +17,5 @@ Various C/C++ code fragments for use on an embedded platform, like a Cortex-M4.
 | Ringbuffer | A thread-safe, lock-free, single producer, single consumer, ringbuffer. |
 | Sawtooth | Simple sawtooth generator class. |
 | SlimAssert | Slim replacement of assert macro for use in embedded environment. |
+| SoftTimer | Flexible software timer helper class. |
 | StackPainting | Example code to determine stack usage on Cortex-M4. |
