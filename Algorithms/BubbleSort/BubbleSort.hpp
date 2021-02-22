@@ -7,38 +7,11 @@
  *          meet some day, and you think this stuff is worth it, you can buy me
  *          a beer in return.
  *                                                                Terry Louwers
- * \note    BubbleSort
+ * \class   BubbleSort
  *
  * \brief   Implementation of the BubbleSort algorithm with template functions.
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/Algorithms/BubbleSort
- *
- * \details This code is intended as non STL version of the BubbleSort algorithm,
- *          making it better suited for embedded use.
- *
- *          Use for small sets.
- *
- *          Worst case:      O(n^2)
- *          Best case:       O(n)
- *          Average case:    O(n^2)
- *          Auxiliary space: O(1)
- *
- *          Example:
- *          // Define an array to sort:
- *          int array[10] = { 6, 3, 7, 8, 2, 10, 1, 4, 5, 9 };
- *
- *          // Sort the array:
- *          BubbleSort(array, sizeof(array));
- *
- *			// At this point 'array' is sorted.
- *
- * \note    If you happen to find an issue, and are able to provide a
- *          reproducible scenario I am happy to have a look. If you have a fix,
- *          or a refactoring that would improve the buffer please let me know
- *          so I can update the buffer.
- *
- * \note    Inspiration from:
- *          https://www.geeksforgeeks.org/bubble-sort/
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
  * \version 1.0
@@ -51,8 +24,8 @@
 /******************************************************************************
  * Includes                                                                   *
  *****************************************************************************/
-#include <cstdint>      // int32_t
-#include <algorithm>    // swap()
+#include <cstdint>
+#include <algorithm>
 
 
 /******************************************************************************

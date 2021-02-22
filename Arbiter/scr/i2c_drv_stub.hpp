@@ -17,11 +17,6 @@
  *
  * \details See 'i2c_arbiter.cpp' as main project file.
  *
- * \note    If you happen to find an issue, and are able to provide a
- *          reproducible scenario I am happy to have a look. If you have a fix,
- *          or a refactoring that would improve the code please let me know
- *          so I can update it.
- *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
  * \version 1.0
  * \date    09-2018

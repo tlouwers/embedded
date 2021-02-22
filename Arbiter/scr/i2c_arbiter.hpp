@@ -13,26 +13,6 @@
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/Arbiter
  *
- * \details This code is intended to be used as Arbiter on an I2C (master) of a
- *          Cortex-M4 microcontroller. The concept is practically identical for
- *          SPI (and probably UART).
- *
- *          As example:
- *          In 'main.cpp' we call app.Test() 10x in quick succession, then await
- *          the handling of the callbacks. The Arbiter will make sure there are
- *          no collisions on the I2C bus by making sure each transactions is
- *          handled one after the other.
- *          The 'i2c_driver_stub.cpp' spawns a thread to mimic the hardware DMA
- *          handling of an I2C transaction by sleeping a little while, then
- *          calling the callback.
- *          Note: do check for the result values, the example omits them for
- *                clarity.
- *
- * \note    If you happen to find an issue, and are able to provide a
- *          reproducible scenario I am happy to have a look. If you have a fix,
- *          or a refactoring that would improve the code please let me know
- *          so I can update it.
- *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
  * \version 1.0
  * \date    09-2018

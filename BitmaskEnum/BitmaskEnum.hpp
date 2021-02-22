@@ -1,5 +1,5 @@
 /**
- * \file BitmaskEnum.hpp
+ * \file    BitmaskEnum.hpp
  *
  * \licence (C) Copyright 2015 Just Software Solutions Ltd
  *
@@ -39,46 +39,6 @@
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/BitmaskEnum
  *
- * \details This code is intended to use strongly typed enum classes as
- *          bitmasks. Doing so will improve readability and reduce the
- *          chance of errors, getting feedback at compile time.
- *
- *          Some examples:
- *          // Include this file (only) to the header files listing the enum
- *          #include "BitmaskEnum.hpp"
- *
- *          // Given the enum 'Dummy':
- *          enum class Dummy : uint8_t
- *          {
- *              BLUE  = 0x01,   // Bit 1
- *              RED   = 0x02,   // Bit 2
- *              GREEN = 0x04,   // Bit 3
- *          };
- *          ENABLE_BITMASK_OPERATORS(Dummy)		// Enable bitmask functionality
- *
- *          // After the 'enable', we can use the enum as bitmask:
- *          Dummy d1 = ( Dummy::BLUE | Dummy::GREEN );      // d1: Bit 1 and 3
- *          Dummy d2 = d1 & Dummy::BLUE;                    // d2: Bit 1
- *          Dummy d3 = d1 | Dummy::RED;                     // d3: Bit 1 and 2
- *          d1 |= Dummy::RED;                               // d1: Bit 1, 2 and 3
- *          d1 &= ~Dummy::BLUE;                             // d1: Bit 2 and 3
- *
- * \note    If you happen to find an issue, and are able to provide a
- *          reproducible scenario I am happy to have a look. If you have a fix,
- *          or a refactoring that would improve the buffer please let me know
- *          so I can update the buffer.
- *
- * \note    Code was originally created by <b>Anthony Williams</b>, published here:
- *          https://www.justsoftwaresolutions.co.uk/cplusplus/using-enum-classes-as-bitfields.html
- *
- *          Later, <b>Andre Haupt</b> added a more convenient macro which makes
- *          enabling the bitmask functionality to an enum much easier. This
- *          trick is described here:
- *          http://blog.bitwigglers.org/using-enum-classes-as-type-safe-bitmasks/
- *
- *          I just grouped code mentioned and explained above into a single
- *          header file, added comments and examples.
- *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
  * \version 1.0
  * \date    08-2018
@@ -90,8 +50,8 @@
 /************************************************************************/
 /* Includes                                                             */
 /************************************************************************/
-#include <cstdbool>         // bool
-#include <type_traits>      // bitmask scoped enums
+#include <cstdbool>
+#include <type_traits> 
 
 
 /************************************************************************/
