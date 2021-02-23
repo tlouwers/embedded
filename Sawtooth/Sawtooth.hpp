@@ -1,5 +1,5 @@
 /*
- * \file Sawtooth.hpp
+ * \file    Sawtooth.hpp
 
  * \licence "THE BEER-WARE LICENSE" (Revision 42):
  *          <terry.louwers@fourtress.nl> wrote this file. As long as you retain
@@ -7,27 +7,12 @@
  *          meet some day, and you think this stuff is worth it, you can buy me
  *          a beer in return.
  *                                                                Terry Louwers
- * \class Sawtooth
+ * \class   Sawtooth
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/Sawtooth
  *
  * \details This code is intended to generate a simple sawtooth within given
- *          parameters.
- *
- *          As example:
- *          Sawtooth mTestSawtooth(100, 14);     // 0..99 in 14 steps of 7
- *
- *          uint16_t val = 0;
- *          for (auto i =0; i < 255; i++)
- *          {
- *              val = mTestSawtooth.Next();
- *              // Do something with 'val' here...
- *          }
- *
- * \note    If you happen to find an issue, and are able to provide a
- *          reproducible scenario I am happy to have a look. If you have a fix,
- *          or a refactoring that would improve the sawtooth please let me know
- *          so I can update the code.
+ *          parameters. The range and steepness can be set.
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
  * \version 1.0

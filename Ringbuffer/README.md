@@ -6,20 +6,18 @@ A thread-safe, lock-free, single producer, single consumer, ringbuffer.
 This code is intended to be used as single-producer, single-consumer ringbuffer on a Cortex-M4 microcontroller, but can see its share of use in other scenarios as well. Be sure to read up on the documentation, as it has some other-than-usual behavior.
 
 ## Requirements
-
- - C++11
+- C++11
 
 ## Contents
-
 | Folder | Contents |
 | ------ | -------- |
 | test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
 
 ## Notes
-Although care has been taken to make the code work like a charm, use it at your own risk.
+Inspiration from: <https://www.codeproject.com/Articles/43510/Lock-Free-Single-Producer-Single-Consumer-Circular>, <https://www.boost.org/doc/libs/1_54_0/doc/html/boost/lockfree/spsc_queue.html> and <http://moodycamel.com/blog/2013/a-fast-lock-free-queue-for-c++>
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
 ## Example
-
 ```cpp
 // Producer will fill the buffer, Consumer will empty the buffer.
 // Note: do check for the result values, the example omits them for clarity.

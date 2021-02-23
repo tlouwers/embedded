@@ -9,16 +9,16 @@
  *                                                                Terry Louwers
  * \class   SoftTimer
  *
- * \brief   Flexible software timer helper class..
+ * \brief   Flexible software timer helper class.
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/SoftTimer
  *
  * \details Intended use is to provide a simple and extendable number of software
  *          timers, based upon a defined hardware timer tick.
  *
- * \author      T. Louwers <terry.louwers@fourtress.nl>
- * \version     1.0
- * \date        02-2021
+ * \author  T. Louwers <terry.louwers@fourtress.nl>
+ * \version 1.0
+ * \date    02-2021
  */
 
 #ifndef SOFT_TIMER_HPP_

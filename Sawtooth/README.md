@@ -1,11 +1,11 @@
 # Sawtooth
 Simple sawtooth generator class.
 
-## Introduction
+## Description
 This code is intended to generate a simple sawtooth within given parameters. The range and steepness can be set.
 
 ## Requirements
- - C++11
+- C++11
 
 ## Contents
 | Folder | Contents |
@@ -13,13 +13,10 @@ This code is intended to generate a simple sawtooth within given parameters. The
 | test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
 
 ## Notes
-Although care has been taken to make the code work like a charm, use it at your own risk.
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
 ## Example
 ```cpp
-// Include this file (only) to the header files listing the enum
-#include "Sawtooth.hpp"
-
 // Create a sawooth object and construct it with desired parameters:
 Sawtooth mSawtooth1(79, 5);   // 0..79 in 5 steps of 16
 Sawtooth mSawtooth2(99, 8);   // 0..99 in 8 steps of 12
@@ -40,4 +37,4 @@ mSawtooth1.Reset();
 
 ## Careful
 When calculating the step size, rounding will occur: the remainder of the factional number is discarded.
-When wrapping the remainder before the wrapping point is taken into account.
+When wrapping, the remainder before the wrapping point is taken into account.

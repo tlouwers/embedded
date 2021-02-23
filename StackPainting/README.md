@@ -2,23 +2,23 @@
 # StackPainting
 Low level functions to determine stack usage during run time.
 
-## Introduction
-This code is intended to be used on an Atmel Cortex-M4, but should be easily portable to other platforms.
-
-## Requirements
- - Atmel Studio, a recent version which supports C++11
- - GCC compiler (untested on other compilers)
- - Atmel SAM4E/S microcontroller (untested on other microcontrollers)
-
-## Check
-Be sure you know where the stack is located. This is presented in the linker file, in our (tested) case it was in a file called `flash.ld`.
-
-## Note
-The code is written in "C", not "C++" - as it performs a few tricks which may not work on every board. Also note that these methods are a rough indication - your mileage may vary.
-
-# Example
+## Description
 To check the stack usage, a method known as "stack painting" is used: upon startup of the application the entire stack memory is set to a specific value (magic number). When the application has run for a few minutes (hours, whatever it takes to touch all functionality) the stack memory is read and checked: where the magic number is replaced a real method has been executing - thus the stack here is used. Since the assumption is that the stack use will 'grow' when more of the application is used, the maximum stack usage can thus be determined.
 
+## Requirements
+- Atmel Studio, a recent version which supports C++11
+- GCC compiler (untested on other compilers)
+- Atmel SAM4E/S microcontroller (untested on other microcontrollers)
+
+## Check
+This code is not to be used 'as-is': be sure you know where the stack and heap are located in your project and modify the code tomatch these areas. In my (tested) case it was in a file called `flash.ld`.
+Inspiration from: <https://ucexperiment.wordpress.com/2015/01/02/arduino-stack-painting/> and <https://embeddedgurus.com/stack-overflow/2009/03/computing-your-stack-size/>
+
+## Intended use
+This code is intended to be used on an Atmel Cortex-M4, but should be easily portable to other platforms.
+The code is implemented in 'C', to be usable in both 'C' and 'C++' projects.
+
+# Example
 ```cpp
 // Include the header file
 #include "stack_painting.h"
