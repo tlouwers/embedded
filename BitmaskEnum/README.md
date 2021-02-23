@@ -1,7 +1,8 @@
+
 # BitmaskEnum
 Template class to use strongly typed enum classes as bitmask,
 
-## Introduction
+## Description
 This code is intended to use strongly typed enum classes as bitmasks. Doing so will improve readability and reduce the chance of errors, getting feedback at compile time.
 
 ## Requirements
@@ -13,7 +14,10 @@ This code is intended to use strongly typed enum classes as bitmasks. Doing so w
 | test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
 
 ## Notes
-Although care has been taken to make the code work like a charm, use it at your own risk.
+Code was originally created by <b>Anthony Williams</b>, published here: <https://www.justsoftwaresolutions.co.uk/cplusplus/using-enum-classes-as-bitfields.html>
+Later, <b>Andre Haupt</b> added a more convenient macro which makes enabling the bitmask functionality to an enum much easier. Thistrick is described here: <http://blog.bitwigglers.org/using-enum-classes-as-type-safe-bitmasks/>
+I just grouped code mentioned and explained above into a singleheader file, added comments and examples.
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
 ## Example
 ```cpp

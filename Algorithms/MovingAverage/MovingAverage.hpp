@@ -7,39 +7,11 @@
  *          meet some day, and you think this stuff is worth it, you can buy me
  *          a beer in return.
  *                                                                Terry Louwers
- * \note    MovingAverage
+ * \class   MovingAverage
  *
  * \brief   Implementation of a simple moving average with template functions.
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/Algorithms/MovingAverage
- *
- * \details This code is intended to smooth out battery samples on an embedded
- *          device, using a simple moving average. It only averages on items in
- *          the internal buffer, returns 0 if none are present. The Fill()
- *          method can be used to completely fill the internal buffer with a
- *          defined value.
- *          Since the intent is to use it on smaller ranges and embedded
- *          devices, the use of larger types 'T' is not allowed:
- *          double, int64_t and uint64_t are checked/blocked in Resize().
- *
- *          Example:
- *          // Declare the object and type to use:
- *          MovingAverage<int> movAvg;
- *
- *          // Use Resize() to define the length of the internal buffer:
- *          movAvg.Resize(6);
- *
- *          // Add values:
- *          movAvg.Add(2);
- *          movAvg.Add(4);
- *
- *          // Calculate and get the averaged sum:
- *          int result = movAvg.GetAverage();
- *
- * \note    If you happen to find an issue, and are able to provide a
- *          reproducible scenario I am happy to have a look. If you have a fix,
- *          or a refactoring that would improve the buffer please let me know
- *          so I can update the buffer.
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
  * \version 1.2
@@ -52,9 +24,9 @@
 /******************************************************************************
  * Includes                                                                   *
  *****************************************************************************/
-#include <cstdint>      // uint16_t
-#include <algorithm>    // std::fill()
-#include <type_traits>  // std::is_same()
+#include <cstdint>
+#include <algorithm>
+#include <type_traits>
 
 
 /******************************************************************************

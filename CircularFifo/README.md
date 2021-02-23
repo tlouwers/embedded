@@ -2,15 +2,16 @@
 # CircularFifo
 A thread-safe, lock-free, single producer, single consumer, ringbuffer.
 
-## Introduction
-Small, simple, per-element based thread-safe ringbuffer.
+## Description
+This code is intended to provide a "Template" for a Circular buffer, its  main use is for embedded devices where streaming data is handled.
+The code is thread safe for a single producer, single consumer.
+An example of this is an interrupt producing data (read from input), main application code reading the data.
 
 ## Requirements
-
- - C++11
+- C++11
 
 ## Notes
-Although care has been taken to make the code work like a charm, use it at your own risk.
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
 ## Example
 

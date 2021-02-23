@@ -1,11 +1,19 @@
+
 # ContiguousRingbuffer
 A thread-safe, lock-free, single producer, single consumer, contiguous ringbuffer.
 
-## Introduction
+## Description
+Single-Producer, Single-Consumer, lock free, wait free, contiguous ringbuffer. Best described as a variant of the bip-buffer, suited for embedded use, see URLs below.
 This code is intended to be used to feed DMA handling of a Cortex-M4 microcontroller, but can see its share of use in other scenarios as well. Be sure to read up on the documentation, as it has some other-than-usual behavior.
 
+The intended use in a nutshell:
+Assuming an Interrupt Service Routine (ISR) as thread 'Producer' and the main application loop as thread 'Consumer'. Producer will use Poke() to request a contiguous block of elements, this can be passed on to the DMA (to fill the data). The CPU can perform another task. When DMA finishes it flags the data as written by calling Write() with the correct size. Consumer is expected to check if data is available in the buffer by calling Peek() - either with the size it can manage at the time or 1 to get an indication of the largest contiguous block available. When the data is read/processed the memory is released to the buffer (for reuse) with a call to Read() with the correct size.
+
+Thread safety is guaranteed by preventing the write pointer to overtake or become equal to the read pointer, preventing the read to overtake the write pointer (but they can become equal). If Poke()/Write() use an old value of the read pointer this would mean the buffer is 'more full' (or entirely full) at the time, allowing less data to be inserted. If Peek()/Read() use an old value of the write pointer this would mean the buffer is 'more empty' (or completely empty) at the time, allowing less data to be removed.
+The race condition on the wrap pointer is prevented partly by not allowing Write() and Read() to overtake each other. In addition, Write() will be the first to pass the wrapping point, Read() at this point will not use the wrap pointer. When Read() passes the wrapping point Write() will not use the wrap pointer. In this case it is irrelevant whether Write() or Read() use an 'old' or 'new' tate, at the time they need the wrap pointer the other is guaranteed not to alter it.
+
 ## Requirements
- - C++11
+- C++11
 
 ## Contents
 | Folder | Contents |
@@ -13,7 +21,8 @@ This code is intended to be used to feed DMA handling of a Cortex-M4 microcontro
 | test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
 
 ## Notes
-Although care has been taken to make the code work like a charm, use it at your own risk.
+Inspiration from: <https://en.wikipedia.org/wiki/PEEK_and_POKE>, <https://www.codeproject.com/Articles/43510/Lock-Free-Single-Producer-Single-Consumer-Circular> and <https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist>
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
 ## Example
 ```cpp
@@ -27,9 +36,9 @@ ContiguousRingbuffer<int> ringBuff;
 ringBuff.Resize(5);
 
 // Check if there is room, then write 1 element
-int* data = nullptr;
+int*   data = nullptr;
 size_t size = 1;
-int val = 42;
+int    val  = 42;
 if (ringBuff.Poke(data, size))  // 'size' changes to the space available
 {
     data[0] = val;
@@ -62,8 +71,8 @@ This buffer may not be as efficient in filling the full buffer since it works in
 One can only prevent so much, once the user get access to the data (the pointer), it is up to the user to not write/read beyond the boundaries given by the size.
 
 ## Explored options
- - Do not change the 'size' parameter in 'Poke()'. This is hard to do since it requires another method like 'ContiguousAvailable()', which will indicate the largest size of a contiguous block of elements available. Since there can be 1 or 2 blocks available: the 2 blocks where either the first or the last can be the biggest - it depends of the size of the block requested which is taken. Note that the 'dest' will point to the block in which 'size' will fit, which may be the first or second block. Decided not to implement this due to added complexity for the end user and a larger implementation.
- - Having a method called 'ContiguousSize()', which indicates the first contiguous block of elements available - if any. This information is already provided with 'Peek()', which then can be used immediate. Decided not to implement this due to added complexity for the end user and a larger implementation. Will be slower too as yet another call to 'Peek()' has to be made after calling 'ContiguousSize()'.
+- Do not change the 'size' parameter in 'Poke()'. This is hard to do since it requires another method like 'ContiguousAvailable()', which will indicate the largest size of a contiguous block of elements available. Since there can be 1 or 2 blocks available: the 2 blocks where either the first or the last can be the biggest - it depends of the size of the block requested which is taken. Note that the 'dest' will point to the block in which 'size' will fit, which may be the first or second block. Decided not to implement this due to added complexity for the end user and a larger implementation.
+- Having a method called 'ContiguousSize()', which indicates the first contiguous block of elements available - if any. This information is already provided with 'Peek()', which then can be used immediate. Decided not to implement this due to added complexity for the end user and a larger implementation. Will be slower too as yet another call to 'Peek()' has to be made after calling 'ContiguousSize()'.
 
 ## More examples
 Loop to move data from buffer to peripheral component, like Bluetooth or UART (also buffers).  The latter buffers may not be emptied quickly due to data being transmitted.

@@ -1,24 +1,27 @@
 
-
-
 # BubbleSort
 Implementation of the BubbleSort algorithm with template functions.
 
-## Introduction
-This code is intended as simple sort algorithm, used for small sets.
+## Description
+This code is intended as non-STL version of the BubbleSort algorithm, making it better suited for embedded use.
+Use it for small sets only.
+
+Worst case:      O(n^2)
+Best case:       O(n)
+Average case:    O(n^2)
+Auxiliary space: O(1)
 
 ## Requirements
-
- - C++11
+- C++11
 
 ## Contents
-
 | Folder | Contents |
 | ------ | -------- |
 | test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
 
 ## Notes
-Although care has been taken to make the code work like a charm, use it at your own risk.
+Inspiration from: <https://www.geeksforgeeks.org/bubble-sort/>
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
 ## Example
 ```cpp

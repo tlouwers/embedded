@@ -1,8 +1,8 @@
 /**
- * \file CircularFifo.hpp
+ * \file    CircularFifo.hpp
  *
  * \licence "THE BEER-WARE LICENSE" (Revision 42):
- *          Kjell Hedström <hedstrom@kjellkod.cc> wrote this file, with
+ *          Kjell HedstrÃ¶m <hedstrom@kjellkod.cc> wrote this file, with
  *          modifications from <terry.louwers@fourtress.nl>. The latter
  *          modified the license for chance on a beer. As long as you retain
  *          this notice you can do whatever you want with this stuff. If we
@@ -11,25 +11,14 @@
  *                                                                Terry Louwers
  *
  * \note    This is a modification of the code published by
- *          Kjell Hedström, hedstrom@kjellkod.cc, most recent versions
+ *          Kjell HedstrÃ¶m, hedstrom@kjellkod.cc, most recent versions
  *          can be found at: http://www.kjellkod.cc/threadsafecircularqueue
   *
  * \class   CircularFifo
  *
  * \brief   Single-Producer, Single-Consumer, lock free, wait free, circular buffer.
  *
- * \note    https://github.com/tlouwers/embedded/tree/master/Arbiter
- *
- * \details This code is intended to provide a "Template" for a Circular buffer, its
- *          main use is for embedded devices where streaming data is handled.
- *          The code is thread safe for a single producer, single consumer.
- *          An example of this is an interrupt producing data (read from input),
- *          main application code reading the data.
- *
- * \note    If you happen to find an issue, and are able to provide a
- *          reproducible scenario I am happy to have a look. If you have a fix,
- *          or a refactoring that would improve the code please let me know
- *          so I can update the it.
+ * \note    https://github.com/tlouwers/embedded/tree/master/CircularFifo
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
  * \version 1.0

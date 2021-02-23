@@ -2,12 +2,11 @@
 # SlimAssert
 Slim replacement of assert macro for use in embedded environment.
 
-## Introduction
+## Description
 This code is intended to replace the 'assert' macro from the Standard Template Library, even the one from newlib. This to prevent two things:
- - Keeping the `__PRETTY_FUNCTION__` (or demangled string method names in text memory, thereby reducing the application size (especially for C++), 
- - And to remove the unneeded printf() inside the macro which prints to stderr, which in the embedded environment will not (typically) be used.
-
-It is disabled when NDEBUG is defined. When debugging, the callstack is preserved.
+- Keeping the `__PRETTY_FUNCTION__` (or demangled string method names in text memory, thereby reducing the application size (especially for C++), 
+- And to remove the unneeded printf() inside the macro which prints to stderr, which in the embedded environment will not (typically) be used.
+It is disabled when `NDEBUG` is defined. When debugging, the callstack is preserved.
 
 ## Requirements
 - C++11
@@ -18,7 +17,8 @@ It is disabled when NDEBUG is defined. When debugging, the callstack is preserve
 | test | A CodeBlocks 17.12 project, with a simple manual test to show how to use it. |
 
 ## Notes
-Although care has been taken to make the code work like a charm, use it at your own risk.
+Inspiration from: <https://barrgroup.com/Embedded-Systems/How-To/Define-Assert-Macro>, <http://cnicholson.net/2009/02/stupid-c-tricks-adventures-in-assert> and <https://stackoverflow.com/questions/5252375/custom-c-assert-macro>
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
 ## Example
 ```cpp
