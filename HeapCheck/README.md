@@ -3,7 +3,8 @@
 Low level functions to determine heap usage during run time.
 
 ## Description
-To get an idea of the heap (dynamic memory currently in use), another trick is used: a low level method called `_sbrk()` is called with size 0. Usually this function is used by `malloc()` to request memory from the heap, but when we request nothing (size 0) we get the current heap address. Together with the start of the heap (address) we can determine how much heap memory is used. If the amount of memory increases over time (constantly), this indicates there is either a memory leak or memory fragmentation. Assuming the programmer handles the heap correctly (request and release memory) there should be no memory leaks, only fragmentation.
+Assuming there is no memory manager in use, the heap size can be queried.
+To get an idea of the heap (dynamic memory currently in use), a trick is used: a low level method called `_sbrk()` is called with size 0. Usually this function is used by `malloc()` to request memory from the heap, but when we request nothing (size 0) we get the current heap address. Together with the start of the heap (address) we can determine how much heap memory is used. If the amount of memory increases over time (constantly), this indicates there is either a memory leak or memory fragmentation. Assuming the programmer handles the heap correctly (request and release memory) there should be no memory leaks, only fragmentation.
 
 ## Requirements
 - Atmel Studio, a recent version which supports C++11
@@ -11,7 +12,7 @@ To get an idea of the heap (dynamic memory currently in use), another trick is u
 - Atmel SAM4E/S microcontroller (untested on other microcontrollers)
 
 ## Check
-This code is not to be used 'as-is': be sure you know where the stack and heap are located in your project and modify the code tomatch these areas. In my (tested) case it was in a file called `flash.ld`.
+This code is not to be used 'as-is': be sure you know where the stack and heap are located in your project and modify the code to match these areas. In my (tested) case it was in a file called `flash.ld`.
 Inspiration from: <https://github.com/angrave/SystemProgramming/wiki/Memory,-Part-1:-Heap-Memory-Introduction> and <http://library.softwareverify.com/memory-fragmentation-your-worst-nightmare/>
 
 ## Intended use
