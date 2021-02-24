@@ -20,7 +20,7 @@ This code is intended to be used on an Atmel Cortex-M4, but should be easily por
 The code is implemented in 'C', to be usable in both 'C' and 'C++' projects.
 
 ## Change
-To allow stack overflow detection (stack growing/running over allocated heap memory) a flag is added in the function `_sbrk()` which allocated the heap memory (see 'Modification' below).  Every time memory is allocated it flags the end of the claimed heap memory with a flag. Later on, when checking regularly, if the flag gets overwritten by the stack we can determine if a stack overflow occurred. It is an indication only, as there is a chance the stack has exactly the same value as the flag (very unlikely), or that the device enters a HardFault before we can check the condition.
+To allow stack overflow detection (stack growing/running over allocated heap memory) a flag is added in the function `_sbrk()` which allocated the heap memory (see 'Modification' below). Every time memory is allocated it flags the end of the claimed heap memory with a flag. Later on, when checking regularly, if the flag gets overwritten by the stack we can determine if a stack overflow occurred. It is an indication only, as there is a chance the stack has exactly the same value as the flag (very unlikely), or that the device enters a HardFault before we can check the condition.
 
 ## Example
 ```cpp
@@ -28,7 +28,7 @@ To allow stack overflow detection (stack growing/running over allocated heap mem
 #include "heap_check.h"
 
 // At a later point check where the block of memory can be allocated:
-static volatile uint32_t used_heap = 0;			<-- global to store the (growing) heap value
+static volatile uint32_t used_heap = 0;        <-- global to store the (growing) heap value
 void Application::GetUsedHeap()
 {
     uint32_t tmp = get_used_heap();
@@ -41,10 +41,10 @@ void Application::GetUsedHeap()
 // To check for stack overflow we can call a dedicated function (should be done regularly):
 void Application::CheckForStackOverflow()
 {
-	if (end_of_heap_overrun())
-	{
-		// Log, or take action ...
-	}
+    if (end_of_heap_overrun())
+    {
+        // Log, or take action ...
+    }
 }
 ```
 
@@ -71,7 +71,7 @@ extern caddr_t _sbrk(int incr)
     }
 
     heap += incr;
-    *((uint32_t*)((void*)heap)) = 0xFAFBFCFD;      // Mark to detect stack overflow
+    *((uint32_t*)((void*)heap)) = 0xFAFBFCFD;      // Mark end of heap to detect stack overflow
 
     return (caddr_t) prev_heap;
 }
