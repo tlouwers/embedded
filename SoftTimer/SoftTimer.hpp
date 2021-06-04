@@ -29,6 +29,7 @@
 /************************************************************************/
 #include <cstdint>
 #include <functional>
+#include "interfaces/ISoftTimer.hpp"
 
 
 /************************************************************************/
@@ -45,75 +46,27 @@ constexpr uint8_t MAX_SOFT_TIMERS = 3;
 /************************************************************************/
 /* Class declaration                                                    */
 /************************************************************************/
-class SoftTimer final
+class SoftTimer final : public ISoftTimer
 {
 public:
-/**
-     * \enum    Type
-     * \brief   Available timer types to register with the SoftTimer component.
-     */
-    enum class Type : uint8_t
-    {
-        TimeOut,
-        StopWatch,
-        Period,
-        Invalid,
-    };
-
-    /**
-     * \enum    State
-     * \brief   The states a registered timer can have.
-     */
-    enum class State : uint8_t
-    {
-        Running,
-        Stopped,
-        Expired,
-        Invalid,
-    };
-
-    /**
-     * \struct  Status
-     * \brief   Configuration struct for the status of a registered timer.
-     */
-    struct Status
-    {
-        /**
-         * \brief   Configuration struct for the status of a registered timer.
-         * \param   type    The type of the timer.
-         * \param   state   The state of the timer.
-         * \param   value   The amount of SoftTimer TimerPeriods of the timer.
-         */
-        Status(Type type, State state, uint32_t value) :
-            mType(type),
-            mState(state),
-            mValue(value)
-        { }
-
-        Type     mType;     ///< The type of the timer.
-        State    mState;    ///< The state of the timer.
-        uint32_t mValue;    ///< The amount of SoftTimer TimerPeriods of the timer.
-    };
-
-
     SoftTimer();
     virtual ~SoftTimer();
 
     void IncrementTick();
 
-    uint8_t AddPeriodTimer(uint32_t value, const std::function<void()>& callback);
-    uint8_t AddTimeoutTimer(uint32_t value, const std::function<void()>& callback);
-    uint8_t AddStopwatchTimer();
+    uint8_t AddPeriodTimer(uint32_t value, const std::function<void()>& callback) override;
+    uint8_t AddTimeoutTimer(uint32_t value, const std::function<void()>& callback) override;
+    uint8_t AddStopwatchTimer() override;
 
-    bool RemoveTimer(uint8_t id);
+    bool RemoveTimer(uint8_t id) override;
 
-    bool StartTimer(uint8_t id) const;
-    bool StopTimer(uint8_t id) const;
+    bool StartTimer(uint8_t id) const override;
+    bool StopTimer(uint8_t id) const override;
 
-    bool ResetTimeoutTimer(uint8_t id);
-    bool ResetTimeoutTimer(uint8_t id, uint32_t value);
+    bool ResetTimeoutTimer(uint8_t id) override;
+    bool ResetTimeoutTimer(uint8_t id, uint32_t value) override;
 
-    Status GetTimerStatus(uint8_t id) const;
+    Status GetTimerStatus(uint8_t id) const override;
 };
 
 
