@@ -15,8 +15,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/Ringbuffer
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.0
- * \date    05-2018
+ * \version 1.1
+ * \date    05-2024
  */
 
 #ifndef RING_BUFFER_HPP_
@@ -59,9 +59,9 @@ public:
     bool CheckState(size_t write, size_t read);
 
 private:
-    std::atomic<size_t> mWrite;
-    std::atomic<size_t> mRead;
-    size_t mCapacity;
+    std::atomic<size_t> mWrite{0};
+    std::atomic<size_t> mRead{0};
+    size_t mCapacity{0};
     T* mElements;
 
     void DeleteBuffer();
@@ -76,9 +76,7 @@ private:
 template<typename T>
 Ringbuffer<T>::Ringbuffer() noexcept :
     mWrite(0), mRead(0), mCapacity(0), mElements(nullptr)
-{
-    ;
-}
+{ }
 
 /**
  * \brief   Destructor.
@@ -117,10 +115,7 @@ bool Ringbuffer<T>::Resize(const size_t size) noexcept
 
         mElements = new(std::nothrow) T[size + 1];
 
-        if (mElements != nullptr)
-        {
-            return true;
-        }
+        return (nullptr != mElements);
     }
 
     return false;
@@ -141,7 +136,7 @@ bool Ringbuffer<T>::TryPush(const T* src, const size_t size)
 {
     if ((size > 0) && (size < mCapacity))               // Size within valid range?
     {
-        if (src != nullptr)
+        if (nullptr != src)
         {
             const auto write = mWrite.load(std::memory_order_relaxed);
             const auto read  = mRead.load(std::memory_order_relaxed);
@@ -214,7 +209,7 @@ bool Ringbuffer<T>::TryPop(T* &dest, const size_t size)
 {
     if ((size > 0) && (size < mCapacity))               // Size within valid range?
     {
-        if (dest != nullptr)
+        if (nullptr != dest)
         {
             const auto write = mWrite.load(std::memory_order_relaxed);
             const auto read  = mRead.load(std::memory_order_relaxed);
@@ -270,8 +265,8 @@ bool Ringbuffer<T>::TryPop(T* &dest, const size_t size)
 template<typename T>
 size_t Ringbuffer<T>::Size() const
 {
-    const auto write = mWrite.load(std::memory_order_acquire);
-    const auto read  = mRead.load(std::memory_order_acquire);
+    const auto write = mWrite.load(std::memory_order_relaxed);
+    const auto read  = mRead.load(std::memory_order_relaxed);
 
     if (write > read)
     {
@@ -369,7 +364,7 @@ void Ringbuffer<T>::Print() const
 template<class T>
 void Ringbuffer<T>::DeleteBuffer()
 {
-    if (mElements != nullptr)
+    if (nullptr != mElements)
     {
         delete [] mElements;
         mElements = nullptr;

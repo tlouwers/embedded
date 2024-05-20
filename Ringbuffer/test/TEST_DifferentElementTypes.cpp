@@ -26,7 +26,7 @@ TEST_CASE( "Ringbuffer different element types - TwoTypes", "[Ringbuffer]" )
 
     SECTION( "push and pop data - blocksize 1" )
     {
-        for (auto i = 1; i <= 100; i++)
+        for (uint16_t i = 1; i <= 100; i++)
         {
             // Add block with size 1
             pSrc[0].myInt16 = i;
@@ -43,7 +43,7 @@ TEST_CASE( "Ringbuffer different element types - TwoTypes", "[Ringbuffer]" )
 
     SECTION( "push and pop data - blocksize 2" )
     {
-        for (auto i = 1; i <= 100; i++)
+        for (uint16_t i = 1; i <= 100; i++)
         {
             // Add block with size 2
             pSrc[0].myInt16 = i;
@@ -86,7 +86,7 @@ TEST_CASE( "Ringbuffer different element types - TypeAndArray", "[Ringbuffer]" )
 
     SECTION( "push and pop data - blocksize 1" )
     {
-        for (auto i = 1; i <= 100; i++)
+        for (uint32_t i = 1; i <= 100; i++)
         {
             // Add block with size 1
             pSrc[0].myInt32 = i;
@@ -107,7 +107,7 @@ TEST_CASE( "Ringbuffer different element types - TypeAndArray", "[Ringbuffer]" )
 
     SECTION( "push and pop data - blocksize 2" )
     {
-        for (auto i = 1; i <= 100; i++)
+        for (uint32_t i = 1; i <= 100; i++)
         {
             // Add block with size 2
             pSrc[0].myInt32 = i;
