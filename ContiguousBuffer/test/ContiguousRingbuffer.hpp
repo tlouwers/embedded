@@ -16,8 +16,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/ContiguousBuffer
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.3
- * \date    12-2018
+ * \version 1.4
+ * \date    05-2024
  */
 
 #ifndef CONTIGUOUS_RING_BUFFER_HPP_
@@ -52,22 +52,19 @@ public:
     bool Read(const size_t size);
 
     size_t Size() const;
-
     size_t Capacity() const;
-
     void Clear();
-
     bool IsLockFree() const;
 
     // Debug
     void SetState(size_t write, size_t read, size_t wrap);
-    bool CheckState(size_t write, size_t read, size_t wrap );
+    bool CheckState(size_t write, size_t read, size_t wrap);
 
 private:
-    std::atomic<size_t> mWrite;
-    std::atomic<size_t> mRead;
-    std::atomic<size_t> mWrap;
-    size_t mCapacity;
+    std::atomic<size_t> mWrite{0};
+    std::atomic<size_t> mRead{0};
+    std::atomic<size_t> mWrap{0};
+    size_t mCapacity{0};
     std::unique_ptr<T[]> mElements;
 };
 
@@ -102,17 +99,14 @@ bool ContiguousRingbuffer<T>::Resize(const size_t size) noexcept
 
     if (size > 0)
     {
-        mWrite      = 0;
-        mRead       = 0;
-        mWrap       = size + 1;
-        mCapacity   = size + 1;
+        mWrite.store(0, std::memory_order_release);
+        mRead.store(0, std::memory_order_release);
+        mWrap.store(size + 1, std::memory_order_release);
+        mCapacity = size + 1;
 
         mElements = std::unique_ptr<T[]>(new(std::nothrow) T[size + 1]);
 
-        if (mElements)
-        {
-            return true;
-        }
+        return (nullptr != mElements);
     }
 
     return false;
@@ -270,9 +264,9 @@ bool ContiguousRingbuffer<T>::Write(const size_t size)
             }
         }
     }
-    else if (size == 0)
+    else
     {
-        return true;
+        return (size == 0);
     }
 
     return false;
@@ -417,9 +411,9 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
         }
         // Else: buffer empty
     }
-    else if (size == 0)
+    else
     {
-        return true;
+        return (size == 0);
     }
 
     return false;
