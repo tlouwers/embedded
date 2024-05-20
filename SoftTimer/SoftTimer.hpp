@@ -17,8 +17,8 @@
  *          timers, based upon a defined hardware timer tick.
  *
  * \author  T. Louwers <terry.louwers@fourtress.nl>
- * \version 1.0
- * \date    02-2021
+ * \version 1.1
+ * \date    05-2024
  */
 
 #ifndef SOFT_TIMER_HPP_
@@ -60,13 +60,40 @@ public:
 
     bool RemoveTimer(uint8_t id) override;
 
-    bool StartTimer(uint8_t id) const override;
-    bool StopTimer(uint8_t id) const override;
+    bool StartTimer(uint8_t id) override;
+    bool StopTimer(uint8_t id) override;
 
     bool ResetTimeoutTimer(uint8_t id) override;
     bool ResetTimeoutTimer(uint8_t id, uint32_t value) override;
 
-    Status GetTimerStatus(uint8_t id) const override;
+    Status GetTimerStatus(uint8_t id) override;
+
+private:
+    /**
+     * \struct  TimerEntry
+     * \brief   Administration struct for of a registered timer.
+     */
+    struct TimerEntry
+    {
+        uint8_t               mIndex        = 0;                            ///< The timer index;
+        std::function<void()> mCallback     = nullptr;                      ///< The callback of a timer.
+        SoftTimer::Type       mType         = SoftTimer::Type::Invalid;     ///< The type of timer.
+        SoftTimer::State      mState        = SoftTimer::State::Invalid;    ///< The current state of the timer.
+        uint32_t              mCurrentValue = 0;                            ///< The current timer value.
+        uint32_t              mResetValue   = 0;                            ///< The reset timer value.
+    };
+
+    // The +1 is for an empty unused entry, used for indicating an element is not present.
+    TimerEntry timers[MAX_SOFT_TIMERS + 1] = {};
+    uint8_t timerIndex = 0;
+
+    TimerEntry& GetEntryForTimer(uint8_t id);
+    bool AddEntryForTimer(const TimerEntry& entryToAdd);
+
+    void ProcessTimer(TimerEntry& timer);
+    void ProcessTimeOutTimer(TimerEntry& timer);
+    void ProcessPeriodTimer(TimerEntry& timer);
+    void ProcessStopwatchTimer(TimerEntry& timer);
 };
 
 

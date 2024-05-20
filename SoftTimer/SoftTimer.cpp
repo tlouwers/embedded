@@ -17,8 +17,8 @@
  *          timers, based upon a defined hardware timer tick.
  *
  * \author  T. Louwers <terry.louwers@fourtress.nl>
- * \version 1.0
- * \date    02-2021
+ * \version 1.1
+ * \date    05-2024
  */
 
 /************************************************************************/
@@ -29,92 +29,22 @@
 
 
 /************************************************************************/
-/* Static variable initialization                                       */
-/************************************************************************/
-/**
- * \struct  TimerEntry
- * \brief   Administration struct for of a registered timer.
- */
-struct TimerEntry
-{
-    uint8_t               mIndex        = 0;                            ///< The timer index;
-    std::function<void()> mCallback     = nullptr;                      ///< The callback of a timer.
-    SoftTimer::Type       mType         = SoftTimer::Type::Invalid;     ///< The type of timer.
-    SoftTimer::State      mState        = SoftTimer::State::Invalid;    ///< The current state of the timer.
-    uint32_t              mCurrentValue = 0;                            ///< The current timer value.
-    uint32_t              mResetValue   = 0;                            ///< The reset timer value.
-};
-
-// The +1 is for an empty unused entry, used for indicating an element is not present.
-static TimerEntry timers[MAX_SOFT_TIMERS + 1] = {};
-
-static uint8_t timerIndex = 0;
-
-
-/************************************************************************/
-/* Static functions                                                     */
-/************************************************************************/
-/**
- * \brief   Helper function to find an entry in the timers table.
- * \param   id      The id of the timer entry to find.
- * \returns The entry in the timers table if found, else the element at
-*           the last position with mIndex 0.
- */
-static TimerEntry& GetEntryForTimer(uint8_t id)
-{
-    for (auto i = 0; i < MAX_SOFT_TIMERS; i++)
-    {
-        if (timers[i].mIndex == id)
-        {
-            return timers[i];
-        }
-    }
-
-    // No entry found
-    return timers[MAX_SOFT_TIMERS];
-}
-
-/**
- * \brief   Helper function to add an timer in the timers table.
- * \param   entryToAdd      Reference to the timer to add.
- * \returns True if the timer could be added, else false.
- * \remarks If an entry already exists will return false.
- */
-static bool AddEntryForTimer(const TimerEntry& entryToAdd)
-{
-    // Make sure the entry does not exist yet
-    if (GetEntryForTimer(entryToAdd.mIndex).mIndex != 0)
-    {
-        return false;
-    }
-
-    // If no entry/duplicate found, add the entry
-    for (auto i = 0; i < MAX_SOFT_TIMERS; i++)
-    {
-        // Find an empty entry
-        if (timers[i].mIndex == 0)
-        {
-            timers[i] = entryToAdd;
-            return true;
-        }
-    }
-
-    // Array full, cannot add entry
-    return false;
-}
-
-
-/************************************************************************/
 /* Public methods                                                       */
 /************************************************************************/
+/**
+ * \brief   Constructor, resets the timerIndex.
+ */
 SoftTimer::SoftTimer()
 {
     ASSERT(MAX_SOFT_TIMERS > 0);
-    ASSERT(MAX_SOFT_TIMERS <= 256);
+    ASSERT(MAX_SOFT_TIMERS <= UINT8_MAX);
 
     timerIndex = 0;
 }
 
+/**
+ * \brief   Destructor, resets the timerIndex.
+ */
 SoftTimer::~SoftTimer()
 {
     timerIndex = 0;
@@ -130,55 +60,9 @@ void SoftTimer::IncrementTick()
         // Map entry for readability, note: use reference!
         TimerEntry& timer = timers[i];
 
-        if (timer.mIndex != 0)
+        if (0 != timer.mIndex)
         {
-            if (timer.mState == State::Running)
-            {
-                switch (timer.mType)
-                {
-                    // Timeout timer will stop after time runs out.
-                    case SoftTimer::Type::TimeOut:
-                        if (timer.mCurrentValue <= 1)
-                        {
-                            timer.mState = State::Expired;
-
-                            if (timer.mCallback) { timer.mCallback(); }
-                        }
-                        else
-                        {
-                            timer.mCurrentValue--;
-                        }
-                        break;
-
-                    // Period timer will reset itself after period runs out.
-                    case SoftTimer::Type::Period:
-                        if (timer.mCurrentValue <= 1)
-                        {
-                            timer.mCurrentValue = timer.mResetValue;
-
-                            if (timer.mCallback) { timer.mCallback(); }
-                        }
-                        else
-                        {
-                            timer.mCurrentValue--;
-                        }
-                        break;
-
-                    // Stopwatch will keep counting until stopped or uint32_t reached max value.
-                    case SoftTimer::Type::StopWatch:
-                        if (timer.mCurrentValue != UINT32_MAX)
-                        {
-                            timer.mCurrentValue++;
-                        }
-                        else
-                        {
-                            timer.mState = State::Stopped;
-                        }
-                        break;
-
-                    default: EXPECT(false); break;     // Impossible, invalid value
-                }
-            }
+            ProcessTimer(timer);
         }
     }
 }
@@ -198,7 +82,7 @@ uint8_t SoftTimer::AddPeriodTimer(uint32_t value, const std::function<void()>& c
 {
     EXPECT(value > 0);
 
-    if (value == 0) { return 0; }
+    if (0 == value) { return 0; }
 
     TimerEntry entry;
     entry.mIndex        = timerIndex + 1;
@@ -226,7 +110,7 @@ uint8_t SoftTimer::AddTimeoutTimer(uint32_t value, const std::function<void()>& 
 {
     EXPECT(value > 0);
 
-    if (value == 0) { return 0; }
+    if (0 == value) { return 0; }
 
     TimerEntry entry;
     entry.mIndex        = timerIndex + 1;
@@ -271,12 +155,12 @@ bool SoftTimer::RemoveTimer(uint8_t id)
 {
     EXPECT(id > 0);
 
-    if (id == 0) { return false; }
+    if (0 == id) { return false; }
 
     TimerEntry& entry = GetEntryForTimer(id);
     EXPECT(entry.mIndex != 0);
 
-    if (entry.mIndex != 0)
+    if (0 != entry.mIndex)
     {
         entry.mIndex        = 0;
         entry.mCallback     = nullptr;
@@ -297,16 +181,16 @@ bool SoftTimer::RemoveTimer(uint8_t id)
  * \remarks Asserts when id is 0.
  * \remarks Asserts when timer cannot be found in array.
  */
-bool SoftTimer::StartTimer(uint8_t id) const
+bool SoftTimer::StartTimer(uint8_t id)
 {
     EXPECT(id > 0);
 
-    if (id == 0) { return false; }
+    if (0 == id) { return false; }
 
     TimerEntry& entry = GetEntryForTimer(id);
     EXPECT(entry.mIndex != 0);
 
-    if (entry.mIndex != 0)
+    if (0 != entry.mIndex)
     {
         entry.mState = State::Running;
         return true;
@@ -325,12 +209,12 @@ bool SoftTimer::StopTimer(uint8_t id) const
 {
     EXPECT(id > 0);
 
-    if (id == 0) { return false; }
+    if (0 == id) { return false; }
 
     TimerEntry& entry = GetEntryForTimer(id);
     EXPECT(entry.mIndex != 0);
 
-    if (entry.mIndex != 0)
+    if (0 != entry.mIndex)
     {
         entry.mState = State::Stopped;
         return true;
@@ -352,12 +236,12 @@ bool SoftTimer::ResetTimeoutTimer(uint8_t id)
 {
     EXPECT(id > 0);
 
-    if (id == 0) { return false; }
+    if (0 == id) { return false; }
 
     TimerEntry& entry = GetEntryForTimer(id);
     EXPECT(entry.mIndex != 0);
 
-    if (entry.mIndex != 0)
+    if (0 != entry.mIndex)
     {
         if (entry.mType == Type::TimeOut)
         {
@@ -389,13 +273,13 @@ bool SoftTimer::ResetTimeoutTimer(uint8_t id, uint32_t value)
     EXPECT(id > 0);
     EXPECT(value > 0);
 
-    if (id == 0)    { return false; }
-    if (value == 0) { return false; }
+    if (0 == id)    { return false; }
+    if (0 == value) { return false; }
 
     TimerEntry& entry = GetEntryForTimer(id);
     EXPECT(entry.mIndex != 0);
 
-    if (entry.mIndex != 0)
+    if (0 != entry.mIndex)
     {
         if (entry.mType == Type::TimeOut)
         {
@@ -420,18 +304,18 @@ bool SoftTimer::ResetTimeoutTimer(uint8_t id, uint32_t value)
  * \remarks Asserts when id is 0.
  * \remarks Asserts when timer cannot be found in array.
  */
-SoftTimer::Status SoftTimer::GetTimerStatus(uint8_t id) const
+SoftTimer::Status SoftTimer::GetTimerStatus(uint8_t id)
 {
     EXPECT(id > 0);
 
     SoftTimer::Status status(Type::Invalid, State::Invalid, 0);
 
-    if (id == 0) { return status; }
+    if (0 == id) { return status; }
 
     const TimerEntry& entry = GetEntryForTimer(id);
     EXPECT(entry.mIndex != 0);
 
-    if (entry.mIndex != 0)
+    if (0 != entry.mIndex)
     {
         status.mType  = entry.mType;
         status.mState = entry.mState;
@@ -439,4 +323,130 @@ SoftTimer::Status SoftTimer::GetTimerStatus(uint8_t id) const
     }
 
     return status;
+}
+
+
+/************************************************************************/
+/* Private methods                                                      */
+/************************************************************************/
+/**
+ * \brief   Helper function to find an entry in the timers table.
+ * \param   id      The id of the timer entry to find.
+ * \returns The entry in the timers table if found, else the element at
+ *           the last position with mIndex 0.
+ */
+SoftTimer::TimerEntry& SoftTimer::GetEntryForTimer(uint8_t id)
+{
+    for (auto i = 0; i < MAX_SOFT_TIMERS; i++)
+    {
+        if (timers[i].mIndex == id)
+        {
+            return timers[i];
+        }
+    }
+
+    // No entry found
+    return timers[MAX_SOFT_TIMERS];
+}
+
+/**
+ * \brief   Helper function to add an timer in the timers table.
+ * \param   entryToAdd      Reference to the timer to add.
+ * \returns True if the timer could be added, else false.
+ * \remarks If an entry already exists will return false.
+ */
+bool SoftTimer::AddEntryForTimer(const TimerEntry& entryToAdd)
+{
+    // Make sure the entry does not exist yet
+    if (0 != GetEntryForTimer(entryToAdd.mIndex).mIndex)
+    {
+        return false;
+    }
+
+    // If no entry/duplicate found, add the entry
+    for (auto i = 0; i < MAX_SOFT_TIMERS; i++)
+    {
+        // Find an empty entry
+        if (0 == timers[i].mIndex)
+        {
+            timers[i] = entryToAdd;
+            return true;
+        }
+    }
+
+    // Array full, cannot add entry
+    return false;
+}
+
+/**
+ * \brief Helper method to route the (running) timers to the appropriate handlers.
+ * \param   timer   The timer to handle.
+ */
+void SoftTimer::ProcessTimer(TimerEntry& timer)
+{
+    if (State::Running == timer.mState) {
+        switch (timer.mType) {
+            case SoftTimer::Type::TimeOut:
+                ProcessTimeOutTimer(timer);
+                break;
+            case SoftTimer::Type::Period:
+                ProcessPeriodTimer(timer);
+                break;
+            case SoftTimer::Type::StopWatch:
+                ProcessStopwatchTimer(timer);
+                break;
+            default:
+                EXPECT(false);  // Impossible, invalid value
+                break;
+        }
+    }
+}
+
+/**
+ * \brief   Timeout timer will stop after time runs out.
+ * \param   timer   The timeout timer to handle.
+ */
+void SoftTimer::ProcessTimeOutTimer(TimerEntry& timer) {
+    if (1 >= timer.mCurrentValue)
+    {
+        timer.mState = State::Expired;
+
+        if (timer.mCallback) { timer.mCallback(); }
+    }
+    else
+    {
+        timer.mCurrentValue--;
+    }
+}
+
+/**
+ * \brief   Period timer will reset itself after period runs out.
+ * \param   timer   The periodic timer to handle.
+ */
+void SoftTimer::ProcessPeriodTimer(TimerEntry& timer) {
+    if (1 >= timer.mCurrentValue)
+    {
+        timer.mCurrentValue = timer.mResetValue;
+
+        if (timer.mCallback) { timer.mCallback(); }
+    }
+    else
+    {
+        timer.mCurrentValue--;
+    }
+}
+
+/**
+ * \brief   Stopwatch will keep counting until stopped or uint32_t reached max value.
+ * \param   timer   The stopwatch timer to handle.
+ */
+void SoftTimer::ProcessStopwatchTimer(TimerEntry& timer) {
+    if (UINT32_MAX != timer.mCurrentValue)
+    {
+        timer.mCurrentValue++;
+    }
+    else
+    {
+        timer.mState = State::Stopped;
+    }
 }

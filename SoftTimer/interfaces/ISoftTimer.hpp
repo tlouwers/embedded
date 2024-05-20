@@ -86,13 +86,13 @@ public:
 
     virtual bool RemoveTimer(uint8_t id) = 0;
 
-    virtual bool StartTimer(uint8_t id) const = 0;
-    virtual bool StopTimer(uint8_t id) const = 0;
+    virtual bool StartTimer(uint8_t id) = 0;
+    virtual bool StopTimer(uint8_t id) = 0;
 
     virtual bool ResetTimeoutTimer(uint8_t id) = 0;
     virtual bool ResetTimeoutTimer(uint8_t id, uint32_t value) = 0;
 
-    virtual Status GetTimerStatus(uint8_t id) const = 0;
+    virtual Status GetTimerStatus(uint8_t id) = 0;
 };
 
 
