@@ -3,7 +3,7 @@
 
 
 // Test subject
-#include "drivers/SoftTimer/SoftTimer.hpp"
+#include "../SoftTimer.hpp"
 
 
 namespace {
@@ -24,7 +24,7 @@ protected:
 
     void IncrementTick(uint32_t nr_times)
     {
-        for (auto i = 0; i < nr_times; i++)
+        for (uint32_t i = 0; i < nr_times; i++)
         {
             mSubject.IncrementTick();
         }
