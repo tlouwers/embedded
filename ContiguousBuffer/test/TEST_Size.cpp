@@ -1,131 +1,113 @@
-
-#include "../../Catch/catch.hpp"
-
+#include <gtest/gtest.h>
 #include "ContiguousRingbuffer.hpp"
 
+class TEST_Size : public ::testing::Test {
+protected:
+    ContiguousRingbuffer<int> mRingBuffer;
 
-TEST_CASE( "ContiguousRingbuffer Size() operations", "[ContiguousRingbuffer]" )
-{
-    // For each section, ContiguousBuffer ringBuff is anew:
-    ContiguousRingbuffer<int> ringBuff;
-
-    REQUIRE(ringBuff.Resize(3) == true);
-    REQUIRE(ringBuff.Size() == 0);
-
-
-    SECTION( "basic operations - read at 0" )
-    {
-        ringBuff.SetState(0, 0, 4);                     // Set mWrite(0), mRead(0), mWrap(4) - buffer empty
-        REQUIRE(ringBuff.CheckState(0, 0, 4) == true);
-
-        REQUIRE(ringBuff.Size() == 0);
-
-        // -----
-
-        ringBuff.SetState(1, 0, 4);                     // Set mWrite(1), mRead(0), mWrap(4) - 1 element at start
-        REQUIRE(ringBuff.CheckState(1, 0, 4) == true);
-
-        REQUIRE(ringBuff.Size() == 1);
-
-        // -----
-
-        ringBuff.SetState(2, 0, 4);                     // Set mWrite(2), mRead(0), mWrap(4) - 2 elements at start
-        REQUIRE(ringBuff.CheckState(2, 0, 4) == true);
-
-        REQUIRE(ringBuff.Size() == 2);
-
-        // -----
-
-        ringBuff.SetState(3, 0, 4);                     // Set mWrite(3), mRead(0), mWrap(4) - buffer full
-        REQUIRE(ringBuff.CheckState(3, 0, 4) == true);
-
-        REQUIRE(ringBuff.Size() == 3);
+    void SetUp() override {
+        EXPECT_TRUE(mRingBuffer.Resize(3));
+        EXPECT_EQ(mRingBuffer.Size(), 0);
     }
 
-    SECTION( "basic operations - read at 1" )
+    void TearDown() override
     {
-        ringBuff.SetState(0, 1, 4);                     // Set mWrite(0), mRead(1), mWrap(4) - buffer full
-        REQUIRE(ringBuff.CheckState(0, 1, 4) == true);
+        mRingBuffer.Clear();
+    };
+};
 
-        REQUIRE(ringBuff.Size() == 3);
+TEST_F(TEST_Size, BasicOperations_ReadAt0) {
+    mRingBuffer.SetState(0, 0, 4); // Set mWrite(0), mRead(0), mWrap(4) - buffer empty
+    EXPECT_TRUE(mRingBuffer.CheckState(0, 0, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 0);
 
-        // -----
+    // -----
 
-        ringBuff.SetState(1, 1, 4);                    // Set mWrite(1), mRead(1), mWrap(4) - buffer empty
-        REQUIRE(ringBuff.CheckState(1, 1, 4) == true);
+    mRingBuffer.SetState(1, 0, 4); // Set mWrite(1), mRead(0), mWrap(4) - 1 element at start
+    EXPECT_TRUE(mRingBuffer.CheckState(1, 0, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 1);
 
-        REQUIRE(ringBuff.Size() == 0);
+    // -----
 
-        // -----
+    mRingBuffer.SetState(2, 0, 4); // Set mWrite(2), mRead(0), mWrap(4) - 2 elements at start
+    EXPECT_TRUE(mRingBuffer.CheckState(2, 0, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 2);
 
-        ringBuff.SetState(2, 1, 4);                    // Set mWrite(2), mRead(1), mWrap(4) - 1 element
-        REQUIRE(ringBuff.CheckState(2, 1, 4) == true);
+    // -----
 
-        REQUIRE(ringBuff.Size() == 1);
+    mRingBuffer.SetState(3, 0, 4); // Set mWrite(3), mRead(0), mWrap(4) - buffer full
+    EXPECT_TRUE(mRingBuffer.CheckState(3, 0, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 3);
+}
 
-        // -----
+TEST_F(TEST_Size, BasicOperations_ReadAt1) {
+    mRingBuffer.SetState(0, 1, 4); // Set mWrite(0), mRead(1), mWrap(4) - buffer full
+    EXPECT_TRUE(mRingBuffer.CheckState(0, 1, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 3);
 
-        ringBuff.SetState(3, 1, 4);                    // Set mWrite(3), mRead(1), mWrap(4) - 2 elements
-        REQUIRE(ringBuff.CheckState(3, 1, 4) == true);
+    // -----
 
-        REQUIRE(ringBuff.Size() == 2);
-    }
+    mRingBuffer.SetState(1, 1, 4); // Set mWrite(1), mRead(1), mWrap(4) - buffer empty
+    EXPECT_TRUE(mRingBuffer.CheckState(1, 1, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 0);
 
-    SECTION( "basic operations - read at 2" )
-    {
-        ringBuff.SetState(0, 2, 4);                    // Set mWrite(0), mRead(2), mWrap(4) - 2 elements
-        REQUIRE(ringBuff.CheckState(0, 2, 4) == true);
+    // -----
 
-        REQUIRE(ringBuff.Size() == 2);
+    mRingBuffer.SetState(2, 1, 4); // Set mWrite(2), mRead(1), mWrap(4) - 1 element
+    EXPECT_TRUE(mRingBuffer.CheckState(2, 1, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 1);
 
-        // -----
+    // -----
 
-        ringBuff.SetState(1, 2, 4);                    // Set mWrite(1), mRead(2), mWrap(4) - buffer full
-        REQUIRE(ringBuff.CheckState(1, 2, 4) == true);
+    mRingBuffer.SetState(3, 1, 4); // Set mWrite(3), mRead(1), mWrap(4) - 2 elements
+    EXPECT_TRUE(mRingBuffer.CheckState(3, 1, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 2);
+}
 
-        REQUIRE(ringBuff.Size() == 3);
+TEST_F(TEST_Size, BasicOperations_ReadAt2) {
+    mRingBuffer.SetState(0, 2, 4); // Set mWrite(0), mRead(2), mWrap(4) - 2 elements
+    EXPECT_TRUE(mRingBuffer.CheckState(0, 2, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 2);
 
-        // -----
+    // -----
 
-        ringBuff.SetState(2, 2, 4);                    // Set mWrite(2), mRead(2), mWrap(4) - buffer empty
-        REQUIRE(ringBuff.CheckState(2, 2, 4) == true);
+    mRingBuffer.SetState(1, 2, 4); // Set mWrite(1), mRead(2), mWrap(4) - buffer full
+    EXPECT_TRUE(mRingBuffer.CheckState(1, 2, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 3);
 
-        REQUIRE(ringBuff.Size() == 0);
+    // -----
 
-        // -----
+    mRingBuffer.SetState(2, 2, 4); // Set mWrite(2), mRead(2), mWrap(4) - buffer empty
+    EXPECT_TRUE(mRingBuffer.CheckState(2, 2, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 0);
 
-        ringBuff.SetState(3, 2, 4);                    // Set mWrite(3), mRead(2), mWrap(4) - 1 element
-        REQUIRE(ringBuff.CheckState(3, 2, 4) == true);
+    // -----
 
-        REQUIRE(ringBuff.Size() == 1);
-    }
+    mRingBuffer.SetState(3, 2, 4); // Set mWrite(3), mRead(2), mWrap(4) - 1 element
+    EXPECT_TRUE(mRingBuffer.CheckState(3, 2, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 1);
+}
 
-    SECTION( "basic operations - read at 3" )
-    {
-        ringBuff.SetState(0, 3, 4);                    // Set mWrite(0), mRead(3), mWrap(4) - 1 element
-        REQUIRE(ringBuff.CheckState(0, 3, 4) == true);
+TEST_F(TEST_Size, BasicOperations_ReadAt3) {
+    mRingBuffer.SetState(0, 3, 4); // Set mWrite(0), mRead(3), mWrap(4) - 1 element
+    EXPECT_TRUE(mRingBuffer.CheckState(0, 3, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 1);
 
-        REQUIRE(ringBuff.Size() == 1);
+    // -----
 
-        // -----
+    mRingBuffer.SetState(1, 3, 4); // Set mWrite(1), mRead(3), mWrap(4) - 2 elements
+    EXPECT_TRUE(mRingBuffer.CheckState(1, 3, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 2);
 
-        ringBuff.SetState(1, 3, 4);                    // Set mWrite(1), mRead(3), mWrap(4) - 2 elements
-        REQUIRE(ringBuff.CheckState(1, 3, 4) == true);
+    // -----
 
-        REQUIRE(ringBuff.Size() == 2);
+    mRingBuffer.SetState(2, 3, 4); // Set mWrite(2), mRead(3), mWrap(4) - buffer full
+    EXPECT_TRUE(mRingBuffer.CheckState(2, 3, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 3);
 
-         // -----
+    // -----
 
-        ringBuff.SetState(2, 3, 4);                    // Set mWrite(2), mRead(3), mWrap(4) - buffer full
-        REQUIRE(ringBuff.CheckState(2, 3, 4) == true);
-
-        REQUIRE(ringBuff.Size() == 3);
-
-        // -----
-
-        ringBuff.SetState(3, 3, 4);                    // Set mWrite(3), mRead(3), mWrap(4) - buffer empty
-        REQUIRE(ringBuff.CheckState(3, 3, 4) == true);
-
-        REQUIRE(ringBuff.Size() == 0);
-    }
+    mRingBuffer.SetState(3, 3, 4); // Set mWrite(3), mRead(3), mWrap(4) - buffer empty
+    EXPECT_TRUE(mRingBuffer.CheckState(3, 3, 4));
+    EXPECT_EQ(mRingBuffer.Size(), 0);
 }
