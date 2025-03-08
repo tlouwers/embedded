@@ -1,64 +1,69 @@
-#include <gtest/gtest.h>
+
+#include "../../../Catch/catch.hpp"
+
 #include "../BubbleSort.hpp"
-#include <cstddef> // for size_t
+
 
 const int SIZE = 10;
-const int refArrayPos[SIZE] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-const int refArrayNeg[SIZE] = { -10, -9, -8, -7, -6, -5, -4, -3, -2, -1 };
-const int refArrayMix[SIZE] = { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 };
+const int refArrayPos[SIZE] = {   1,   2,   3,   4,   5,   6,   7,   8,   9,  10 };
+const int refArrayNeg[SIZE] = { -10,  -9,  -8,  -7,  -6,  -5,  -4,  -3,  -2,  -1 };
+const int refArrayMix[SIZE] = {  -4,  -3,  -2,  -1,   0,   1,   2,   3,   4,   5 };
 
-class BubbleSortIntegertTest : public ::testing::Test {
-protected:
-    // Method to compare two arrays
-    bool CompareArrays(const int* reference, const int* sorted, size_t length)
+
+bool CompareArrays(const int* reference, int* sorted, size_t length)
+{
+    bool result = true;
+
+    for (size_t i = 0; i < length; i++)
     {
-        // Check for null pointers and valid length
-        if (reference == nullptr || sorted == nullptr) {
-            return false; // Cannot sort non-existing arrays
+        if (*reference != *sorted)
+        {
+            result = false;
+            break;
         }
-        if (length == 0) {
-            return true; // Two empty arrays are considered equal
+        else
+        {
+            reference++;
+            sorted++;
         }
-
-        for (size_t i = 0; i < length; ++i) {
-            if (reference[i] != sorted[i]) {
-                return false; // Return false on first mismatch
-            }
-        }
-        return true; // All elements matched
     }
-};
 
-
-TEST_F(BubbleSortIntegertTest, PositiveNumbers)
-{
-    int arrayPos[SIZE] = { 6, 3, 7, 8, 2, 10, 1, 4, 5, 9 };
-
-    EXPECT_FALSE(CompareArrays(refArrayPos, arrayPos, SIZE));
-
-    BubbleSort(arrayPos, SIZE);
-
-    EXPECT_TRUE(CompareArrays(refArrayPos, arrayPos, SIZE));
+    return result;
 }
 
-TEST_F(BubbleSortIntegertTest, NegativeNumbers)
+
+TEST_CASE( "positive numbers", "[BubbleSort]" )
 {
-    int arrayNeg[SIZE] = { -4, -5, -1, -7, -10, -2, -8, -3, -6, -9 };
+    SECTION( "positive numbers" )
+    {
+        int arrayPos[SIZE] = { 6, 3, 7, 8, 2, 10, 1, 4, 5, 9 };
 
-    EXPECT_FALSE(CompareArrays(refArrayNeg, arrayNeg, SIZE));
+        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == false);
 
-    BubbleSort(arrayNeg, SIZE);
+        BubbleSort(arrayPos, SIZE);
 
-    EXPECT_TRUE(CompareArrays(refArrayNeg, arrayNeg, SIZE));
-}
+        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == true);
+    }
 
-TEST_F(BubbleSortIntegertTest, MixedNumbers)
-{
-    int arrayMix[SIZE] = { -1, 4, -2, -3, 3, 2, 0, 1, -4, 5 };
+    SECTION( "negative numbers" )
+    {
+        int arrayNeg[SIZE] = { -4, -5, -1, -7, -10, -2, -8, -3, -6, -9 };
 
-    EXPECT_FALSE(CompareArrays(refArrayMix, arrayMix, SIZE));
+        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == false);
 
-    BubbleSort(arrayMix, SIZE);
+        BubbleSort(arrayNeg, SIZE);
 
-    EXPECT_TRUE(CompareArrays(refArrayMix, arrayMix, SIZE));
+        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == true);
+    }
+
+    SECTION( "mixed numbers" )
+    {
+        int arrayMix[SIZE] = { -1, 4, -2, -3, 3, 2, 0, 1, -4, 5 };
+
+        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == false);
+
+        BubbleSort(arrayMix, SIZE);
+
+        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == true);
+    }
 }

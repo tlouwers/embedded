@@ -1,78 +1,76 @@
-#include <gtest/gtest.h>
+
+#include "../../Catch/catch.hpp"
+
 #include "ContiguousRingbuffer.hpp"
 
-class TEST_Resize : public ::testing::Test {
-protected:
-    ContiguousRingbuffer<int> mRingBuffer;
 
-    void SetUp() override {
-        EXPECT_EQ(mRingBuffer.Size(), 0);
+TEST_CASE( "ContiguousRingbuffer Resize() operations", "[ContiguousRingbuffer]" )
+{
+    // For each section, ContiguousBuffer ringBuff is anew:
+    ContiguousRingbuffer<int> ringBuff;
+
+    int* data;
+    size_t size = 0;
+
+    REQUIRE( ringBuff.Size() == 0 );
+
+
+    SECTION( "resize small to large" )
+    {
+        REQUIRE(ringBuff.Resize(5) == true);
+        REQUIRE(ringBuff.Size() == 0);
+        ringBuff.Clear();
+        REQUIRE(ringBuff.Size() == 0);
+
+        size = 1;
+        REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 5);
+        REQUIRE(ringBuff.CheckState(0, 0, 6) == true);
+        REQUIRE(ringBuff.Write(2) == true);
+        REQUIRE(ringBuff.Size() == 2);
+
+        // Now resize to large: discards data
+
+        REQUIRE(ringBuff.Resize(50) == true);
+        REQUIRE(ringBuff.Size() == 0);
+
+        size = 1;
+        REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 50);
+        REQUIRE(ringBuff.CheckState(0, 0, 51) == true);
+        REQUIRE(ringBuff.Write(2) == true);
+        REQUIRE(ringBuff.Size() == 2);
+
+        ringBuff.Clear();
+        REQUIRE(ringBuff.Size() == 0);
     }
 
-    void TearDown() override
+    SECTION( "resize large to small" )
     {
-        mRingBuffer.Clear();
-    };
-};
+        REQUIRE(ringBuff.Resize(50) == true);
+        REQUIRE(ringBuff.Size() == 0);
+        ringBuff.Clear();
+        REQUIRE(ringBuff.Size() == 0);
 
-TEST_F(TEST_Resize, ResizeSmallToLarge) {
-    EXPECT_TRUE(mRingBuffer.Resize(5));
-    EXPECT_EQ(mRingBuffer.Size(), 0);
-    mRingBuffer.Clear();
-    EXPECT_EQ(mRingBuffer.Size(), 0);
+        size = 1;
+        REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 50);
+        REQUIRE(ringBuff.CheckState(0, 0, 51) == true);
+        REQUIRE(ringBuff.Write(2) == true);
+        REQUIRE(ringBuff.Size() == 2);
 
-    int* data = nullptr;
+        // Now resize to small: discards data
 
-    size_t size = 1;
-    EXPECT_TRUE(mRingBuffer.Poke(data, size));
-    EXPECT_EQ(size, 5);
-    EXPECT_TRUE(mRingBuffer.CheckState(0, 0, 6));
-    EXPECT_TRUE(mRingBuffer.Write(2));
-    EXPECT_EQ(mRingBuffer.Size(), 2);
+        REQUIRE(ringBuff.Resize(5) == true);
+        REQUIRE(ringBuff.Size() == 0);
 
-    // Now resize to large: discards data
-
-    EXPECT_TRUE(mRingBuffer.Resize(50));
-    EXPECT_EQ(mRingBuffer.Size(), 0);
-
-    size = 1;
-    EXPECT_TRUE(mRingBuffer.Poke(data, size));
-    EXPECT_EQ(size, 50);
-    EXPECT_TRUE(mRingBuffer.CheckState(0, 0, 51));
-    EXPECT_TRUE(mRingBuffer.Write(2));
-    EXPECT_EQ(mRingBuffer.Size(), 2);
-
-    mRingBuffer.Clear();
-    EXPECT_EQ(mRingBuffer.Size(), 0);
-}
-
-TEST_F(TEST_Resize, ResizeLargeToSmall) {
-    EXPECT_TRUE(mRingBuffer.Resize(50));
-    EXPECT_EQ(mRingBuffer.Size(), 0);
-    mRingBuffer.Clear();
-    EXPECT_EQ(mRingBuffer.Size(), 0);
-
-    int* data = nullptr;
-
-    size_t size = 1;
-    EXPECT_TRUE(mRingBuffer.Poke(data, size));
-    EXPECT_EQ(size, 50);
-    EXPECT_TRUE(mRingBuffer.CheckState(0, 0, 51));
-    EXPECT_TRUE(mRingBuffer.Write(2));
-    EXPECT_EQ(mRingBuffer.Size(), 2);
-
-    // Now resize to small: discards data
-
-    EXPECT_TRUE(mRingBuffer.Resize(5));
-    EXPECT_EQ(mRingBuffer.Size(), 0);
-
-    size = 1;
-    EXPECT_TRUE(mRingBuffer.Poke(data, size));
-    EXPECT_EQ(size, 5);
-    EXPECT_TRUE(mRingBuffer.CheckState(0, 0, 6));
-    EXPECT_TRUE(mRingBuffer.Write(2));
-    EXPECT_EQ(mRingBuffer.Size(), 2);
-
-    mRingBuffer.Clear();
-    EXPECT_EQ(mRingBuffer.Size(), 0);
+        size = 1;
+        REQUIRE(ringBuff.Poke(data, size) == true);
+        REQUIRE(size == 5);
+        REQUIRE(ringBuff.CheckState(0, 0, 6) == true);
+        REQUIRE(ringBuff.Write(2) == true);
+        REQUIRE(ringBuff.Size() == 2);
+        ringBuff.Clear();
+        REQUIRE(ringBuff.Size() == 0);
+    }
 }

@@ -15,8 +15,8 @@
  *          parameters. The range and steepness can be set.
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    03-2025
+ * \version 1.0
+ * \date    11-2019
  */
 
 #ifndef SAWTOOTH_HPP_
@@ -46,18 +46,15 @@ public:
         mMaxValue(maxValue),
         mValue(0)
     {
-        // Prevent divide by 0 by ensuring nrSteps is at least 1
-        if (nrSteps == 0) {
-            mStepSize = maxValue; // If no steps, set step size to maxValue
-        } else {
-            mStepSize = maxValue / nrSteps;
-        }
+        if (nrSteps == 0) { nrSteps = 1; }  // Prevent divide by 0
+
+        mStepSize = maxValue / nrSteps;
     }
 
     /**
      * \brief   Destructor.
      */
-    virtual ~Sawtooth() = default;
+    virtual ~Sawtooth() {}
 
     /**
      * \brief   Add the next step for the sawtooth. Wraps if needed.
@@ -66,14 +63,9 @@ public:
      */
     uint16_t Next()
     {
-        if (mStepSize == 0) {
-            return 0; // Early return if step size is zero
-        }
+        uint16_t diff = mMaxValue - mValue;
 
-        mValue += mStepSize;
-        if (mValue >= mMaxValue) {
-            mValue -= mMaxValue; // Wrap around
-        }
+        mValue = (diff > mStepSize) ? (mValue + mStepSize) : (mStepSize - diff);
         return mValue;
     }
 

@@ -1,8 +1,9 @@
+
 # Ringbuffer
-A thread-safe, lock-free, single-producer, single-consumer ring buffer.
+A thread-safe, lock-free, single producer, single consumer, ringbuffer.
 
 ## Introduction
-This code is designed for use as a single-producer, single-consumer ring buffer, particularly on Cortex-M4 microcontrollers, but it can be applied in various scenarios. Please refer to the documentation for details on its unique behavior.
+This code is intended to be used as single-producer, single-consumer ringbuffer on a Cortex-M4 microcontroller, but can see its share of use in other scenarios as well. Be sure to read up on the documentation, as it has some other-than-usual behavior.
 
 ## Requirements
 - C++11
@@ -10,53 +11,45 @@ This code is designed for use as a single-producer, single-consumer ring buffer,
 ## Contents
 | Folder | Contents |
 | ------ | -------- |
-| test   | A CMake project with tests written using the Google Test framework. |
+| test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
 
 ## Notes
-Inspired by:
-- [Lock-Free Single-Producer Single-Consumer Circular Queue](https://www.codeproject.com/Articles/43510/Lock-Free-Single-Producer-Single-Consumer-Circular)
-- [Boost Lockfree SPSC Queue](https://www.boost.org/doc/libs/1_54_0/doc/html/boost/lockfree/spsc_queue.html)
-- [MoodyCamel's Fast Lock-Free Queue](http://moodycamel.com/blog/2013/a-fast-lock-free-queue-for-c++)
-
-If you encounter any issues or have suggestions for improvements, please reach out with a reproducible scenario or a proposed fix.
+Inspiration from: <https://www.codeproject.com/Articles/43510/Lock-Free-Single-Producer-Single-Consumer-Circular>, <https://www.boost.org/doc/libs/1_54_0/doc/html/boost/lockfree/spsc_queue.html> and <http://moodycamel.com/blog/2013/a-fast-lock-free-queue-for-c++>
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
 ## Example
 ```cpp
-// Producer fills the buffer, Consumer empties it.
-// Note: Check result values; the example omits them for clarity.
+// Producer will fill the buffer, Consumer will empty the buffer.
+// Note: do check for the result values, the example omits them for clarity.
 
 // Declare the buffer
 Ringbuffer<int> ringBuff;
 
-// Resize the buffer to hold elements
+// Reserve the size to hold the elements, 'int' in this example
 ringBuff.Resize(5);
 
-// Check the number of elements in the buffer
+// If needed, check the number of elements in the buffer
 size_t nr_elements = ringBuff.Size();
 
-// Producer's data source
+// Assuming the Producer has 'source', data to put in buffer
 int src_arr[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
 // Writing data to the buffer
-size_t size = 4;                        // Number of elements to add
-bool result = ringBuff.TryPush(src_arr, size);
+size_t size = 4;                        // The amount of elements to add to buffer
+bool result = TryPush(src_arr, size);
 
-// Consumer's destination for retrieved data
+// Assuming the Consumer has a 'destination' to place retrieved data
 int dest_arr[10] = { };
 
 // Reading data from the buffer
-size = 4;                               // Number of elements to retrieve
-result = ringBuff.TryPop(dest_arr, size);
+size_t size = 4;                        // The amount of elements to retrieve from buffer
+bool result = TryPop(dest_arr, size);
 ```
 
-## Intended Use
-The Ringbuffer serves as a standard ring buffer with the added advantage of being thread-safe for single-producer, single-consumer scenarios. It is particularly suitable for use with an Interrupt Service Routine (ISR) as the producer and the main application loop as the consumer.
+## Intended use
+The Ringbuffer can be used a regular ringbuffer, with the addition that for a single consumer, single producer it is thread safe.  Assuming an Interrupt Service Routine (ISR) as thread 'Producer' and the main application loop as thread 'Consumer'. The Producer will push items to the buffer, where the consumer will read them. Putting items in the buffer is a copy action, so is retrieving them. If data cannot be put into buffer or retrieved from buffer the TryPush() and TryPop() will return with false. This can happen when the buffer is filling up and the Consumer does not read data from buffer fast enough. Although a Size() method is provided it is a snapshot or indication, due to the threaded nature the buffer contents can have changed before the method returns.
 
-In this setup, the producer uses `TryPush()` to insert data into the buffer, while the consumer utilizes `TryPop()` to retrieve it. Both operations are copy actions, meaning that data is copied into and out of the buffer. If either operation cannot be completed, `TryPush()` or `TryPop()` will return `false`. This situation may arise if the buffer is filling up faster than the consumer can process the data.
+Thread safety is guaranteed by preventing the write pointer to overtake or become equal to the read pointer, preventing the read to overtake the write pointer (but they can become equal). If TryPush() uses an old value of the read pointer this would mean the buffer is 'more full' (or entirely full) at the time, allowing less data to be inserted. If TryPop() uses an old value of the write pointer this would mean the buffer is 'more empty' (or completely empty) at the time, allowing less data to be removed.
 
-The `Size()` method provides a snapshot of the current number of elements in the buffer. However, due to the concurrent nature of operations, the buffer's state may change before the method completes.
-
-Thread safety is maintained by ensuring that the write pointer does not overtake or equal the read pointer, while allowing them to be equal. If `TryPush()` uses an outdated read pointer, it indicates that the buffer is fuller than expected, potentially limiting the amount of data that can be inserted. Conversely, if `TryPop()` uses an outdated write pointer, it suggests that the buffer is emptier than expected, limiting the amount of data that can be removed.
-
-### Caution
-When using `TryPush()` or `TryPop()`, ensure to check the return values to handle cases where the operations may fail due to buffer constraints.
+## Note
+If TryPush() or TryPop() succeed, the data is copied using std::copy(). Behavior of objects with custom types has not been tested (yet).

@@ -11,17 +11,11 @@
  *
  * \brief   Implementation of the QuickSort algorithm with template functions.
  *
- * \details QuickSort is a divide-and-conquer algorithm that sorts an array by
- *          partitioning it into smaller sub-arrays. The average time complexity
- *          is O(n log n), while the worst-case time complexity is O(n^2) when
- *          the smallest or largest element is always  chosen as the pivot.
- *          The space complexity is O(log n) due to the recursive stack space.
- *
  * \note    https://github.com/tlouwers/embedded/tree/master/Algorithms/QuickSort
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    03-2025
+ * \version 1.0
+ * \date    08-2018
  */
 
 #ifndef QUICKSORT_HPP_
@@ -30,80 +24,86 @@
 /******************************************************************************
  * Includes                                                                   *
  *****************************************************************************/
-#include <cstdint>
+#include <cstdint>      // int32_t
+#include <algorithm>    // swap()
+
 
 /******************************************************************************
  * Template methods                                                           *
  *****************************************************************************/
 /**
- * \brief   Partitions the array around a pivot.
- * \param   arr     The array to partition.
- * \param   start   The starting index for partitioning.
- * \param   end     The ending index for partitioning.
- * \returns The index of the pivot after partitioning.
+ * \brief   Take the first element as pivot, rearrange the elements to have
+ *          all values greater than or equal to the pivot element are on the
+ *          right side of the pivot element and all values less are on the
+ *          left side.
+ * \param   arr     The array to partition/rearrange.
+ * \param   start   The starting point (index) for sorting.
+ * \param   end     The end point (index) for sorting.
+ * \note    Intended for internal use by the QuickSort algorithm.
+ * \returns The updated pivot point.
  */
 template <typename T>
 int32_t Partition(T arr[], int32_t start, int32_t end)
 {
     // The pivot element is taken to be the element at the start of the subrange to be partitioned.
-    T pivotValue = arr[start];
+    T       pivotValue    = arr[start];
     int32_t pivotPosition = start;
 
     // Rearrange the rest of the array elements to partition the subrange from start to end.
-    for (int32_t pos = start + 1; pos <= end; ++pos)
+    for (int32_t pos = (start + 1); pos <= end; pos++)
     {
         if (arr[pos] < pivotValue)
         {
             // arr[pos] is the "current" item.
             // Swap the current item with the item to the right of the pivot element.
-            T temp = arr[++pivotPosition];
-            arr[pivotPosition] = arr[pos];
-            arr[pos] = temp;
+            std::swap(arr[pivotPosition + 1], arr[pos]);
+
+            // Swap the current item with the pivot element.
+            std::swap(arr[pivotPosition], arr[pivotPosition + 1]);
+
+            // Adjust the pivot position so it stays with the pivot element.
+            pivotPosition++;
         }
     }
-
-    // Place pivot in the correct position
-    T temp = arr[start];
-    arr[start] = arr[pivotPosition];
-    arr[pivotPosition] = temp;
-
     return pivotPosition;
 }
 
 /**
- * \brief   Sorts the array using the QuickSort algorithm.
+ * \brief   QuickSort algorithm, sorts the given arr from start to end.
+ * \details Implementation uses tail call elimination to reduce stack
+ *          size and number of recursions needed.
  * \param   arr     The array to sort.
- * \param   start   The starting index for sorting.
- * \param   end     The ending index for sorting.
- * \returns True if successful, false if the range is invalid.
+ * \param   start   The starting point (index) for sorting.
+ * \param   end     The end point (index) for sorting.
+ * \returns True if successful, false if the start is before the end point.
  */
 template <typename T>
 bool QuickSort(T arr[], int32_t start, int32_t end)
 {
-    if (start >= end)
+    if (start < end)    // Range check
     {
-        return false; // Invalid range
-    }
-
-    while (start < end)
-    {
-        // Partition the array and get the pivot point.
-        int32_t pivotIndex = Partition(arr, start, end);
-
-        // If left part is smaller, then recurse for the left part and handle right part iteratively.
-        if (pivotIndex - start < end - pivotIndex)
+        while (start < end)
         {
-            QuickSort(arr, start, pivotIndex - 1);
-            start = pivotIndex + 1; // Handle right part iteratively
-        }
-        else
-        {
-            QuickSort(arr, pivotIndex + 1, end);
-            end = pivotIndex - 1; // Handle left part iteratively
-        }
-    }
+            // Partition the array and get the pivot point.
+            int32_t p = Partition(arr, start, end);
 
-    return true;
+            // If left part is smaller, then recurse for the left part and handle right part iteratively.
+            if ((p - start) < (end - p))
+            {
+                QuickSort(arr, start, (p - 1));
+                start = (p + 1);
+            }
+            // Recurse for the right part
+            else
+            {
+                QuickSort(arr, (p + 1), end);
+                end = (p - 1);
+            }
+        }
+        return true;
+    }
+    return false;   // Invalid range provided.
 }
+
 
 #endif  // QUICKSORT_HPP_

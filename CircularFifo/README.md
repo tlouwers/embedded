@@ -1,38 +1,39 @@
+
 # CircularFifo
-A thread-safe, lock-free circular buffer designed for single-producer, single-consumer scenarios.
+A thread-safe, lock-free, single producer, single consumer, ringbuffer.
 
 ## Description
-`CircularFifo` is a template implementation of a circular buffer, optimized for use in embedded systems where data streaming is common. It allows one producer (e.g., an interrupt handler) to write data and one consumer (e.g., the main application) to read data concurrently without locking, ensuring efficient and safe access.
+This code is intended to provide a "Template" for a Circular buffer, its  main use is for embedded devices where streaming data is handled.
+The code is thread safe for a single producer, single consumer.
+An example of this is an interrupt producing data (read from input), main application code reading the data.
 
 ## Requirements
-- C++11 or later
+- C++11
 
-## Features
-- **Thread-Safe**: Designed for a single producer and a single consumer.
-- **Lock-Free**: Utilizes atomic operations to avoid locking mechanisms.
-- **Fixed Capacity**: The buffer size is defined at compile time.
+## Notes
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
-## Usage Example
+## Example
+
 ```cpp
-// Create a circular buffer with a capacity of 4 elements
+// Producer will fill the buffer, Consumer will empty the buffer.
+// Note: do check for the result values.
+
+// Declare the buffer and the size
 CircularFifo<int, 4> mBuffer;
 
-// Producer: Add an item to the buffer
-int itemToAdd = 4;
-bool result = mBuffer.push(itemToAdd);
+// Add an item
+int i = 4;
+result = mBuffer.push(i);
 
-// Consumer: Retrieve an item from the buffer
-int itemRetrieved;
-result = mBuffer.pop(itemRetrieved);
+// Retrieve an item
+int i;
+result = mBuffer.pop(i);
 
-// Check the result to ensure the operation succeeded
-if (result) {
-    // Successfully retrieved item
-}
+// Note: only if the result is true, the action succeeded.
 ```
 
-## Intended Use
-This circular buffer is ideal for scenarios requiring single-element access in a thread-safe manner. The `push` method copies the element into the buffer, while the `pop` method retrieves it. Always check the return values of these methods to confirm successful operations.
-
-## Contributions
-If you encounter any issues or have suggestions for improvements, please provide a reproducible scenario. Contributions for fixes or refactoring are welcome to enhance the code further.
+## Intended use
+For single-element access, this is a simple and small thread-safe ringbuffer.
+The buffer will copy the element when 'push' it inside and 'pop' it out.
+The result values of these methods must be used to check if the action succeeded or not.

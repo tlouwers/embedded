@@ -11,19 +11,11 @@
  *
  * \brief   Implementation of the BubbleSort algorithm with template functions.
  *
- * \details The BubbleSort algorithm has a worst-case and average-case time complexity
- *          of O(n^2), making it inefficient for large datasets. However, it performs
- *          well on small or nearly sorted datasets due to its early exit optimization
- *          when no swaps occur. The space complexity is O(1) since it sorts the array
- *          in place. This implementation is suitable for educational purposes and
- *          small-scale applications but is not recommended for production use with
- *          large datasets.
- *
  * \note    https://github.com/tlouwers/embedded/tree/master/Algorithms/BubbleSort
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    03-2025
+ * \version 1.0
+ * \date    08-2018
  */
 
 #ifndef BUBBLESORT_HPP_
@@ -33,46 +25,52 @@
  * Includes                                                                   *
  *****************************************************************************/
 #include <cstdint>
+#include <algorithm>
 
 
 /******************************************************************************
  * Template methods                                                           *
  *****************************************************************************/
 /**
- * \brief Sorts an array using the optimized BubbleSort algorithm.
- * \param arr The array to sort.
- * \param length The length of the array.
- * \returns True if successful, false if the length is invalid.
+ * \brief   BubbleSort algorithm, sorts the given arr from start to end.
+ * \details This is an optimized version where the inner loop is stopped when
+ *          no elements are swapped anymore.
+ * \param   arr     The array to sort.
+ * \param   length  The length of the array to sort.
+ * \returns True if successful, false if invalid length provided.
  */
 template <typename T>
 bool BubbleSort(T arr[], size_t length)
 {
-    if (length < 2)
-    {
-        return length == 1; // Already sorted or invalid.
-    }
+    if (length == 0) { return true; }   // Already sorted.
 
-    for (size_t i = 0; i < length - 1; ++i)
+    if (length > 1)
     {
-        bool swapped = false;
-        for (size_t j = 0; j < length - i - 1; ++j)
+        bool swapped;
+
+        for (size_t i = 0; i < (length - 1); i++)
         {
-            if (arr[j] > arr[j + 1])
+            swapped = false;
+            for (size_t j = 0; j < (length - i - 1); j++)
             {
-                // Swap values
-                T temp = arr[j];
-                arr[j] = arr[j + 1];
-                arr[j + 1] = temp;
-                swapped = true;
+                if (arr[j] > arr[j + 1])
+                {
+                    std::swap(arr[j], arr[j + 1]);
+                    swapped = true;
+                }
+            }
+
+            // If no two elements were swapped by inner loop, then break.
+            if (swapped == false)
+            {
+                break;
             }
         }
 
-        if (!swapped)
-        {
-            break; // No swaps means the array is sorted.
-        }
+        return true;
     }
-    return true; // Sorting completed successfully.
+    return false;   // Invalid range provided.
 }
+
 
 #endif  // BUBBLESORT_HPP_

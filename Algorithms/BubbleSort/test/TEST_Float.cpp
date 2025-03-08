@@ -1,72 +1,76 @@
-#include <gtest/gtest.h>
+
+#include "../../../Catch/catch.hpp"
+
 #include "../BubbleSort.hpp"
-#include <cmath>
-#include <limits>
+
 
 const int SIZE = 10;
 const float refArrayPos[SIZE] = {  1.0f,   2.0f,  3.0f,  4.0f,  5.0f,  6.0f,  7.0f,  8.0f,  9.0f, 10.0f };
 const float refArrayNeg[SIZE] = { -10.0f, -9.0f, -8.0f, -7.0f, -6.0f, -5.0f, -4.0f, -3.0f, -2.0f, -1.0f };
 const float refArrayMix[SIZE] = { -4.0f,  -3.0f, -2.0f, -1.0f,  0.0f,  1.0f,  2.0f,  3.0f,  4.0f,  5.0f };
 
-class BubbleSortFloatTest : public ::testing::Test {
-protected:
-    // Method to compare two floating-point numbers
-    bool AreSame(float a, float b)
-    {
-        // Use a more appropriate epsilon for floating-point comparison
-        return std::fabs(a - b) < std::numeric_limits<float>::epsilon();
-    }
+#include <cmath>
+#include <limits>
 
-    // Method to compare two arrays of floats
-    bool CompareArrays(const float* reference, const float* sorted, size_t length)
-    {
-        // Check for null pointers and valid length
-        if (reference == nullptr || sorted == nullptr) {
-            return false; // Cannot sort non-existing arrays
-        }
-        if (length == 0) {
-            return true; // Two empty arrays are considered equal
-        }
-
-        for (size_t i = 0; i < length; ++i) {
-            if (!AreSame(reference[i], sorted[i])) {
-                return false; // Return false on first mismatch
-            }
-        }
-        return true; // All elements matched
-    }
-};
-
-
-TEST_F(BubbleSortFloatTest, PositiveNumbers)
+bool AreSame(float a, float b)
 {
-    float arrayPos[SIZE] = { 6.0f, 3.0f, 8.0f, 7.0f, 10.0f, 2.0f, 1.0f, 4.0f, 5.0f, 9.0f };
-
-    EXPECT_FALSE(CompareArrays(refArrayPos, arrayPos, SIZE));
-
-    BubbleSort(arrayPos, SIZE);
-
-    EXPECT_TRUE(CompareArrays(refArrayPos, arrayPos, SIZE));
+    return std::fabs(a - b) < std::numeric_limits<float>::epsilon();
 }
 
-TEST_F(BubbleSortFloatTest, NegativeNumbers)
+bool CompareArrays(const float* reference, float* sorted, size_t length)
 {
-    float arrayNeg[SIZE] = { -4.0f, -5.0f, -7.0f, -3.0f, -10.0f, -2.0f, -8.0f, -1.0f, -6.0f, -9.0f };
+    bool result = true;
 
-    EXPECT_FALSE(CompareArrays(refArrayNeg, arrayNeg, SIZE));
+    for (size_t i = 0; i < length; i++)
+    {
+        if (!AreSame(*reference, *sorted))
+        {
+            result = false;
+            break;
+        }
+        else
+        {
+            reference++;
+            sorted++;
+        }
+    }
 
-    BubbleSort(arrayNeg, SIZE);
-
-    EXPECT_TRUE(CompareArrays(refArrayNeg, arrayNeg, SIZE));
+    return result;
 }
 
-TEST_F(BubbleSortFloatTest, MixedNumbers)
+
+TEST_CASE( "float sort", "[BubbleSort]" )
 {
-    float arrayMix[SIZE] = { -1.0f, -3.0f, 4.0f, -2.0f, 3.0f, 0.0f, 2.0f, 1.0f, 5.0f, -4.0f };
+    SECTION( "positive numbers" )
+    {
+        float arrayPos[SIZE] = { 6.0f, 3.0f, 8.0f, 7.0f, 10.0f, 2.0f, 1.0f, 4.0f, 5.0f, 9.0f };
 
-    EXPECT_FALSE(CompareArrays(refArrayMix, arrayMix, SIZE));
+        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == false);
 
-    BubbleSort(arrayMix, SIZE);
+        BubbleSort(arrayPos, SIZE);
 
-    EXPECT_TRUE(CompareArrays(refArrayMix, arrayMix, SIZE));
+        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == true);
+    }
+
+    SECTION( "negative numbers" )
+    {
+        float arrayNeg[SIZE] = { -4.0f, -5.0f, -7.0f, -3.0f, -10.0f, -2.0f, -8.0f, -1.0f, -6.0f, -9.0f };
+
+        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == false);
+
+        BubbleSort(arrayNeg, SIZE);
+
+        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == true);
+    }
+
+    SECTION( "mixed numbers" )
+    {
+        float arrayMix[SIZE] = { -1.0f, -3.0f, 4.0f, -2.0f, 3.0f, 0.0f, 2.0f, 1.0f, 5.0f, -4.0f };
+
+        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == false);
+
+        BubbleSort(arrayMix, SIZE);
+
+        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == true);
+    }
 }

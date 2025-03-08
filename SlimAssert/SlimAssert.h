@@ -13,8 +13,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/SlimAssert
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    03-2025
+ * \version 1.0
+ * \date    03-2019
  */
 
 #ifndef SLIM_ASSERT_H_
@@ -41,12 +41,8 @@ extern "C" {
  * \param   line        The line on which the assert tripped.
  * \param   file        The file (name) in which the assert tripped.
   */
-static inline void _assert(const char* expression, int line, const char* file)
+inline void _assert(const char* expression, int line, const char* file)
 {
-    (void)(expression);   // Silence compiler warnings about ununused variables
-    (void)(line);
-    (void)(file);
-
     abort();
 }
 

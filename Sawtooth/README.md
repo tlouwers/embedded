@@ -1,29 +1,23 @@
 # Sawtooth
-Implementation of a simple sawtooth generator class.
+Simple sawtooth generator class.
 
-## Overview
-This repository contains a non-STL implementation of a sawtooth generator designed to produce a simple sawtooth waveform based on specified parameters. The range and steepness of the waveform can be easily configured.
-
-## Algorithm Complexity
-- **Time Complexity:** O(1) for generating the next value.
-- **Space Complexity:** O(1) as it operates in place.
+## Description
+This code is intended to generate a simple sawtooth within given parameters. The range and steepness can be set.
 
 ## Requirements
-- C++11 or later
+- C++11
 
 ## Contents
 | Folder | Contents |
 | ------ | -------- |
-| test | A CMake project with tests using the Google Test framework. |
+| test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
 
-## Usage
-To use the Sawtooth generator, include the header file in your project and create an instance of the `Sawtooth` class with the desired parameters.
+## Notes
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
-### Example
+## Example
 ```cpp
-#include "Sawtooth.hpp" // Include the Sawtooth header
-
-// Create sawtooth objects with desired parameters:
+// Create a sawooth object and construct it with desired parameters:
 Sawtooth mSawtooth1(79, 5);   // 0..79 in 5 steps of 16
 Sawtooth mSawtooth2(99, 8);   // 0..99 in 8 steps of 12
 

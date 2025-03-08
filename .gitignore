@@ -1,14 +1,20 @@
 # BubbleSort
-Algorithms/BubbleSort/.vscode/settings.json
-Algorithms/BubbleSort/build/*
+Algorithms/BubbleSort/test/*.layout
+Algorithms/BubbleSort/test/*.depend
+Algorithms/BubbleSort/test/bin/*
+Algorithms/BubbleSort/test/obj/*
 
 # MovingAverage
-Algorithms/MovingAverage/.vscode/settings.json
-Algorithms/MovingAverage/build/*
+Algorithms/MovingAverage/test/*.layout
+Algorithms/MovingAverage/test/*.depend
+Algorithms/MovingAverage/test/bin/*
+Algorithms/MovingAverage/test/obj/*
 
 # QuickSort
-Algorithms/QuickSort/.vscode/settings.json
-Algorithms/QuickSort/build/*
+Algorithms/QuickSort/test/*.layout
+Algorithms/QuickSort/test/*.depend
+Algorithms/QuickSort/test/bin/*
+Algorithms/QuickSort/test/obj/*
 
 # Arbiter
 Arbiter/*.layout
@@ -18,25 +24,31 @@ Arbiter/doxygen/html/*
 Arbiter/obj/*
 
 # BitmaskEnum
-BitmaskEnum/.vscode/settings.json
-BitmaskEnum/build/*
+BitmaskEnum/test/*.layout
+BitmaskEnum/test/*.depend
+BitmaskEnum/test/bin/*
+BitmaskEnum/test/obj/*
 
 # ContiguousBuffer
-ContiguousBuffer/.vscode/settings.json
-ContiguousBuffer/build/*
+ContiguousBuffer/test/*.layout
+ContiguousBuffer/test/*.depend
+ContiguousBuffer/test/bin/*
+ContiguousBuffer/test/obj/*
 
 # Ringbuffer
-Ringbuffer/.vscode/settings.json
-Ringbuffer/build/*
+Ringbuffer/test/*.layout
+Ringbuffer/test/*.depend
+Ringbuffer/test/bin/*
+Ringbuffer/test/obj/*
 
 # Sawtooth
-Sawtooth/.vscode/settings.json
-Sawtooth/build/*
+Sawtooth/test/*.layout
+Sawtooth/test/*.depend
+Sawtooth/test/bin/*
+Sawtooth/test/obj/*
 
 # SlimAssert
-SlimAssert/.vscode/settings.json
-SlimAssert/build/*
-
-# SoftTimer
-SoftTimer/.vscode/settings.json
-SoftTimer/build/*
+SlimAssert/test/*.layout
+SlimAssert/test/*.depend
+SlimAssert/test/bin/*
+SlimAssert/test/obj/*

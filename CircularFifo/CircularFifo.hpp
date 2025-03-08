@@ -13,16 +13,16 @@
  * \note    This is a modification of the code published by
  *          Kjell Hedström, hedstrom@kjellkod.cc, most recent versions
  *          can be found at: http://www.kjellkod.cc/threadsafecircularqueue
- *
+  *
  * \class   CircularFifo
  *
- * \brief   Single-Producer, Single-Consumer, lock-free, wait-free, circular buffer.
+ * \brief   Single-Producer, Single-Consumer, lock free, wait free, circular buffer.
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/CircularFifo
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    03-2025
+ * \version 1.0
+ * \date    09-2018
  */
 
 #ifndef CIRCULARFIFO_HPP_
@@ -42,13 +42,15 @@ template<typename Element, size_t Size>
 class CircularFifo
 {
 public:
-    static constexpr size_t Capacity = Size + 1;
+    enum { Capacity = Size + 1 };
 
     CircularFifo() : _tail(0), _head(0) {}
+    virtual ~CircularFifo() {}
 
     bool push(const Element& item);
     bool pop(Element& item);
-    bool peek(Element& item) const;
+
+    bool peek(Element& item);
 
     bool empty() const;
     bool full() const;
@@ -56,18 +58,22 @@ public:
     void clear();
 
 private:
-    inline size_t increment(size_t idx) const;
+    size_t increment(size_t idx) const;
 
-    std::atomic<size_t>   _tail;            // Tail (input) index
-    Element               _array[Capacity]; // Circular buffer storage
-    std::atomic<size_t>   _head;            // Head (output) index
+    std::atomic<size_t>   _tail;      // tail(input) index
+    Element               _array[Capacity];
+    std::atomic<size_t>   _head;      // head(output) index
 };
 
+
 /**
- * \brief   Adds an item to the buffer.
- * \param   item    The element to add.
- * \return  True if the item was added successfully; false if the buffer is full.
- * \note    This method is thread-safe and can be called by a single producer.
+ * \brief   Push a new item at the position indexed by the tail. After writing the tail is
+ *          incremented one step, or wrapped to the beginning if at end of the queue.
+ *          The queue grows with the tail.
+ *          When the queue is full, there will be a one slot difference between head and
+ *          tail. At this point, any writes will fail.
+ * \param   item    Constant reference to the element to add to the queue.
+ * \result  True if the element was added, false if not (queue full).
  */
 template<typename Element, size_t Size>
 bool CircularFifo<Element, Size>::push(const Element& item)
@@ -75,21 +81,24 @@ bool CircularFifo<Element, Size>::push(const Element& item)
     const auto current_tail = _tail.load(std::memory_order_relaxed);
     const auto next_tail = increment(current_tail);
 
-    if (next_tail == _head.load(std::memory_order_acquire))
+    if (next_tail != _head.load(std::memory_order_acquire))
     {
-        return false; // Buffer is full
+        _array[current_tail] = item;
+        _tail.store(next_tail, std::memory_order_release);
+        return true;
     }
 
-    _array[current_tail] = item;
-    _tail.store(next_tail, std::memory_order_release);
-    return true;
+    return false; // full queue
 }
 
 /**
- * \brief   Removes an item from the buffer.
- * \param   item    Reference to store the removed element.
- * \return  True if an item was removed successfully; false if the buffer is empty.
- * \note    This method is thread-safe and can be called by a single consumer.
+ * \brief   Pop the item indexed by the head. The head is moved toward the tail as
+ *          it is incremented one step.
+ *          The queue shrinks with the head.
+ *          When the queue is empty, head and tail will be equal. At this point,
+ *          any reads will fail.
+ * \param   item    Reference to put the read value into (read from the queue).
+ * \result  True if the element was read, false if not (queue empty).
  */
 template<typename Element, size_t Size>
 bool CircularFifo<Element, Size>::pop(Element& item)
@@ -98,52 +107,53 @@ bool CircularFifo<Element, Size>::pop(Element& item)
 
     if (current_head == _tail.load(std::memory_order_acquire))
     {
-        return false; // Buffer is empty
+        return false; // empty queue
     }
 
     item = _array[current_head];
     _head.store(increment(current_head), std::memory_order_release);
+
     return true;
 }
 
 /**
- * \brief   Peeks at the item at the head of the buffer without removing it.
- * \param   item    Reference to store the peeked element.
- * \return  True if an item was peeked successfully; false if the buffer is empty.
- * \note    This method is thread-safe and can be called by a single consumer.
+ * \brief   Peek the item indexed by the head.
+ * \param   item    Reference to put the peeked value into (read from the queue).
+ * \result  True if the element could be peeked, false if not (queue empty).
  */
 template<typename Element, size_t Size>
-bool CircularFifo<Element, Size>::peek(Element& item) const
+bool CircularFifo<Element, Size>::peek(Element& item)
 {
     const auto current_head = _head.load(std::memory_order_relaxed);
 
     if (current_head == _tail.load(std::memory_order_acquire))
     {
-        return false; // Buffer is empty
+        return false; // empty queue
     }
 
     item = _array[current_head];
+
     return true;
 }
 
 /**
- * \brief   Checks if the buffer is empty.
- * \remark  This is a snapshot; the queue status may change by either producer
- *          or consumer before the other accesses it.
- * \return  True if the buffer is empty; false otherwise.
+ * \brief   Checks if the queue is empty.
+ * \remark  This is a snapshot, queue status may change by either producer or
+ *          consumer before the other accesses it.
+ * \result  Returns true if the queue is empty, else false.
  */
 template<typename Element, size_t Size>
 bool CircularFifo<Element, Size>::empty() const
 {
-    // Snapshot with acceptance that this comparison operation is not atomic.
-    return _head.load() == _tail.load();
+    // Snapshot with acceptance of that this comparison operation is not atomic.
+    return (_head.load() == _tail.load());
 }
 
 /**
- * \brief   Checks if the buffer is full.
- * \remark  This is a snapshot; the queue status may change by either producer or
+ * \brief   Checks if the queue is full.
+ * \remark  This is a snapshot, queue status may change by either producer or
  *          consumer before the other accesses it.
- * \return  True if the buffer is full; false otherwise.
+ * \result  Returns true if the queue is full, else false.
  */
 template<typename Element, size_t Size>
 bool CircularFifo<Element, Size>::full() const
@@ -151,23 +161,24 @@ bool CircularFifo<Element, Size>::full() const
     const auto next_tail = increment(_tail.load());
 
     // Snapshot with acceptance that this comparison is not atomic
-    return next_tail == _head.load();
+    return (next_tail == _head.load());
 }
 
 /**
- * \brief   Checks if atomic operations on the head and tail are lock-free.
- * \return  True if the atomic operations are lock-free; false otherwise.
+ * \brief   Check if atomic operations on the head and tail are truly lock-free.
+ * \remark  This can be used as a sanity check to see if the compiler did the right thing.
+ * \result  Returns true if the atomic operations on the head and tail are lock-free, else false.
  */
 template<typename Element, size_t Size>
 bool CircularFifo<Element, Size>::isLockFree() const
 {
-    return _tail.is_lock_free() && _head.is_lock_free();
+    return (_tail.is_lock_free() && _head.is_lock_free());
 }
 
 /**
- * \brief   Clears the buffer by resetting head and tail to zero.
- * \note    This operation is not thread-safe and should be used with caution.
- *          It is recommended to ensure that the buffer is empty before calling this method.
+ * \brief   Clear the queue (by setting head and tail to 0).
+ * \remark  Use sparsely.
+ * \note    This is NOT thread safe.
  */
 template<typename Element, size_t Size>
 void CircularFifo<Element, Size>::clear()
@@ -177,12 +188,13 @@ void CircularFifo<Element, Size>::clear()
 }
 
 /**
- * \brief   Increments the index in a circular manner.
- * \param   idx     The index to increment.
- * \return  The incremented index, wrapped around if it exceeds the capacity.
+ * \brief   Method to calculate when the index should be wrapped back to the
+ *          beginning in a circular way.
+ * \param   idx     The index to increment (and maybe wrap-around).
+ * \result  Returns the incremented index, wrapped-around it it exceeds the Capacity.
  */
 template<typename Element, size_t Size>
-inline size_t CircularFifo<Element, Size>::increment(size_t idx) const
+size_t CircularFifo<Element, Size>::increment(size_t idx) const
 {
     return (idx + 1) % Capacity;
 }

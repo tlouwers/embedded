@@ -1,87 +1,101 @@
+
 # SoftTimer
+SoftTimer utility class.
 
-## Overview
-The `SoftTimer` class provides a flexible and extendable solution for managing software timers based on a defined hardware timer tick. This allows for precise timing intervals, accommodating a wide range of applications from millisecond-level timing to timers that can run for days.
+## Description
+Intended use is to provide a simple and extendable number of software timers, based upon a defined (hardware) timer tick.
+This flexibility allows for a hardware timer to be the source of the timer increment (tick), but this can be an RTOS task
+or irregular clock as well. Based upon this main tick increment (expected to be faster than the derived software timers) 
+The intervals of the software timers are calculated. This allows for timers tick often (millisecond range) upto those
+that days to increment once.
 
-## Features
-The `SoftTimer` class supports three types of timers:
+Three types of timers are provided:
+- Period: when the time runs out of the Period timer, the callback is called and the time is reset, creating periodic callbacks to happen. This behaves like regular timers.
+- Timeout: when the time runs out of the Timeout timer, the callback is called and the timer is stopped. This acts as a single-shot timer.
+- Stopwatch: when started, it will count the number of SoftTimer TimerPeriods. When the timer is stopped, the amount of TimerPeriods can be retrieved via GetTimerStatus().
 
-- **Period Timer**: Triggers a callback function at regular intervals, resetting itself after each callback to create periodic events.
-- **Timeout Timer**: Executes a callback function once when the timer expires, effectively acting as a single-shot timer.
-- **Stopwatch Timer**: Counts the number of timer periods until stopped, allowing retrieval of the elapsed time via `GetTimerStatus()`.
+# Requirements
+- ST Microelectronics STM32F407G-DISC1 (can be ported easily to other ST microcontrollers)
+- C++11
+- A timer or mechanism providing a steady 'tick' to increment the SoftTimer.
 
-## Requirements
-- Compatible with ST Microelectronics STM32F407G-DISC1 (easily portable to other ST microcontrollers).
-- Requires C++11 or later.
-- A mechanism to provide a steady 'tick' for incrementing the `SoftTimer`.
+# Notes
+This utility class provides a way to create up to 255 timers, using a single increment, or 'tick' method to calculate time passed. The more timer are used, the more overhead in administration is present, up to a point it cannot meet the requested timing constraints anymore. Behavior is not defined in such case - be conservative and measure.
+The provided 'tick' determines the accuracy of the software clocks. For instance: if a Timer ISR is used to 'tick' every 100 ms and all software clocks can execute and perform their tasks withing this period, they are guaranteed to run at exactly this 100 ms and will not drift.
+To minimize the execution time of the software clock callbacks, be sure to only use it to increment a flag, which is processed by the main loop 'later'. If you add code/processing in the callbacks this will exponentially increase the time needed to handle the clocks inside the 'tick' and quite quickly this will reach its limits.
 
-## Usage Notes
-- The `SoftTimer` can manage up to 254 timers using a single increment method to track elapsed time. However, increased timer usage may lead to overhead that could affect timing accuracy. It is advisable to measure performance under expected conditions.
-- The accuracy of the software timers is directly influenced by the frequency of the tick. For example, if a timer interrupt service routine (ISR) ticks every 100 ms, all timers will execute their callbacks within this period without drift.
-- To minimize execution time during timer callbacks, keep the callback functions lightweight. Use them primarily to set flags that are processed later in the main loop. Heavy processing in callbacks can quickly exceed timing limits.
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
-If you encounter any issues or have suggestions for improvements, please reach out with a reproducible scenario or code enhancements.
-
-## Example Usage
+# Examples
 ```cpp
-// Declare the SoftTimer instance
+// Declare the class (in Application.hpp for example):
 SoftTimer mTimers;
 
-// Timer IDs
+// Variables to keep track of the timers (in Application.hpp for example)
 uint8_t mIdTimer1 = 0;
 uint8_t mIdTimer2 = 0;
 
-// Flags to indicate timer ticks
+// Flags to indicate timer tick passed (in Application.hpp for example)
 bool mTimer1Incremented = false;
 bool mTimer2Incremented = false;
 
-// Initialize timers
-void Application::Initialize()
+
+// Register the timers before use
+Application::Initialize() :
 {
-    // Register a Period timer for 3 ticks
+    // Period timer, 3 * 'tick' duration
     mIdTimer1 = mTimers.AddPeriodTimer(3, [this]() { this->Timer1Tick(); });
 
-    // Register a Period timer for 7 ticks
+    // Period timer, 7 * 'tick' duration
     mIdTimer2 = mTimers.AddPeriodTimer(7, [this]() { this->Timer2Tick(); });
 
-    // Start the timers
-    if (!mTimers.StartTimer(mIdTimer1)) {
-        // Handle timer1 not started
+    // Do not forget to start the timers
+    if (! mTimers.StartTimer(mIdTimer1))
+    {
+        // Handle timer1 not started, log?
     }
-    if (!mTimers.StartTimer(mIdTimer2)) {
-        // Handle timer2 not started
+    if (! mTimers.StartTimer(mIdTimer2))
+    {
+        // Handle timer2 not started, log?
     }
 }
 
-// Main processing loop
-void Application::Process()
+// Provide a 'tick' to increment the timers. Preferred is to use a proper timer ISR or even an RTOS task, but for the example: any repeating method can be used. Here a blunt wait is used to emulate a 100 ms 'tick' using the main loop.
+Application::Process() :
 {
-    // Increment the SoftTimers
+    // Increment the SoftTimers by incrementing the 'tick'
     mTimers.IncrementTick();
 
-    // Check and process timer flags
-    if (mTimer1Incremented) {
+    // Check if processing is needed
+    if (mTimer1Incremented)
+    {
         mTimer1Incremented = false;
+
         // Process timer1 work
     }
-    if (mTimer2Incremented) {
+    if (mTimer2Incremented)
+    {
         mTimer2Incremented = false;
+
         // Process timer2 work
     }
 
-    // Simulate a 100 ms delay
+    // Wait for 100 ms - blocking
     delay_ms(100);
 }
 
-// Timer1 callback
+
+// The Timer1 callback (as example):
 void Application::Timer1Tick()
 {
-    mTimer1Incremented = true; // Set flag
+    // Set flag, keep as short as possible
+    mTimer1Incremented = true;
 }
 
-// Timer2 callback
+// The Timer2 callback (as example):
 void Application::Timer2Tick()
 {
-    mTimer2Incremented = true; // Set flag
+    // Set flag, keep as short as possible
+    mTimer2Incremented = true;
 }
 ```
