@@ -3,7 +3,7 @@
  *
  * \licence "THE BEER-WARE LICENSE" (Revision 42):
  *          <terry.louwers@fourtress.nl> wrote this file. As long as you retain
- *          this notice you can do whatever you want with this stuff. If we
+ *          this notice, you can do whatever you want with this stuff. If we
  *          meet some day, and you think this stuff is worth it, you can buy me
  *          a beer in return.
  *                                                                Terry Louwers
@@ -11,11 +11,24 @@
  *
  * \brief   Implementation of a simple moving average with template functions.
  *
+ * \details This class provides a way to calculate the moving average of a series of values.
+ *          The internal buffer can be resized, and values can be added incrementally.
+ *          The average is computed based on the values currently in the buffer.
+ *
+ * \performance
+ *          - The `Add` method has a time complexity of O(1) since it performs a constant
+ *            number of operations.
+ *          - The `GetAverage` method also has a time complexity of O(1) as it simply
+ *            computes the average from the maintained sum.
+ *          - The `Resize` method has a time complexity of O(n) due to the need to allocate
+ *            new memory and copy existing values if the buffer is resized.
+ *          - The space complexity is O(n), where n is the size of the internal buffer.
+ *
  * \note    https://github.com/tlouwers/embedded/tree/master/Algorithms/MovingAverage
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.2
- * \date    01-2019
+ * \version 1.3
+ * \date    03-2025
  */
 
 #ifndef MOVING_AVERAGE_HPP_
@@ -25,9 +38,6 @@
  * Includes                                                                   *
  *****************************************************************************/
 #include <cstdint>
-#include <algorithm>
-#include <type_traits>
-
 
 /******************************************************************************
  * Template Class                                                             *
@@ -41,36 +51,51 @@ public:
 
     bool Resize(uint16_t size) noexcept;
     bool Fill(T value);
-
     bool Add(T value);
-
-    T GetAverage();
+    T GetAverage() const;
 
 private:
-    uint16_t mCapacity;
-    uint16_t mIndex;
-    uint16_t mItemsInBuffer;
-    double   mSum;              // Use a known large type which supports fractional numbers
-    T* mElements;
+    uint16_t mCapacity{0};
+    uint16_t mIndex{0};
+    uint16_t mItemsInBuffer{0};
+    double mSum{0.0};               // Use a known large type which supports fractional numbers
+    T* mElements{nullptr};
 
     void DeleteBuffer();
+    void CustomFill(T* begin, T* end, const T& value);
+    bool IsTypeSupported() const;
+
+    // Private type_trait implementation
+    struct IsSupportedType {
+        static const bool value = true; // Default to true
+    };
 };
 
+// Specializations for unsupported types
+template <>
+struct MovingAverage<double>::IsSupportedType {
+    static const bool value = false;
+};
+
+template <>
+struct MovingAverage<int64_t>::IsSupportedType {
+    static const bool value = false;
+};
+
+template <>
+struct MovingAverage<uint64_t>::IsSupportedType {
+    static const bool value = false;
+};
 
 /**
- * \brief   Constructor.
- * \details Internal buffer needs to be set to a size with 'Resize()' before
- *          it can be used.
+ * \brief Constructor.
+ * \details Internal buffer needs to be set to a size with 'Resize()' before use.
  */
 template<class T>
-MovingAverage<T>::MovingAverage() noexcept :
-    mCapacity(0), mIndex(0), mItemsInBuffer(0), mSum(0), mElements(nullptr)
-{
-    ;
-}
+MovingAverage<T>::MovingAverage() noexcept = default;
 
 /**
- * \brief   Destructor.
+ * \brief Destructor.
  * \details Frees memory allocated to the buffer if needed.
  */
 template<class T>
@@ -80,166 +105,152 @@ MovingAverage<T>::~MovingAverage()
 }
 
 /**
- * \brief   Resizes the internal buffer to the given size by freeing and
- *          (re)allocating memory.
- * \details Frees memory allocated to the buffer if needed. Then tries to
- *          allocate the requested memory size.
- *          Resizing to previous size is allowed, this frees and allocates
- *          memory like other Resize().
- * \note    The size is limited using the uint16_t to a maximum of 65535
- *          numbers. This to prevent overflow when calculating a sum of the
- *          available items.
- * \param   size    Size of the memory to allocate.
- * \returns True if the requested size could be allocated, else false. False if
- *          the requested size equals 0.
- *          False if the type T is too large: double, int64_t, uint64_t.
+ * \brief Resizes the internal buffer to the given size.
+ * \param size Size of the memory to allocate.
+ * \returns True if the requested size could be allocated, else false.
  */
 template<class T>
-bool MovingAverage<T>::Resize(const uint16_t size) noexcept
+bool MovingAverage<T>::Resize(uint16_t size) noexcept
 {
-    // Disallow the use of larger types
-    if (std::is_same<double,   T>::value) { return false; }
-    if (std::is_same<int64_t,  T>::value) { return false; }
-    if (std::is_same<uint64_t, T>::value) { return false; }
+    if (size == 0 || !IsTypeSupported())
+    {
+        return false;
+    }
 
     DeleteBuffer();
 
-    if (size > 0)
+    mCapacity = size;
+
+    mElements = new(std::nothrow) T[size];
+
+    // Check if memory allocation was successful
+    if (nullptr == mElements)
     {
-        mIndex         = 0;
-        mItemsInBuffer = 0;
-        mCapacity      = size;
-        mSum           = 0;
-
-        mElements = new(std::nothrow) T[size];
-
-        if (mElements != nullptr)
-        {
-            // Fill the entire internal buffer with '0'
-            std::fill(mElements, (mElements + mCapacity), 0);
-
-            return true;
-        }
+        return false;
     }
 
-    return false;
+    // Fill the entire internal buffer with '0'
+    CustomFill(mElements, mElements + mCapacity, T{});
+
+    mSum = 0.0;
+    mIndex = 0;
+    mItemsInBuffer = 0;
+
+    return true;
 }
 
 /**
- * \brief   Fills the entire internal buffer with the given value. Older
- *          values are overwritten.
- * \param   value   The value to fill the internal buffer with.
+ * \brief Fills the internal buffer with the given value.
+ * \param value The value to fill the internal buffer with.
  * \returns True if the internal buffer could be filled, else false.
  */
 template<class T>
 bool MovingAverage<T>::Fill(T value)
 {
-    if (mElements != nullptr)
+    if (nullptr == mElements)
     {
-        // Fill the entire internal buffer with 'value'
-        std::fill(mElements, (mElements + mCapacity), value);
-
-        // Update mSum accordingly
-        mSum = mCapacity * value;
-
-        // Reset the counters
-        mIndex         = 0;
-        mItemsInBuffer = mCapacity;
-
-        return true;
+        return false;
     }
-    return false;
+
+    // Fill the entire internal buffer with 'value'
+    CustomFill(mElements, mElements + mCapacity, value);
+
+    // Update mSum accordingly
+    mSum = static_cast<double>(mCapacity) * value;
+
+    // Reset the counters
+    mIndex = 0;
+    mItemsInBuffer = mCapacity;
+
+    return true;
 }
 
 /**
- * \brief   Add the given value to the internal buffer. If the buffer is full,
- *          the oldest value gets overwritten. It also updates the index of the
- *          number of elements in the buffer.
- * \details In 'mSum' the current accumulated contents of the buffer is kept,
- *          to prevent iterating over all elements in GetAverage().
- *          For floating point types: every time the buffer wraps 'mSum' is
- *          refilled with the buffer contents to prevent rounding issues
- *          accumulate over time.
- * \param   value   The value to add to internal buffer.
- * \returns True if the value could be added to internal buffer, else false.
+ * \brief Adds a value to the internal buffer.
+ * \param value The value to add to the internal buffer.
+ * \returns True if the value could be added, else false.
  */
 template<class T>
 bool MovingAverage<T>::Add(T value)
 {
-    if (mElements != nullptr)
+    // Check if the buffer is initialized
+    if (nullptr == mElements)
     {
-        // If the buffer is already full...
-        if (mItemsInBuffer == mCapacity)
-        {
-            // Remove the oldest sample from the sum
-            mSum -= mElements[mIndex];
-        }
-
-        // Add to the moving average (ring) buffer
-        mElements[mIndex] = value;
-        mSum += value;
-
-        // Increase the index and wrap around if needed
-        if (++mIndex >= mCapacity)
-        {
-            mIndex = 0;
-
-            // If type is float, reset mSum to buffer contents at wrap around to prevent accumulating rounding error
-            if (std::is_same<float, T>::value)
-            {
-                mSum = 0;
-                for (auto i = 0; i < mCapacity; i++)
-                {
-                    mSum += mElements[i];
-                }
-            }
-        }
-
-        // Keep track of the number of items in the buffer, up to buffer full
-        if (mItemsInBuffer < mCapacity)
-        {
-            mItemsInBuffer++;
-        }
-
-        return true;
+        return false;
     }
-    return false;
+
+    // If the buffer is full, remove the oldest sample from the sum
+    if (mItemsInBuffer == mCapacity)
+    {
+        mSum -= mElements[mIndex];
+    }
+
+    // Add the new value to the buffer and update the sum
+    mElements[mIndex] = value;
+    mSum += value;
+
+    // Move to the next index, wrapping around if necessary
+    mIndex = (mIndex + 1) % mCapacity;
+
+    // Keep track of the number of items in the buffer, up to buffer full
+    if (mItemsInBuffer < mCapacity)
+    {
+        ++mItemsInBuffer;
+    }
+
+    return true;
 }
 
 /**
- * \brief   Get the averaged sum of the elements in the internal buffer (if
- *          any).
- * \returns The averaged sum of the number of available elements if successful,
- *          0 if the buffer has no elements.
+ * \brief Gets the average of the elements in the internal buffer.
+ * \returns The average if successful, 0 if the buffer has no elements.
  */
 template<class T>
-T MovingAverage<T>::GetAverage()
+T MovingAverage<T>::GetAverage() const
 {
-    if (mItemsInBuffer > 0)
-    {
-        // Return average of the buffered items
-        return static_cast<T>(mSum / mItemsInBuffer);
-    }
-    return 0;
+    return mItemsInBuffer > 0 ? static_cast<T>(mSum / mItemsInBuffer) : T{};
 }
-
 
 /************************************************************************/
 /* Private Members                                                      */
 /************************************************************************/
 /**
- * \brief   Delete the buffer, set pointer to nullptr.
- * \details No effect when buffer already deleted.
+ * \brief Deletes the buffer and sets the pointer to nullptr.
+ * \details No effect when the buffer is already deleted.
  */
 template<class T>
 void MovingAverage<T>::DeleteBuffer()
 {
-    if (mElements != nullptr)
-    {
-        delete [] mElements;
+    if (nullptr != mElements) {
+        delete[] mElements;
         mElements = nullptr;
     }
 }
 
+/**
+ * \brief Custom fill function to initialize a range of elements with a specified value.
+ * \param begin Pointer to the beginning of the range.
+ * \param end Pointer to the end of the range.
+ * \param value The value to fill the range with.
+ * \details This function iterates over the specified range and assigns the given value
+ *          to each element. It is a simple alternative to std::fill.
+ */
+template<class T>
+void MovingAverage<T>::CustomFill(T* begin, T* end, const T& value)
+{
+    for (T* ptr = begin; ptr != end; ++ptr) {
+        *ptr = value;
+    }
+}
+
+/**
+ * \brief Checks if the type T is supported for moving average calculations.
+ * \returns True if the type is supported, false otherwise.
+ */
+template<class T>
+bool MovingAverage<T>::IsTypeSupported() const
+{
+    return IsSupportedType::value; // Accessing the static member directly
+}
 
 #endif  // MOVING_AVERAGE_HPP_

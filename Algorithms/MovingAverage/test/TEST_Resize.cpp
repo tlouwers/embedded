@@ -1,74 +1,50 @@
-
-#include "../../../Catch/catch.hpp"
-
+#include <gtest/gtest.h>
 #include "../MovingAverage.hpp"
 
-
-TEST_CASE( "resizing the internal buffer", "[MovingAverage]" )
-{
-    // For each section variables are anew
+class MovingAverageResizeTest : public ::testing::Test {
+protected:
     const int SIZE = 5;
     MovingAverage<int> movAvg;
+};
 
-    SECTION( "resize" )
-    {
-        REQUIRE(movAvg.Resize(SIZE) == true);
+TEST_F(MovingAverageResizeTest, Resize) {
+    EXPECT_TRUE(movAvg.Resize(SIZE));
+    EXPECT_EQ(movAvg.GetAverage(), 0);
 
-        REQUIRE(movAvg.GetAverage() == 0);
+    EXPECT_TRUE(movAvg.Add(4));         // Add 1st item
+    EXPECT_EQ(movAvg.GetAverage(), 4);  // Average of 1 item
 
+    EXPECT_TRUE(movAvg.Resize(SIZE));   // Clears the internal buffer
+    EXPECT_EQ(movAvg.GetAverage(), 0);
 
-        REQUIRE(movAvg.Add(4) == true);         // Add 1st item
+    EXPECT_TRUE(movAvg.Add(4));         // Add 1st item
+    EXPECT_TRUE(movAvg.Add(2));         // Add 2nd item
+    EXPECT_EQ(movAvg.GetAverage(), 3);  // Average of 2 items
 
-        REQUIRE(movAvg.GetAverage() == 4);      // Average of 1 item
+    EXPECT_TRUE(movAvg.Resize(SIZE));   // Clears the internal buffer
+    EXPECT_EQ(movAvg.GetAverage(), 0);
+}
 
-        REQUIRE(movAvg.Resize(SIZE) == true);   // Clears the internal buffer
+TEST_F(MovingAverageResizeTest, ResizeNotPossible) {
+    EXPECT_TRUE(movAvg.Resize(SIZE));
+    EXPECT_FALSE(movAvg.Resize(0));     // Not allowed
+    EXPECT_TRUE(movAvg.Resize(SIZE));   // Resize back to valid size
+}
 
-        REQUIRE(movAvg.GetAverage() == 0);
+TEST_F(MovingAverageResizeTest, TypeDoubleNotAllowed) {
+    MovingAverage<double> movAvgDouble;
+    EXPECT_FALSE(movAvgDouble.Resize(SIZE));    // Type 'double' not allowed
+    EXPECT_FALSE(movAvgDouble.Resize(0));       // Type 'double' not allowed
+}
 
+TEST_F(MovingAverageResizeTest, TypeInt64NotAllowed) {
+    MovingAverage<int64_t> movAvgInt64;
+    EXPECT_FALSE(movAvgInt64.Resize(SIZE));     // Type 'int64_t' not allowed
+    EXPECT_FALSE(movAvgInt64.Resize(0));        // Type 'int64_t' not allowed
+}
 
-        REQUIRE(movAvg.Add(4) == true);         // Add 1st item
-        REQUIRE(movAvg.Add(2) == true);         // Add 2nd item
-
-        REQUIRE(movAvg.GetAverage() == 3);      // Average of 2 items
-
-        REQUIRE(movAvg.Resize(SIZE) == true);   // Clears the internal buffer
-
-        REQUIRE(movAvg.GetAverage() == 0);
-    }
-
-    SECTION( "resize not possible" )
-    {
-        REQUIRE(movAvg.Resize(SIZE) == true);
-
-        REQUIRE(movAvg.Resize(0) == false);     // Not allowed
-
-        REQUIRE(movAvg.Resize(SIZE) == true);
-    }
-
-    SECTION( "Type 'double' not allowed" )
-    {
-        MovingAverage<double> movAvgDouble;
-
-        REQUIRE(movAvgDouble.Resize(SIZE) == false);    // Type 'double' not allowed
-
-        REQUIRE(movAvgDouble.Resize(0) == false);       // Type 'double' not allowed
-    }
-
-    SECTION( "Type 'int64_t' not allowed" )
-    {
-        MovingAverage<int64_t> movAvgInt64;
-
-        REQUIRE(movAvgInt64.Resize(SIZE) == false);     // Type 'int64_t' not allowed
-
-        REQUIRE(movAvgInt64.Resize(0) == false);        // Type 'int64_t' not allowed
-    }
-
-    SECTION( "Type 'uint64_t' not allowed" )
-    {
-        MovingAverage<uint64_t> movAvgUint64;
-
-        REQUIRE(movAvgUint64.Resize(SIZE) == false);    // Type 'uint64_t' not allowed
-
-        REQUIRE(movAvgUint64.Resize(0) == false);       // Type 'uint64_t' not allowed
-    }
+TEST_F(MovingAverageResizeTest, TypeUint64NotAllowed) {
+    MovingAverage<uint64_t> movAvgUint64;
+    EXPECT_FALSE(movAvgUint64.Resize(SIZE));    // Type 'uint64_t' not allowed
+    EXPECT_FALSE(movAvgUint64.Resize(0));       // Type 'uint64_t' not allowed
 }
