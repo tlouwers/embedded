@@ -1,51 +1,39 @@
-
-
-#include "../../Catch/catch.hpp"
-
-#include <cstdint>              // uint8_t
+#include <gtest/gtest.h>
+#include <cstdint>
 #include "ExampleEnum.hpp"
 
+// Note: to properly validate the bitmask we cast back to uint8_t for number compares.
 
-// Note: to properly validate the bitmask we cast back to uin8_t for number compares.
-
-
-TEST_CASE( "NOT operations", "[BitmaskEnum]" )
-{
-    // For each section variables are anew.
+class BitmaskEnumNOTTest : public ::testing::Test {
+protected:
     ExampleEnum e1;
+};
 
+TEST_F(BitmaskEnumNOTTest, SimpleNOTOperations) {
+    e1 = ~ExampleEnum::BLUE;
 
-    SECTION( "simple NOT operations" )
-    {
-        e1 = ~ExampleEnum::BLUE;
+    uint8_t tmp = static_cast<uint8_t>(e1) & 0x0F;  // Get lower 4 bits: no more bits in enum
+    EXPECT_EQ(static_cast<uint8_t>(tmp), 0x0E);
 
-        uint8_t tmp = static_cast<uint8_t>(e1) & 0x0F;  // Get lower 4 bits: no more bits in enum
-        REQUIRE( static_cast<uint8_t>(tmp) == 0x0E );
+    e1 = ~ExampleEnum::GREEN;
 
+    tmp = static_cast<uint8_t>(e1) & 0x0F;          // Get lower 4 bits: no more bits in enum
+    EXPECT_EQ(static_cast<uint8_t>(tmp), 0x0B);
 
-        e1 = ~ExampleEnum::GREEN;
+    e1 = ~ExampleEnum::RED;
 
-        tmp = static_cast<uint8_t>(e1) & 0x0F;          // Get lower 4 bits: no more bits in enum
-        REQUIRE( static_cast<uint8_t>(tmp) == 0x0B );
+    tmp = static_cast<uint8_t>(e1) & 0x0F;          // Get lower 4 bits: no more bits in enum
+    EXPECT_EQ(static_cast<uint8_t>(tmp), 0x0D);
+}
 
+TEST_F(BitmaskEnumNOTTest, AdvancedNOTOperations) {
+    e1 = ~(ExampleEnum::BLUE | ExampleEnum::WHITE);
 
-        e1 = ~ExampleEnum::RED;
+    uint8_t tmp = static_cast<uint8_t>(e1) & 0x0F;  // Get lower 4 bits: no more bits in enum
+    EXPECT_EQ(static_cast<uint8_t>(tmp), 0x06);
 
-        tmp = static_cast<uint8_t>(e1) & 0x0F;          // Get lower 4 bits: no more bits in enum
-        REQUIRE( static_cast<uint8_t>(tmp) == 0x0D );
-    }
+    e1 = ~(ExampleEnum::RED | ExampleEnum::GREEN);
 
-    SECTION( "advanced NOT operations" )
-    {
-        e1 = ~(ExampleEnum::BLUE | ExampleEnum::WHITE);
-
-        uint8_t tmp = static_cast<uint8_t>(e1) & 0x0F;  // Get lower 4 bits: no more bits in enum
-        REQUIRE( static_cast<uint8_t>(tmp) == 0x06 );
-
-
-        e1 = ~(ExampleEnum::RED | ExampleEnum::GREEN);
-
-        tmp = static_cast<uint8_t>(e1) & 0x0F;          // Get lower 4 bits: no more bits in enum
-        REQUIRE( static_cast<uint8_t>(tmp) == 0x09 );
-    }
+    tmp = static_cast<uint8_t>(e1) & 0x0F;          // Get lower 4 bits: no more bits in enum
+    EXPECT_EQ(static_cast<uint8_t>(tmp), 0x09);
 }
