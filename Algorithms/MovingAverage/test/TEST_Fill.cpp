@@ -1,27 +1,28 @@
-
-#include "../../../Catch/catch.hpp"
-
+#include <gtest/gtest.h>
 #include "../MovingAverage.hpp"
 
 
-TEST_CASE( "filling the entire internal buffer", "[MovingAverage]" )
-{
-    // For each section variables are anew
-    const int SIZE = 5;
+class MovingAverageFillTest : public ::testing::Test {
+protected:
+    static constexpr int SIZE = 5; // Use constexpr for compile-time constant
     MovingAverage<int> movAvg;
 
-    SECTION( "fill" )
-    {
-        REQUIRE(movAvg.Resize(SIZE) == true);
-
-        REQUIRE(movAvg.GetAverage() == 0);      // Internal buffer empty
-
-        REQUIRE(movAvg.Fill(2) == true);        // Fill internal buffer with value 2
-
-        REQUIRE(movAvg.GetAverage() == 2);      // Internal buffer full
-
-        REQUIRE(movAvg.Add(17) == true);        // Replace 1 item, buffer was full
-
-        REQUIRE(movAvg.GetAverage() == 5);      // 4 items (2), 1 item (17)
+    void SetUp() override {
+        movAvg.Resize(SIZE);
     }
+};
+
+
+TEST_F(MovingAverageFillTest, FillInternalBuffer) {
+    EXPECT_TRUE(movAvg.Resize(SIZE));   // Resize the internal buffer
+
+    EXPECT_EQ(movAvg.GetAverage(), 0);  // Internal buffer empty
+
+    EXPECT_TRUE(movAvg.Fill(2));        // Fill internal buffer with value 2
+
+    EXPECT_EQ(movAvg.GetAverage(), 2);  // Internal buffer full
+
+    EXPECT_TRUE(movAvg.Add(17));        // Replace 1 item, buffer was full
+
+    EXPECT_EQ(movAvg.GetAverage(), 5);  // 4 items (2), 1 item (17)
 }

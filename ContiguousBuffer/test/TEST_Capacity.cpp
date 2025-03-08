@@ -1,21 +1,19 @@
-
-#include "../../Catch/catch.hpp"
-
+#include <gtest/gtest.h>
 #include "ContiguousRingbuffer.hpp"
 
 
-TEST_CASE( "ContiguousRingbuffer Capacity() operations", "[ContiguousRingbuffer]" )
-{
-    // For each section, ContiguousBuffer ringBuff is anew:
-    ContiguousRingbuffer<int> ringBuff;
+class TEST_Capacity : public ::testing::Test {
+protected:
+    ContiguousRingbuffer<int> mRingBuffer;
+};
 
-    SECTION( "after resize" )
-    {
-        REQUIRE(ringBuff.Resize(3) == true);
-        REQUIRE(ringBuff.Capacity() == 3);
-        REQUIRE(ringBuff.Resize(1) == true);
-        REQUIRE(ringBuff.Capacity() == 1);
-        REQUIRE(ringBuff.Resize(5) == true);
-        REQUIRE(ringBuff.Capacity() == 5);
-    }
+
+TEST_F(TEST_Capacity, CapacityOperationsAfterResize) {
+    // Test resizing the ring buffer
+    EXPECT_TRUE(mRingBuffer.Resize(3));
+    EXPECT_EQ(mRingBuffer.Capacity(), 3);
+    EXPECT_TRUE(mRingBuffer.Resize(1));
+    EXPECT_EQ(mRingBuffer.Capacity(), 1);
+    EXPECT_TRUE(mRingBuffer.Resize(5));
+    EXPECT_EQ(mRingBuffer.Capacity(), 5);
 }

@@ -1,0 +1,107 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake: Configure Tests (Debug)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S", "${workspaceFolder}",
+                "-B", "${workspaceFolder}/build",
+                "-G", "Ninja",
+                "-DCMAKE_BUILD_TYPE=Debug",
+                "-DBUILD_TESTS=ON"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Configure the project for Tests in Debug mode"
+        },
+        {
+            "label": "CMake: Configure Main (Debug)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S", "${workspaceFolder}",
+                "-B", "${workspaceFolder}/build",
+                "-G", "Ninja",
+                "-DCMAKE_BUILD_TYPE=Debug",
+                "-DBUILD_TESTS=OFF"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Configure the project for Main in Debug mode"
+        },
+        {
+            "label": "CMake: Configure Main (Release)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S", "${workspaceFolder}",
+                "-B", "${workspaceFolder}/build",
+                "-G", "Ninja",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DBUILD_TESTS=OFF"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Configure the project for Main in Release mode"
+        },
+        {
+            "label": "Build Tests (Debug)",
+            "type": "shell",
+            "dependsOn": "CMake: Configure Tests (Debug)",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--target", "MovingAverageTest"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],
+            "detail": "Build the tests in Debug mode"
+        },
+        {
+            "label": "Build Main (Debug)",
+            "type": "shell",
+            "dependsOn": "CMake: Configure Main (Debug)",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--target", "MovingAverageMain"
+            ],
+            "group": "build",
+            "problemMatcher": ["$gcc"],
+            "detail": "Build the main application in Debug mode"
+        },
+        {
+            "label": "Build Main (Release)",
+            "type": "shell",
+            "dependsOn": "CMake: Configure Main (Release)",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--target", "MovingAverageMain"
+            ],
+            "group": "build",
+            "problemMatcher": ["$gcc"],
+            "detail": "Build the main application in Release mode"
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-P",
+                "${workspaceFolder}/build/CleanBuildDirectory.cmake"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Clean the build directory using CMake script"
+        }
+    ]
+}

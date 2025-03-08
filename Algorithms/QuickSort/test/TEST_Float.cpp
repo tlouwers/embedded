@@ -1,76 +1,55 @@
-
-#include "../../../Catch/catch.hpp"
-
+#include <gtest/gtest.h>
 #include "../QuickSort.hpp"
-
-
-const int SIZE = 10;
-const float refArrayPos[SIZE] = {  1.0f,   2.0f,  3.0f,  4.0f,  5.0f,  6.0f,  7.0f,  8.0f,  9.0f, 10.0f };
-const float refArrayNeg[SIZE] = { -10.0f, -9.0f, -8.0f, -7.0f, -6.0f, -5.0f, -4.0f, -3.0f, -2.0f, -1.0f };
-const float refArrayMix[SIZE] = { -4.0f,  -3.0f, -2.0f, -1.0f,  0.0f,  1.0f,  2.0f,  3.0f,  4.0f,  5.0f };
-
 #include <cmath>
 #include <limits>
 
-bool AreSame(float a, float b)
-{
-    return std::fabs(a - b) < std::numeric_limits<float>::epsilon();
+class QuickSortFloatTest : public ::testing::Test {
+protected:
+    static constexpr int SIZE = 10;
+    static constexpr float refArrayPos[SIZE] = {  1.0f,   2.0f,  3.0f,  4.0f,  5.0f,  6.0f,  7.0f,  8.0f,  9.0f, 10.0f };
+    static constexpr float refArrayNeg[SIZE] = { -10.0f, -9.0f, -8.0f, -7.0f, -6.0f, -5.0f, -4.0f, -3.0f, -2.0f, -1.0f };
+    static constexpr float refArrayMix[SIZE] = { -4.0f,  -3.0f, -2.0f, -1.0f,  0.0f,  1.0f,  2.0f,  3.0f,  4.0f,  5.0f };
+
+    bool AreSame(float a, float b) {
+        return std::fabs(a - b) < std::numeric_limits<float>::epsilon();
+    }
+
+    bool CompareArrays(const float* reference, float* sorted, size_t length) {
+        for (size_t i = 0; i < length; i++) {
+            if (!AreSame(reference[i], sorted[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+TEST_F(QuickSortFloatTest, PositiveNumbers) {
+    float arrayPos[SIZE] = { 6.0f, 3.0f, 8.0f, 7.0f, 10.0f, 2.0f, 1.0f, 4.0f, 5.0f, 9.0f };
+
+    EXPECT_FALSE(CompareArrays(refArrayPos, arrayPos, SIZE));
+
+    QuickSort(arrayPos, 0, SIZE - 1);
+
+    EXPECT_TRUE(CompareArrays(refArrayPos, arrayPos, SIZE));
 }
 
-bool CompareArrays(const float* reference, float* sorted, size_t length)
-{
-    bool result = true;
+TEST_F(QuickSortFloatTest, NegativeNumbers) {
+    float arrayNeg[SIZE] = { -4.0f, -5.0f, -7.0f, -3.0f, -10.0f, -2.0f, -8.0f, -1.0f, -6.0f, -9.0f };
 
-    for (size_t i = 0; i < length; i++)
-    {
-        if (!AreSame(*reference, *sorted))
-        {
-            result = false;
-            break;
-        }
-        else
-        {
-            reference++;
-            sorted++;
-        }
-    }
+    EXPECT_FALSE(CompareArrays(refArrayNeg, arrayNeg, SIZE));
 
-    return result;
+    QuickSort(arrayNeg, 0, SIZE - 1);
+
+    EXPECT_TRUE(CompareArrays(refArrayNeg, arrayNeg, SIZE));
 }
 
+TEST_F(QuickSortFloatTest, MixedNumbers) {
+    float arrayMix[SIZE] = { -1.0f, -3.0f, 4.0f, -2.0f, 3.0f, 0.0f, 2.0f, 1.0f, 5.0f, -4.0f };
 
-TEST_CASE( "float sort", "[QuickSort]" )
-{
-    SECTION( "positive numbers" )
-    {
-        float arrayPos[SIZE] = { 6.0f, 3.0f, 8.0f, 7.0f, 10.0f, 2.0f, 1.0f, 4.0f, 5.0f, 9.0f };
+    EXPECT_FALSE(CompareArrays(refArrayMix, arrayMix, SIZE));
 
-        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == false);
+    QuickSort(arrayMix, 0, SIZE - 1);
 
-        QuickSort(arrayPos, 0, SIZE-1);
-
-        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == true);
-    }
-
-    SECTION( "negative numbers" )
-    {
-        float arrayNeg[SIZE] = { -4.0f, -5.0f, -7.0f, -3.0f, -10.0f, -2.0f, -8.0f, -1.0f, -6.0f, -9.0f };
-
-        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == false);
-
-        QuickSort(arrayNeg, 0, SIZE-1);
-
-        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == true);
-    }
-
-    SECTION( "mixed numbers" )
-    {
-        float arrayMix[SIZE] = { -1.0f, -3.0f, 4.0f, -2.0f, 3.0f, 0.0f, 2.0f, 1.0f, 5.0f, -4.0f };
-
-        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == false);
-
-        QuickSort(arrayMix, 0, SIZE-1);
-
-        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == true);
-    }
+    EXPECT_TRUE(CompareArrays(refArrayMix, arrayMix, SIZE));
 }
