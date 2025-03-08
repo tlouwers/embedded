@@ -1,139 +1,121 @@
-
 # ContiguousRingbuffer
-A thread-safe, lock-free, single producer, single consumer, contiguous ringbuffer.
+A thread-safe, lock-free, single producer, single consumer contiguous ring buffer.
 
 ## Description
-Single-Producer, Single-Consumer, lock free, wait free, contiguous ringbuffer. Best described as a variant of the bip-buffer, suited for embedded use, see URLs below.
-This code is intended to be used to feed DMA handling of a Cortex-M4 microcontroller, but can see its share of use in other scenarios as well. Be sure to read up on the documentation, as it has some other-than-usual behavior.
+This lock-free, wait-free contiguous ring buffer is designed for embedded use, particularly for DMA handling in Cortex-M4 microcontrollers. It functions similarly to a bip-buffer. Refer to the documentation for unique behaviors.
 
-The intended use in a nutshell:
-Assuming an Interrupt Service Routine (ISR) as thread 'Producer' and the main application loop as thread 'Consumer'. Producer will use Poke() to request a contiguous block of elements, this can be passed on to the DMA (to fill the data). The CPU can perform another task. When DMA finishes it flags the data as written by calling Write() with the correct size. Consumer is expected to check if data is available in the buffer by calling Peek() - either with the size it can manage at the time or 1 to get an indication of the largest contiguous block available. When the data is read/processed the memory is released to the buffer (for reuse) with a call to Read() with the correct size.
+### Usage
+In this setup, an Interrupt Service Routine (ISR) acts as the producer, while the main application loop serves as the consumer. The producer uses `Poke()` to request a contiguous block of elements for DMA to fill. Once the DMA completes, it calls `Write()` to indicate the data is ready. The consumer checks for available data using `Peek()`, either specifying a size or using 1 to find the largest contiguous block. After processing, it releases memory with `Read()`.
 
-Thread safety is guaranteed by preventing the write pointer to overtake or become equal to the read pointer, preventing the read to overtake the write pointer (but they can become equal). If Poke()/Write() use an old value of the read pointer this would mean the buffer is 'more full' (or entirely full) at the time, allowing less data to be inserted. If Peek()/Read() use an old value of the write pointer this would mean the buffer is 'more empty' (or completely empty) at the time, allowing less data to be removed.
-The race condition on the wrap pointer is prevented partly by not allowing Write() and Read() to overtake each other. In addition, Write() will be the first to pass the wrapping point, Read() at this point will not use the wrap pointer. When Read() passes the wrapping point Write() will not use the wrap pointer. In this case it is irrelevant whether Write() or Read() use an 'old' or 'new' tate, at the time they need the wrap pointer the other is guaranteed not to alter it.
+Thread safety is ensured by preventing the write pointer from overtaking the read pointer, allowing them to be equal but not reversed. If `Poke()`/`Write()` uses an outdated read pointer, it indicates the buffer is fuller than expected, limiting data insertion. Conversely, if `Peek()`/`Read()` uses an outdated write pointer, it suggests the buffer is emptier, limiting data removal. The wrap pointer's race condition is mitigated by ensuring `Write()` and `Read()` do not overtake each other.
+
+### Efficiency Comparison
+The ContiguousRingbuffer provides enhanced efficiency compared to traditional thread-safe buffers in FreeRTOS when operating under single producer and single consumer conditions. By eliminating the need for data copying, it allows direct access to data during DMA operations, reducing CPU cycles and memory usage. In contrast, thread-safe buffers typically require locking mechanisms to manage concurrent access, which can introduce latency and complexity. This makes the ContiguousRingbuffer particularly well-suited for real-time applications in embedded systems.
 
 ## Requirements
-- C++11
+- C++11 or later
 
 ## Contents
 | Folder | Contents |
 | ------ | -------- |
-| test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
+| test | A CMake project with tests using the Google Test framework. |
 
 ## Notes
-Inspiration from: <https://en.wikipedia.org/wiki/PEEK_and_POKE>, <https://www.codeproject.com/Articles/43510/Lock-Free-Single-Producer-Single-Consumer-Circular> and <https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist>
-If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
+Inspired by: [PEEK and POKE](https://en.wikipedia.org/wiki/PEEK_and_POKE), [Lock-Free Single-Producer Single-Consumer Circular](https://www.codeproject.com/Articles/43510/Lock-Free-Single-Producer-Single-Consumer-Circular), and [The Bip-Buffer](https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist). If you encounter issues or have improvements, please share.
 
 ## Example
 ```cpp
-// Producer will fill the buffer, Consumer will empty the buffer.
-// Note: do check for the result values, the example omits them for clarity.
+// Producer fills the buffer, Consumer empties it.
+// Check result values in actual code; omitted here for clarity.
 
 // Declare the buffer
 ContiguousRingbuffer<int> ringBuff;
 
-// Reserve the size to hold the elements, 'int' in this example
+// Reserve size for elements
 ringBuff.Resize(5);
 
-// Check if there is room, then write 1 element
-int*   data = nullptr;
+// Check for room and write 1 element
+int* data = nullptr;
 size_t size = 1;
-int    val  = 42;
-if (ringBuff.Poke(data, size))  // 'size' changes to the space available
-{
+int val = 42;
+if (ringBuff.Poke(data, size)) {
     data[0] = val;
-    ringBuff.Write(1);          // Administer the data is written, 1 element
+    ringBuff.Write(1);
 }
 
-// Check if there is at least 1 element in buffer, then read it
+// Check for at least 1 element and read it
 size = 1;
-if (ringBuff.Peek(data, size))  // 'size' changes to the elements available
-{
+if (ringBuff.Peek(data, size)) {
     val = data[0];
-    ringBuff.Read(1);           // Administer the data is read, 1 element
+    ringBuff.Read(1);
 }
 ```
 
-## Intended use
-Assuming an Interrupt Service Routine (ISR) as thread 'Producer' and  the main application loop as thread 'Consumer'. Producer will use Poke() to request a contiguous block of elements, this can be passed on to the DMA (to fill the data). The CPU can perform another task. When DMA finishes it flags the data as written by calling Write() with the correct size. Consumer is expected to check if data is available in the buffer by calling Peek() - either with the size it can manage at the time or 1 to get an indication of the largest contiguous block available. When the is read/processed the memory is released to the buffer (for reuse) with a call to Read() with the correct size.
-
-Thread safety is guaranteed by preventing the write pointer to overtake or become equal to the read pointer, preventing the read to overtake the write pointer (but they can become equal). If Poke() / Write() use an old value of the read pointer this would mean the buffer is 'more full' (or entirely full) at the time, allowing less data to be inserted.
-If Peek() / Read() use an old value of the write pointer this would mean the buffer is 'more empty' (or completely empty) at the time, allowing less data to be removed.
-The race condition on the wrap pointer is prevented partly by not allowing Write() and Read() to overtake each other. In addition, Write() will be the first to pass the wrapping point, Read() at this point will not use the wrap pointer. When Read() passes the wrapping point Write() will not use the wrap pointer. In this case it is irrelevant whether Write() or Read() use an 'old' or 'new' state, at the time they need the wrap pointer the other is guaranteed not to alter it.
-
 ## Note
-There is no std::copy() in the buffer, meaning it is up to the user to make a copy of the data, the buffer will only manage the data here. This allows for DMA to fill the memory, or use a regular std::copy() or other construct to fill the buffer.
+There is no `std::copy()` in the buffer; users must manage data copying. This allows for DMA filling or using `std::copy()` to populate the buffer.
 
 ## Consideration
-This buffer may not be as efficient in filling the full buffer since it works in blocks. The smaller the blocks the more efficiently the memory can be filled, but the larger the blocks the more effectively the buffer can be used (with DMA for instance). This is a trade-off and should be considered before choosing this buffer.
+This buffer may not efficiently fill to capacity since it operates in blocks. Smaller blocks allow for more efficient memory filling, while larger blocks enhance buffer usage (e.g., with DMA). This trade-off should be considered.
 
-## Careful
-One can only prevent so much, once the user get access to the data (the pointer), it is up to the user to not write/read beyond the boundaries given by the size.
+## Caution
+Once users access the data pointer, they must avoid reading or writing beyond the specified boundaries.
 
-## Explored options
-- Do not change the 'size' parameter in 'Poke()'. This is hard to do since it requires another method like 'ContiguousAvailable()', which will indicate the largest size of a contiguous block of elements available. Since there can be 1 or 2 blocks available: the 2 blocks where either the first or the last can be the biggest - it depends of the size of the block requested which is taken. Note that the 'dest' will point to the block in which 'size' will fit, which may be the first or second block. Decided not to implement this due to added complexity for the end user and a larger implementation.
-- Having a method called 'ContiguousSize()', which indicates the first contiguous block of elements available - if any. This information is already provided with 'Peek()', which then can be used immediate. Decided not to implement this due to added complexity for the end user and a larger implementation. Will be slower too as yet another call to 'Peek()' has to be made after calling 'ContiguousSize()'.
+## Explored Options
+- Not changing the 'size' parameter in `Poke()`, which would require a new method like `ContiguousAvailable()`. This added complexity was deemed unnecessary for users.
+- Implementing a `ContiguousSize()` method to indicate the first contiguous block available. This information is already provided by `Peek()`, making an additional method redundant.
 
-## More examples
-Loop to move data from buffer to peripheral component, like Bluetooth or UART (also buffers).  The latter buffers may not be emptied quickly due to data being transmitted.
+## More Examples
+Loop to transfer data between the buffer and a peripheral component, such as Bluetooth or UART:
 ```cpp
 // Assuming these buffers
-ContiguousRingbuffer<uint8_t> buffRx;	// Used to hold received data from peripheral
-ContiguousRingbuffer<uint8_t> buffRx;	// Used to hold data to send to peripheral
+ContiguousRingbuffer<uint8_t> buffRx; // Holds received data
+ContiguousRingbuffer<uint8_t> buffTx; // Holds data to send
 
-// <initialization, etc omitted for brevity>
+// <initialization omitted>
 
-// Method to get data from peripheral into buffer.
-// Should be called many times from a main loop.
-void ProcessRx(void)
-{
-	bool result = false;
+// Method to receive data from a peripheral into the buffer.
+void ProcessRx(void) {
+    bool result = false;
+    uint8_t* ptrDest = nullptr;
+    size_t received = 1;
 
-	// Check if there is room in the buffer. Received now indicates the largest contiguous block available,
-	// not necessarily the first block - this means some space may remain unused.
-	uint8_t ptrDest = nullptr;
-	size_t received = 1;
-	if (buffRx.Poke(ptrDest, received)
-	{
-		// The Rx() is entered with a pointer where to store the data retrieved from Bluetooth, requesting
-		// 'received' number of elements. Rx() will do the std::copy() to 'ptrDest'. Rx() will return with
-		// the actual number of elements retrieved, maybe 0.
-		received = mBluetooth.Rx(ptrDest, received);
-	
-		if (received > 0)
-		{
-			// 'commit' the written bytes to 'buffRx'.
-			result = buffRx.Write(received);
-			assert(result);
-		}
-	}
+    // Check if there is room in the buffer. Received now indicates the largest contiguous block available,
+    // not necessarily the first block - this means some space may remain unused.
+    if (buffRx.Poke(ptrDest, received)) {
+        // The Rx() is entered with a pointer where to store the data retrieved from Bluetooth, requesting
+        // 'received' number of elements. Rx() will do the std::copy() to 'ptrDest'. Rx() will return with
+        // the actual number of elements retrieved, maybe 0.
+        received = mBluetooth.Rx(ptrDest, received);
 
-	// <do something with the read bytes>
+        if (received > 0) {
+            // 'commit' the written bytes to 'buffRx'.
+            result = buffRx.Write(received);
+            assert(result);
+        }
+    }
+
+    // <do something with the read bytes>
 }
 
-// Method to get data from buffer into peripheral.
-// Should be called many times from a main loop.
-void ProcessTx(void)
-{
-	bool result = false;
+// Method to send data from the buffer to a peripheral.
+void ProcessTx(void) {
+    bool result = false;
+    uint8_t* ptrSrc = nullptr;
+    size_t available = 1;
 
-	// Check if there is data in the buffer. Available now indicates the first contiguous block available,
-	// up to the wrapping point.
-	uint8_t ptrSrc = nullptr;
-	size_t available = 1;
-	if (buffRx.Peek(ptrSrc , available)
-	{
-		// The Tx() is entered with a pointer to the data to send via Bluetooth, along with the number of
-		// available bytes. Tx() will do the std::copy() from 'ptrSrc' to Bluetooth internal buffer.
-		// Tx() will return with the actual number of elements consumed, maybe 0.
-		available = mBluetooth.Tx(ptrSrc, available);
-	
-		if (available> 0)
-		{
-			// 'release' the read bytes to 'buffTx'.
-			result = buffTx.Read(available);
-			assert(result);
-		}
-	}
+    // Check if there is data in the buffer. Available now indicates the first contiguous block available,
+    // up to the wrapping point.
+    if (buffTx.Peek(ptrSrc, available)) {
+        // The Tx() is entered with a pointer to the data to send via Bluetooth, along with the number of
+        // available bytes. Tx() will do the std::copy() from 'ptrSrc' to Bluetooth's internal buffer.
+        // Tx() will return with the actual number of elements consumed, maybe 0.
+        available = mBluetooth.Tx(ptrSrc, available);
+
+        if (available > 0) {
+            // 'release' the read bytes to 'buffTx'.
+            result = buffTx.Read(available);
+            assert(result);
+        }
+    }
 }
 ```

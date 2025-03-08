@@ -1,169 +1,154 @@
-
-#include "../../Catch/catch.hpp"
-
+#include <gtest/gtest.h>
 #include "ContiguousRingbuffer.hpp"
 
 
-static ContiguousRingbuffer<int> ringBuff_ext;
+class TEST_Blocks : public ::testing::Test {
+protected:
+    const size_t kBlockSize = 256;
 
+    ContiguousRingbuffer<int> mRingBuffer;
 
-// Helper method to add a block of elements to buffer
-static bool AddBlock(int index_start, size_t block_size)
-{
-    bool result = true;
-    int* data   = nullptr;
-    size_t size = block_size;
-
-    result &= ringBuff_ext.Poke(data, size);
-    REQUIRE(result == true);
-
-    if (result)
+    void SetUp() override
     {
-        // Fill the buffer with 'known' values
-        for (size_t i = 0; i < block_size; i++)
-        {
-            data[i] = index_start++;
-        }
+        EXPECT_TRUE(mRingBuffer.Resize(kBlockSize * 4));
+        EXPECT_EQ(mRingBuffer.Size(), 0);
+    };
 
-        size = block_size;
-        result &= ringBuff_ext.Write(size);
-        REQUIRE(result == true);
+    void TearDown() override
+    {
+        mRingBuffer.Clear();
+    };
+
+    // Helper method to add a block of elements to buffer
+    bool AddBlock(int index_start, size_t kBlockSize) {
+        int* data   = nullptr;
+        size_t size = kBlockSize;
+
+        if (mRingBuffer.Poke(data, size)) {
+            // Fill the buffer with 'known' values
+            for (size_t i = 0; i < kBlockSize; i++) {
+                data[i] = index_start++;
+            }
+
+            size = kBlockSize;
+            return mRingBuffer.Write(size);
+        }
+        return false;
     }
 
-    return result;
-}
+    // Helper method to remove a block of elements
+    bool RemoveBlock(int index_start, size_t kBlockSize) {
+        int* data   = nullptr;
+        size_t size = kBlockSize;
 
-// Helper method to remove a block of elements
-static bool RemoveBlock(int index_start, size_t block_size)
-{
-    bool result = true;
-    int* data   = nullptr;
-    size_t size = block_size;
+        if (mRingBuffer.Peek(data, size)) {
+            // Empty the buffer with 'known' values
+            for (size_t i = 0; i < kBlockSize; i++) {
+                EXPECT_EQ(data[i], index_start);
+                index_start++;
+            }
 
-    result &= ringBuff_ext.Peek(data, size);
-    REQUIRE(result == true);
-
-    if (result)
-    {
-        // Empty the buffer with 'known' values
-        for (size_t i = 0; i < block_size; i++)
-        {
-            REQUIRE(data[i] == index_start);
-            index_start++;
+            size = kBlockSize;
+            return mRingBuffer.Read(size);
         }
-
-        size = block_size;
-        result &= ringBuff_ext.Read(size);
-        REQUIRE(result == true);
+        return false;
     }
+};
 
-    return result;
-}
-
-
-TEST_CASE( "ContiguousRingbuffer large blocks", "[ContiguousRingbuffer]" )
-{
-    const size_t block_size = 256;
-    int* data;
+TEST_F(TEST_Blocks, LargeBlocksStartAtStart) {
+    int index = 0;
+    int* data = nullptr;
     size_t size = 0;
 
+    EXPECT_TRUE(mRingBuffer.Resize(kBlockSize * 4));
+    EXPECT_EQ(mRingBuffer.Size(), 0);
 
-    SECTION( "add and remove large blocks - start at start" )
-    {
-        REQUIRE(ringBuff_ext.Resize(block_size * 4) == true);
-        REQUIRE(ringBuff_ext.Size() == 0);
+    // Add blocks and check state
+    EXPECT_TRUE(AddBlock(index, kBlockSize));           // Block written at the start, wrap reduced from 1025 to 1024
+    index += kBlockSize;                                // 1 block = 256 elements in buffer
+    EXPECT_TRUE(AddBlock(index, kBlockSize));
+    index += kBlockSize;                                // 2 blocks = 512 elements in buffer
+    EXPECT_TRUE(AddBlock(index, kBlockSize));
+    index += kBlockSize;                                // 3 blocks = 768 elements in buffer
+    EXPECT_TRUE(AddBlock(index, kBlockSize));
+    index += kBlockSize;                                // 4 blocks = 1024 elements in buffer
 
-        // -----
+    EXPECT_EQ(mRingBuffer.CheckState(1024, 0, 1025), true);   // Wrapped
 
-        int index = 0;
+    size = kBlockSize;
+    EXPECT_FALSE(mRingBuffer.Poke(data, size));         // Cannot add another block
+    EXPECT_EQ(size, 0);
+    EXPECT_EQ(mRingBuffer.CheckState(1024, 0, 1025), true);
 
-        REQUIRE(AddBlock(index, block_size) == true);       // Block written at the start, wrap reduced from 1025 to 1024
-        index += block_size;                                // 1 block = 256 elements in buffer
-        REQUIRE(AddBlock(index, block_size) == true);
-        index += block_size;                                // 2 blocks = 512 elements in buffer
-        REQUIRE(AddBlock(index, block_size) == true);
-        index += block_size;                                // 3 blocks = 768 elements in buffer
-        REQUIRE(AddBlock(index, block_size) == true);
-        index += block_size;                                // 4 blocks = 1024 elements in buffer
+    size = 1;
+    EXPECT_FALSE(mRingBuffer.Poke(data, size));         // Cannot even add a single element
+    EXPECT_EQ(size, 0);
+    EXPECT_EQ(mRingBuffer.CheckState(1024, 0, 1025), true);
 
-        REQUIRE(ringBuff_ext.CheckState(1024, 0, 1025) == true);   // Wrapped
+    size = kBlockSize;
+    EXPECT_TRUE(mRingBuffer.Peek(data, size));          // Elements available from the start, 4 blocks
+    EXPECT_EQ(size, 1024);
+    EXPECT_EQ(mRingBuffer.Size(), 1024);
 
-        size = block_size;
-        REQUIRE(ringBuff_ext.Poke(data, size) == false);    // Cannot add another block
-        REQUIRE(size == 0);
-        REQUIRE(ringBuff_ext.CheckState(1024, 0, 1025) == true);
+    index = 0;
 
-        size = 1;
-        REQUIRE(ringBuff_ext.Poke(data, size) == false);    // Cannot even add a single element
-        REQUIRE(size == 0);
-        REQUIRE(ringBuff_ext.CheckState(1024, 0, 1025) == true);
+    EXPECT_TRUE(RemoveBlock(index, kBlockSize));        // Read 1 block, 3 remaining
+    EXPECT_EQ(mRingBuffer.Size(), 768);
+    index += kBlockSize;
 
-        size = block_size;
-        REQUIRE(ringBuff_ext.Peek(data, size) == true);     // Elements available from the start, 4 blocks
-        REQUIRE(size == 1024);
-        REQUIRE(ringBuff_ext.Size() == 1024);
+    EXPECT_TRUE(RemoveBlock(index, kBlockSize));        // Read another block, 2 remaining
+    EXPECT_EQ(mRingBuffer.Size(), 512);
+    index += kBlockSize;
 
-        index = 0;
+    EXPECT_TRUE(RemoveBlock(index, kBlockSize));        // Read another block, 1 remaining
+    EXPECT_EQ(mRingBuffer.Size(), 256);
+    index += kBlockSize;
 
-        REQUIRE(RemoveBlock(index, block_size) == true);    // Read 1 block, 3 remaining
-        REQUIRE(ringBuff_ext.Size() == 768);
-        index += block_size;
+    EXPECT_TRUE(RemoveBlock(index, kBlockSize));        // Buffer empty
+    EXPECT_EQ(mRingBuffer.Size(), 0);
+}
 
-        REQUIRE(RemoveBlock(index, block_size) == true);    // Read another block, 2 remaining
-        REQUIRE(ringBuff_ext.Size() == 512);
-        index += block_size;
+TEST_F(TEST_Blocks, LargeBlocksStartAtEnd) {
+    int index = 0;
+    int* data = nullptr;
+    size_t size = 0;
 
-        REQUIRE(RemoveBlock(index, block_size) == true);    // Read another block, 1 remaining
-        REQUIRE(ringBuff_ext.Size() == 256);
-        index += block_size;
+    EXPECT_TRUE(mRingBuffer.Resize(kBlockSize * 4));
+    EXPECT_EQ(mRingBuffer.Size(), 0);
 
-        REQUIRE(RemoveBlock(index, block_size) == true);    // Buffer empty
-        REQUIRE(ringBuff_ext.Size() == 0);
-    }
+    mRingBuffer.SetState(1024, 1024, 1025);            // Filled 4 blocks, removed 4 blocks
 
-    SECTION( "add and remove large blocks - start at end" )
-    {
-        REQUIRE(ringBuff_ext.Resize(block_size * 4) == true);
-        REQUIRE(ringBuff_ext.Size() == 0);
+    EXPECT_TRUE(AddBlock(index, kBlockSize));           // Block written at the start, wrap reduced from 1025 to 1024
+    EXPECT_EQ(mRingBuffer.Size(), 256);
+    index += kBlockSize;                                // 1 block = 256 elements in buffer
+    EXPECT_TRUE(AddBlock(index, kBlockSize));
+    EXPECT_EQ(mRingBuffer.Size(), 512);
+    index += kBlockSize;                                // 2 blocks = 512 elements in buffer
+    EXPECT_TRUE(AddBlock(index, kBlockSize));
+    EXPECT_EQ(mRingBuffer.Size(), 768);
+    index += kBlockSize;                                // 3 blocks = 768 elements in buffer
 
-        // -----
+    size = kBlockSize;
+    EXPECT_FALSE(mRingBuffer.Poke(data, size));         // Cannot add another block
+    EXPECT_EQ(size, 0);
+    EXPECT_EQ(mRingBuffer.CheckState(768, 1024, 1024), true);
 
-        int index = 0;
+    size = kBlockSize;
+    EXPECT_TRUE(mRingBuffer.Peek(data, size));          // Elements available from the start, 3 blocks
+    EXPECT_EQ(size, 768);
+    EXPECT_EQ(mRingBuffer.Size(), 768);
 
-        ringBuff_ext.SetState(1024, 1024, 1025);            // Filled 4 blocks, removed 4 blocks
+    index = 0;
 
-        REQUIRE(AddBlock(index, block_size) == true);       // Block written at the start, wrap reduced from 1025 to 1024
-        REQUIRE(ringBuff_ext.Size() == 256);
-        index += block_size;                                // 1 block = 256 elements in buffer
-        REQUIRE(AddBlock(index, block_size) == true);
-        REQUIRE(ringBuff_ext.Size() == 512);
-        index += block_size;                                // 2 blocks = 512 elements in buffer
-        REQUIRE(AddBlock(index, block_size) == true);
-        REQUIRE(ringBuff_ext.Size() == 768);
-        index += block_size;                                // 3 blocks = 768 elements in buffer
+    EXPECT_TRUE(RemoveBlock(index, kBlockSize));        // Read 1 block, 2 remaining
+    index += kBlockSize;
+    EXPECT_EQ(mRingBuffer.CheckState(768, 256, 1025), true);
+    EXPECT_EQ(mRingBuffer.Size(), 512);                 // After read still 2 blocks available
 
-        size = block_size;
-        REQUIRE(ringBuff_ext.Poke(data, size) == false);    // Cannot add another block
-        REQUIRE(size == 0);
-        REQUIRE(ringBuff_ext.CheckState(768, 1024, 1024) == true);
+    EXPECT_TRUE(RemoveBlock(index, kBlockSize));        // Read another block, 1 remaining
+    EXPECT_EQ(mRingBuffer.Size(), 256);
+    index += kBlockSize;
 
-        size = block_size;
-        REQUIRE(ringBuff_ext.Peek(data, size) == true);     // Elements available from the start, 3 blocks
-        REQUIRE(size == 768);
-        REQUIRE(ringBuff_ext.Size() == 768);
-
-        index = 0;
-
-        REQUIRE(RemoveBlock(index, block_size) == true);    // Read 1 block, 2 remaining
-        index += block_size;
-        REQUIRE(ringBuff_ext.CheckState(768, 256, 1025) == true);
-        REQUIRE(ringBuff_ext.Size() == 512);                // After read still 2 blocks available
-
-        REQUIRE(RemoveBlock(index, block_size) == true);    // Read another block, 1 remaining
-        REQUIRE(ringBuff_ext.Size() == 256);
-        index += block_size;
-
-        REQUIRE(RemoveBlock(index, block_size) == true);    // Buffer empty
-        REQUIRE(ringBuff_ext.Size() == 0);
-    }
+    EXPECT_TRUE(RemoveBlock(index, kBlockSize));        // Buffer empty
+    EXPECT_EQ(mRingBuffer.Size(), 0);
 }
