@@ -1,54 +1,61 @@
-#include <gtest/gtest.h>
+
+#include "../../Catch/catch.hpp"
+
 #include "Ringbuffer.hpp"
 
-class RingbufferResizeTest : public ::testing::Test {
-protected:
+
+TEST_CASE( "Ringbuffer Resize() operations", "[Ringbuffer]" )
+{
+    // For each section, ContiguousBuffer ringBuff is anew:
     Ringbuffer<int> ringBuff;
+
     int src[5] = { 1, 2, 3 };
     int* pSrc = &src[0];
 
-    void SetUp() override {
-        // This function is called before each test.
-        EXPECT_EQ(ringBuff.Size(), 0);
+    REQUIRE( ringBuff.Size() == 0 );
+
+
+    SECTION( "resize small to large" )
+    {
+        REQUIRE(ringBuff.Resize(5) == true);
+        REQUIRE(ringBuff.Size() == 0);
+        ringBuff.Clear();
+        REQUIRE(ringBuff.Size() == 0);
+
+        REQUIRE(ringBuff.TryPush(pSrc, 2) == true);
+        REQUIRE(ringBuff.Size() == 2);
+
+        // Now resize to large: discards data
+
+        REQUIRE(ringBuff.Resize(50) == true);
+        REQUIRE(ringBuff.Size() == 0);
+
+        REQUIRE(ringBuff.TryPush(pSrc, 2) == true);
+        REQUIRE(ringBuff.Size() == 2);
+
+        ringBuff.Clear();
+        REQUIRE(ringBuff.Size() == 0);
     }
-};
 
-TEST_F(RingbufferResizeTest, ResizeSmallToLarge) {
-    EXPECT_TRUE(ringBuff.Resize(5));
-    EXPECT_EQ(ringBuff.Size(), 0);
-    ringBuff.Clear();
-    EXPECT_EQ(ringBuff.Size(), 0);
+    SECTION( "resize large to small" )
+    {
+        REQUIRE(ringBuff.Resize(50) == true);
+        REQUIRE(ringBuff.Size() == 0);
+        ringBuff.Clear();
+        REQUIRE(ringBuff.Size() == 0);
 
-    EXPECT_TRUE(ringBuff.TryPush(pSrc, 2));
-    EXPECT_EQ(ringBuff.Size(), 2);
+        REQUIRE(ringBuff.TryPush(pSrc, 2) == true);
+        REQUIRE(ringBuff.Size() == 2);
 
-    // Now resize to large: discards data
-    EXPECT_TRUE(ringBuff.Resize(50));
-    EXPECT_EQ(ringBuff.Size(), 0);
+        // Now resize to small: discards data
 
-    EXPECT_TRUE(ringBuff.TryPush(pSrc, 2));
-    EXPECT_EQ(ringBuff.Size(), 2);
+        REQUIRE(ringBuff.Resize(5) == true);
+        REQUIRE(ringBuff.Size() == 0);
 
-    ringBuff.Clear();
-    EXPECT_EQ(ringBuff.Size(), 0);
-}
+        REQUIRE(ringBuff.TryPush(pSrc, 2) == true);
+        REQUIRE(ringBuff.Size() == 2);
 
-TEST_F(RingbufferResizeTest, ResizeLargeToSmall) {
-    EXPECT_TRUE(ringBuff.Resize(50));
-    EXPECT_EQ(ringBuff.Size(), 0);
-    ringBuff.Clear();
-    EXPECT_EQ(ringBuff.Size(), 0);
-
-    EXPECT_TRUE(ringBuff.TryPush(pSrc, 2));
-    EXPECT_EQ(ringBuff.Size(), 2);
-
-    // Now resize to small: discards data
-    EXPECT_TRUE(ringBuff.Resize(5));
-    EXPECT_EQ(ringBuff.Size(), 0);
-
-    EXPECT_TRUE(ringBuff.TryPush(pSrc, 2));
-    EXPECT_EQ(ringBuff.Size(), 2);
-
-    ringBuff.Clear();
-    EXPECT_EQ(ringBuff.Size(), 0);
+        ringBuff.Clear();
+        REQUIRE(ringBuff.Size() == 0);
+    }
 }

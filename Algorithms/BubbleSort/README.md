@@ -1,52 +1,38 @@
+
 # BubbleSort
 Implementation of the BubbleSort algorithm with template functions.
 
-## Overview
-This repository contains a non-STL implementation of the BubbleSort algorithm using C++ template functions. Designed specifically for embedded systems, this version of BubbleSort is optimized for environments where the Standard Template Library (STL) may not be available or suitable. It is particularly effective for sorting large datasets.
+## Description
+This code is intended as non-STL version of the BubbleSort algorithm, making it better suited for embedded use.
+Use it for small sets only.
 
-## Algorithm Complexity
-- **Worst Case:** O(n²)
-- **Best Case:** O(n) (when the array is already sorted)
-- **Average Case:** O(n²)
-- **Auxiliary Space:** O(1)
-
-## Features
-- **Optimized for Small Datasets:** The algorithm performs well on small or nearly sorted datasets due to its early exit optimization when no swaps occur.
-- **In-Place Sorting:** The algorithm sorts the array in place, requiring no additional memory allocation.
-- **Template Function:** The implementation is generic and can sort arrays of any data type that supports comparison.
+Worst case:      O(n^2)
+Best case:       O(n)
+Average case:    O(n^2)
+Auxiliary space: O(1)
 
 ## Requirements
-- C++11 or later
+- C++11
 
 ## Contents
 | Folder | Contents |
 | ------ | -------- |
-| test | A CMake project with tests using the Google Test framework. |
+| test | A CodeBlocks 17.12 project, along with tests written with the Catch2 test framework. |
 
-## Usage
-To use the BubbleSort algorithm, include the header file in your project and call the `BubbleSort` function with the array you wish to sort.
+## Notes
+Inspiration from: <https://www.geeksforgeeks.org/bubble-sort/>
+If you happen to find an issue, and are able to provide a reproducible scenario I am happy to have a look. If you have a fix, or a refactoring that would improve the code please let me know so I can update it.
 
-### Example
+## Example
 ```cpp
-#include "BubbleSort.hpp" // Include the BubbleSort header
-
 // Define an array to sort:
 int array[10] = { 6, 3, 7, 8, 2, 10, 1, 4, 5, 9 };
 
 // Sort the array:
-BubbleSort(array, sizeof(array) / sizeof(array[0]));
+BubbleSort(array, sizeof(array));
 
-// At this point, 'array' is sorted.
+// At this point 'array' is sorted.
 ```
 
-### Important Notes
-- The implementation checks for valid array lengths. If the length is less than 2, it returns false for invalid input.
-- The algorithm is **not thread-safe**. Use caution when integrating into multi-threaded applications.
-- BubbleSort is not efficient for large datasets. Consider using more advanced sorting algorithms for larger arrays.
-
-## Contributions
-If you encounter any issues or have suggestions for improvements, please feel free to reach out. Contributions in the form of bug reports, fixes, or refactoring suggestions are welcome!
-
-## Acknowledgments
-This project is inspired by resources from:
-- [GeeksforGeeks - Bubble Sort](https://www.geeksforgeeks.org/bubble-sort/)
+## Careful
+One can only prevent so much, in this case the check to see if the range of the array to sort is valid is omitted in the example for clarity. The algorithm is not thread safe. Performance is rather poor when using this algorithm on larger sets.

@@ -1,49 +1,69 @@
-#include <gtest/gtest.h>
+
+#include "../../../Catch/catch.hpp"
+
 #include "../QuickSort.hpp"
 
-class QuickSortIntegerTest : public ::testing::Test {
-protected:
-    static constexpr int SIZE = 10;
-    static constexpr int refArrayPos[SIZE] = {  1,  2,  3,  4,  5,  6,  7,  8,  9, 10 };
-    static constexpr int refArrayNeg[SIZE] = { -10, -9, -8, -7, -6, -5, -4, -3, -2, -1 };
-    static constexpr int refArrayMix[SIZE] = { -4, -3, -2, -1,  0,  1,  2,  3,  4,  5 };
 
-    bool CompareArrays(const int* reference, int* sorted, size_t length) {
-        for (size_t i = 0; i < length; i++) {
-            if (reference[i] != sorted[i]) {
-                return false;
-            }
+const int SIZE = 10;
+const int refArrayPos[SIZE] = {   1,   2,   3,   4,   5,   6,   7,   8,   9,  10 };
+const int refArrayNeg[SIZE] = { -10,  -9,  -8,  -7,  -6,  -5,  -4,  -3,  -2,  -1 };
+const int refArrayMix[SIZE] = {  -4,  -3,  -2,  -1,   0,   1,   2,   3,   4,   5 };
+
+
+bool CompareArrays(const int* reference, int* sorted, size_t length)
+{
+    bool result = true;
+
+    for (size_t i = 0; i < length; i++)
+    {
+        if (*reference != *sorted)
+        {
+            result = false;
+            break;
         }
-        return true;
+        else
+        {
+            reference++;
+            sorted++;
+        }
     }
-};
 
-TEST_F(QuickSortIntegerTest, PositiveNumbers) {
-    int arrayPos[SIZE] = { 6, 3, 7, 8, 2, 10, 1, 4, 5, 9 };
-
-    EXPECT_FALSE(CompareArrays(refArrayPos, arrayPos, SIZE));
-
-    QuickSort(arrayPos, 0, SIZE - 1);
-
-    EXPECT_TRUE(CompareArrays(refArrayPos, arrayPos, SIZE));
+    return result;
 }
 
-TEST_F(QuickSortIntegerTest, NegativeNumbers) {
-    int arrayNeg[SIZE] = { -4, -5, -1, -7, -10, -2, -8, -3, -6, -9 };
 
-    EXPECT_FALSE(CompareArrays(refArrayNeg, arrayNeg, SIZE));
+TEST_CASE( "positive numbers", "[QuickSort]" )
+{
+    SECTION( "positive numbers" )
+    {
+        int arrayPos[SIZE] = { 6, 3, 7, 8, 2, 10, 1, 4, 5, 9 };
 
-    QuickSort(arrayNeg, 0, SIZE - 1);
+        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == false);
 
-    EXPECT_TRUE(CompareArrays(refArrayNeg, arrayNeg, SIZE));
-}
+        QuickSort(arrayPos, 0, SIZE-1);
 
-TEST_F(QuickSortIntegerTest, MixedNumbers) {
-    int arrayMix[SIZE] = { -1, 4, -2, -3, 3, 2, 0, 1, -4, 5 };
+        REQUIRE(CompareArrays(refArrayPos, arrayPos, SIZE) == true);
+    }
 
-    EXPECT_FALSE(CompareArrays(refArrayMix, arrayMix, SIZE));
+    SECTION( "negative numbers" )
+    {
+        int arrayNeg[SIZE] = { -4, -5, -1, -7, -10, -2, -8, -3, -6, -9 };
 
-    QuickSort(arrayMix, 0, SIZE - 1);
+        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == false);
 
-    EXPECT_TRUE(CompareArrays(refArrayMix, arrayMix, SIZE));
+        QuickSort(arrayNeg, 0, SIZE-1);
+
+        REQUIRE(CompareArrays(refArrayNeg, arrayNeg, SIZE) == true);
+    }
+
+    SECTION( "mixed numbers" )
+    {
+        int arrayMix[SIZE] = { -1, 4, -2, -3, 3, 2, 0, 1, -4, 5 };
+
+        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == false);
+
+        QuickSort(arrayMix, 0, SIZE-1);
+
+        REQUIRE(CompareArrays(refArrayMix, arrayMix, SIZE) == true);
+    }
 }

@@ -38,7 +38,7 @@
 /**
  * \brief   The maximum number of SoftTimers.
  * \details To save RAM this can be set to a lower value to save 32 bytes
- *          per timer. The default is 3, the maximum 254.
+ *          per timer. The default is 3, the maximum 255.
  */
 constexpr uint8_t MAX_SOFT_TIMERS = 3;
 
@@ -50,6 +50,7 @@ class SoftTimer final : public ISoftTimer
 {
 public:
     SoftTimer();
+    virtual ~SoftTimer();
 
     void IncrementTick();
 
