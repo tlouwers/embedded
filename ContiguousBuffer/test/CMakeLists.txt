@@ -9,15 +9,15 @@ set(TEST_SOURCES
     TEST_Capacity.cpp
     TEST_Clear.cpp
     TEST_HistoricalIssues.cpp
-    TEST_Peek.cpp
-    TEST_Poke.cpp
-    TEST_Read.cpp
+    TEST_ReserveRead.cpp
+    TEST_ReserveWrite.cpp
+    TEST_CommitRead.cpp
     TEST_Resize.cpp
     TEST_Size.cpp
     TEST_Speed.cpp
     TEST_Threading.cpp
     TEST_Wrap.cpp
-    TEST_Write.cpp
+    TEST_CommitWrite.cpp
     TEST_WriteAndRead.cpp
 )
 

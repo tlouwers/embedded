@@ -16,12 +16,12 @@ protected:
         int* data = nullptr;
         size_t size = 1;
 
-        result &= mRingBuffer.Poke(data, size);
+        result &= mRingBuffer.ReserveWrite(data, size);
         EXPECT_TRUE(result);
 
         if (result) {
             data[0] = val;
-            result &= mRingBuffer.Write(1);
+            result &= mRingBuffer.CommitWrite(1);
             EXPECT_TRUE(result);
         }
 
@@ -34,11 +34,11 @@ protected:
         int* data = nullptr;
         size_t size = 1;
 
-        result &= mRingBuffer.Peek(data, size);
+        result &= mRingBuffer.ReserveRead(data, size);
 
         if (result) {
             val = data[0];
-            result &= mRingBuffer.Read(1);
+            result &= mRingBuffer.CommitRead(1);
             EXPECT_TRUE(result);
         }
 
@@ -48,7 +48,7 @@ protected:
 
 
 TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize1) {
-    EXPECT_TRUE(mRingBuffer.Resize(10));
+    EXPECT_TRUE(mRingBuffer.Reserve(10));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int* data = nullptr;
@@ -56,21 +56,21 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize1) {
 
     for (int i = 1; i <= 100; i++) {
         size = 1;
-        EXPECT_TRUE(mRingBuffer.Poke(data, size));
+        EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size));
         data[0] = i;
-        EXPECT_TRUE(mRingBuffer.Write(1));
+        EXPECT_TRUE(mRingBuffer.CommitWrite(1));
 
         size = 1;
-        EXPECT_TRUE(mRingBuffer.Peek(data, size));
+        EXPECT_TRUE(mRingBuffer.ReserveRead(data, size));
         EXPECT_EQ(data[0], i);
-        EXPECT_TRUE(mRingBuffer.Read(1));
+        EXPECT_TRUE(mRingBuffer.CommitRead(1));
     }
 
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
 TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize2) {
-    EXPECT_TRUE(mRingBuffer.Resize(10));
+    EXPECT_TRUE(mRingBuffer.Reserve(10));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int* data = nullptr;
@@ -78,23 +78,23 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize2) {
 
     for (int i = 1; i <= 100; i += 2) {
         size = 2;
-        EXPECT_TRUE(mRingBuffer.Poke(data, size));
+        EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size));
         data[0] = i;
         data[1] = i + 1;
-        EXPECT_TRUE(mRingBuffer.Write(2));
+        EXPECT_TRUE(mRingBuffer.CommitWrite(2));
 
         size = 2;
-        EXPECT_TRUE(mRingBuffer.Peek(data, size));
+        EXPECT_TRUE(mRingBuffer.ReserveRead(data, size));
         EXPECT_EQ(data[0], i);
         EXPECT_EQ(data[1], (i + 1));
-        EXPECT_TRUE(mRingBuffer.Read(2));
+        EXPECT_TRUE(mRingBuffer.CommitRead(2));
     }
 
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
 TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize3) {
-    EXPECT_TRUE(mRingBuffer.Resize(10));
+    EXPECT_TRUE(mRingBuffer.Reserve(10));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int* data;
@@ -102,25 +102,25 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize3) {
 
     for (int i = 1; i <= 100; i += 3) {
         size = 3;
-        EXPECT_TRUE(mRingBuffer.Poke(data, size));
+        EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size));
         data[0] = i;
         data[1] = i + 1;
         data[2] = i + 2;
-        EXPECT_TRUE(mRingBuffer.Write(3));
+        EXPECT_TRUE(mRingBuffer.CommitWrite(3));
 
         size = 3;
-        EXPECT_TRUE(mRingBuffer.Peek(data, size));
+        EXPECT_TRUE(mRingBuffer.ReserveRead(data, size));
         EXPECT_EQ(data[0], i);
         EXPECT_EQ(data[1], (i + 1));
         EXPECT_EQ(data[2], (i + 2));
-        EXPECT_TRUE(mRingBuffer.Read(3));
+        EXPECT_TRUE(mRingBuffer.CommitRead(3));
     }
 
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
 TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize4) {
-    EXPECT_TRUE(mRingBuffer.Resize(10));
+    EXPECT_TRUE(mRingBuffer.Reserve(10));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int* data = nullptr;
@@ -128,27 +128,27 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize4) {
 
     for (int i = 1; i <= 100; i += 4) {
         size = 4;
-        EXPECT_TRUE(mRingBuffer.Poke(data, size));
+        EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size));
         data[0] = i;
         data[1] = i + 1;
         data[2] = i + 2;
         data[3] = i + 3;
-        EXPECT_TRUE(mRingBuffer.Write(4));
+        EXPECT_TRUE(mRingBuffer.CommitWrite(4));
 
         size = 4;
-        EXPECT_TRUE(mRingBuffer.Peek(data, size));
+        EXPECT_TRUE(mRingBuffer.ReserveRead(data, size));
         EXPECT_EQ(data[0], i);
         EXPECT_EQ(data[1], (i + 1));
         EXPECT_EQ(data[2], (i + 2));
         EXPECT_EQ(data[3], (i + 3));
-        EXPECT_TRUE(mRingBuffer.Read(4));
+        EXPECT_TRUE(mRingBuffer.CommitRead(4));
     }
 
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
 TEST_F(TEST_WriteAndRead, WriteAndReadOperations_DeepInspection) {
-    EXPECT_TRUE(mRingBuffer.Resize(3));
+    EXPECT_TRUE(mRingBuffer.Reserve(3));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int index = 1;
@@ -195,40 +195,40 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_DeepInspection) {
 }
 
 TEST_F(TEST_WriteAndRead, WriteAndReadOperations_DataMustBeContiguous) {
-    EXPECT_TRUE(mRingBuffer.Resize(3));
+    EXPECT_TRUE(mRingBuffer.Reserve(3));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     mRingBuffer.SetState(3, 3, 4); // Set mWrite(3), mRead(3), mWrap(4)
 
     int* data = nullptr;
     size_t size = 1;
-    EXPECT_TRUE(mRingBuffer.Poke(data, size)); // 3 elements, 1 at end, other 2 at start not contiguous
-    EXPECT_TRUE(mRingBuffer.Write(1));
+    EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size)); // 3 elements, 1 at end, other 2 at start not contiguous
+    EXPECT_TRUE(mRingBuffer.CommitWrite(1));
     EXPECT_TRUE(mRingBuffer.CheckState(0, 3, 4));
 
     mRingBuffer.SetState(0, 0, 4); // Set mWrite(0), mRead(0), mWrap(4)
 
     size = 3;
-    EXPECT_TRUE(mRingBuffer.Poke(data, size)); // 3 elements available at start
+    EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size)); // 3 elements available at start
     EXPECT_EQ(mRingBuffer.Size(), 0); // Nothing in buffer yet
-    EXPECT_TRUE(mRingBuffer.Write(3));
+    EXPECT_TRUE(mRingBuffer.CommitWrite(3));
     EXPECT_TRUE(mRingBuffer.CheckState(3, 0, 4));
 
     size = 1;
-    EXPECT_FALSE(mRingBuffer.Poke(data, size)); // Buffer full: 3 elements placed
+    EXPECT_FALSE(mRingBuffer.ReserveWrite(data, size)); // Buffer full: 3 elements placed
     EXPECT_EQ(mRingBuffer.Size(), 3);
 
-    EXPECT_TRUE(mRingBuffer.Read(1)); // Remove 1 element, 2 elements remain in the middle
+    EXPECT_TRUE(mRingBuffer.CommitRead(1)); // Remove 1 element, 2 elements remain in the middle
 
     size = 1;
-    EXPECT_TRUE(mRingBuffer.Poke(data, size)); // 1 element available at end
+    EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size)); // 1 element available at end
     EXPECT_EQ(size, 1);
-    EXPECT_TRUE(mRingBuffer.Write(1));
+    EXPECT_TRUE(mRingBuffer.CommitWrite(1));
     EXPECT_TRUE(mRingBuffer.CheckState(0, 1, 4));
 }
 
 TEST_F(TEST_WriteAndRead, WriteAndReadOperations_WithWrap) {
-    EXPECT_TRUE(mRingBuffer.Resize(5));
+    EXPECT_TRUE(mRingBuffer.Reserve(5));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     EXPECT_TRUE(AddOne(1)); // Add 5 elements
@@ -269,7 +269,7 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_WithWrap) {
 }
 
 TEST_F(TEST_WriteAndRead, RegressionCheck_ThreadingIssue) {
-    EXPECT_TRUE(mRingBuffer.Resize(3));
+    EXPECT_TRUE(mRingBuffer.Reserve(3));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     EXPECT_TRUE(AddOne(1)); // Add 3 elements
@@ -293,9 +293,9 @@ TEST_F(TEST_WriteAndRead, RegressionCheck_ThreadingIssue) {
     // Had threading issue here: depending on the value of read the available space is calculated incorrectly.
     size_t size = 1;
     int* data;
-    EXPECT_TRUE(mRingBuffer.Poke(data, size));
+    EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size));
     EXPECT_EQ(size, 1);
     data[0] = 5;
-    EXPECT_TRUE(mRingBuffer.Write(1));
+    EXPECT_TRUE(mRingBuffer.CommitWrite(1));
     EXPECT_TRUE(mRingBuffer.CheckState(1, 2, 4));
 }

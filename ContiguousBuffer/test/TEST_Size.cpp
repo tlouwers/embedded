@@ -6,7 +6,7 @@ protected:
     ContiguousRingbuffer<int> mRingBuffer;
 
     void SetUp() override {
-        EXPECT_TRUE(mRingBuffer.Resize(3));
+        EXPECT_TRUE(mRingBuffer.Reserve(3));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     }
 
