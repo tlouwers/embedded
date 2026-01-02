@@ -35,7 +35,7 @@ protected:
                 sched_yield();
 
                 size_prod = nr_of_items;
-                if (mRingBuffer.Poke(data_prod, size_prod))
+                if (mRingBuffer.ReserveWrite(data_prod, size_prod))
                 {
                     size_t k = i;
                     for (size_t j = 0; j < nr_of_items; j++)
@@ -43,7 +43,7 @@ protected:
                         *data_prod++ = refArr[k++];
                     }
 
-                    result = mRingBuffer.Write(nr_of_items);
+                    result = mRingBuffer.CommitWrite(nr_of_items);
                 }
             } while (result == false);
         }
@@ -65,14 +65,14 @@ protected:
                 sched_yield();
 
                 size_cons = nr_of_items;
-                if (mRingBuffer.Peek(data_cons, size_cons))
+                if (mRingBuffer.ReserveRead(data_cons, size_cons))
                 {
                     size_t k = i;
                     for (size_t j = 0; j < nr_of_items; j++)
                     {
                         measArr[k++] = *data_cons++;
                     }
-                    result = mRingBuffer.Read(nr_of_items);
+                    result = mRingBuffer.CommitRead(nr_of_items);
                 }
             } while (result == false);
         }
@@ -86,7 +86,7 @@ protected:
 
         for (auto run = 0; run < nr_of_runs; run++)
         {
-            EXPECT_TRUE(mRingBuffer.Resize(buffer_size)); // Clears previous state
+            EXPECT_TRUE(mRingBuffer.Reserve(buffer_size)); // Clears previous state
 
             // Clear the measurement array for each iteration
             std::fill_n(measArr, NR_ITEMS_THREAD_TEST, 0);

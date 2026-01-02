@@ -6,7 +6,7 @@ protected:
     ContiguousRingbuffer<int> mRingBuffer;
 
     void SetUp() override {
-        EXPECT_TRUE(mRingBuffer.Resize(3));
+        EXPECT_TRUE(mRingBuffer.Reserve(3));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     }
 
@@ -129,10 +129,10 @@ TEST_F(TEST_Clear, ClearWhenWrappedRestoresWrap) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     size = 2;
-    EXPECT_TRUE(mRingBuffer.Poke(data, size));
+    EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size));
     EXPECT_EQ(size, 2);
 
-    EXPECT_TRUE(mRingBuffer.Write(2));                  // Write block of 2 elements, shrinks wrap by 1
+    EXPECT_TRUE(mRingBuffer.CommitWrite(2));                  // Write block of 2 elements, shrinks wrap by 1
     EXPECT_TRUE(mRingBuffer.CheckState(2, 3, 3));
     EXPECT_EQ(mRingBuffer.Size(), 2);
 

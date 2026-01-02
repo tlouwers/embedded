@@ -10,7 +10,7 @@ protected:
 
     void SetUp() override
     {
-        EXPECT_TRUE(mRingBuffer.Resize(kBlockSize * 4));
+        EXPECT_TRUE(mRingBuffer.Reserve(kBlockSize * 4));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     };
 
@@ -24,14 +24,14 @@ protected:
         int* data   = nullptr;
         size_t size = kBlockSize;
 
-        if (mRingBuffer.Poke(data, size)) {
+        if (mRingBuffer.ReserveWrite(data, size)) {
             // Fill the buffer with 'known' values
             for (size_t i = 0; i < kBlockSize; i++) {
                 data[i] = index_start++;
             }
 
             size = kBlockSize;
-            return mRingBuffer.Write(size);
+            return mRingBuffer.CommitWrite(size);
         }
         return false;
     }
@@ -41,7 +41,7 @@ protected:
         int* data   = nullptr;
         size_t size = kBlockSize;
 
-        if (mRingBuffer.Peek(data, size)) {
+        if (mRingBuffer.ReserveRead(data, size)) {
             // Empty the buffer with 'known' values
             for (size_t i = 0; i < kBlockSize; i++) {
                 EXPECT_EQ(data[i], index_start);
@@ -49,7 +49,7 @@ protected:
             }
 
             size = kBlockSize;
-            return mRingBuffer.Read(size);
+            return mRingBuffer.CommitRead(size);
         }
         return false;
     }
@@ -60,7 +60,7 @@ TEST_F(TEST_Blocks, LargeBlocksStartAtStart) {
     int* data = nullptr;
     size_t size = 0;
 
-    EXPECT_TRUE(mRingBuffer.Resize(kBlockSize * 4));
+    EXPECT_TRUE(mRingBuffer.Reserve(kBlockSize * 4));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     // Add blocks and check state
@@ -76,17 +76,17 @@ TEST_F(TEST_Blocks, LargeBlocksStartAtStart) {
     EXPECT_EQ(mRingBuffer.CheckState(1024, 0, 1025), true);   // Wrapped
 
     size = kBlockSize;
-    EXPECT_FALSE(mRingBuffer.Poke(data, size));         // Cannot add another block
+    EXPECT_FALSE(mRingBuffer.ReserveWrite(data, size));         // Cannot add another block
     EXPECT_EQ(size, 0);
     EXPECT_EQ(mRingBuffer.CheckState(1024, 0, 1025), true);
 
     size = 1;
-    EXPECT_FALSE(mRingBuffer.Poke(data, size));         // Cannot even add a single element
+    EXPECT_FALSE(mRingBuffer.ReserveWrite(data, size));         // Cannot even add a single element
     EXPECT_EQ(size, 0);
     EXPECT_EQ(mRingBuffer.CheckState(1024, 0, 1025), true);
 
     size = kBlockSize;
-    EXPECT_TRUE(mRingBuffer.Peek(data, size));          // Elements available from the start, 4 blocks
+    EXPECT_TRUE(mRingBuffer.ReserveRead(data, size));          // Elements available from the start, 4 blocks
     EXPECT_EQ(size, 1024);
     EXPECT_EQ(mRingBuffer.Size(), 1024);
 
@@ -113,7 +113,7 @@ TEST_F(TEST_Blocks, LargeBlocksStartAtEnd) {
     int* data = nullptr;
     size_t size = 0;
 
-    EXPECT_TRUE(mRingBuffer.Resize(kBlockSize * 4));
+    EXPECT_TRUE(mRingBuffer.Reserve(kBlockSize * 4));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     mRingBuffer.SetState(1024, 1024, 1025);            // Filled 4 blocks, removed 4 blocks
@@ -129,12 +129,12 @@ TEST_F(TEST_Blocks, LargeBlocksStartAtEnd) {
     index += kBlockSize;                                // 3 blocks = 768 elements in buffer
 
     size = kBlockSize;
-    EXPECT_FALSE(mRingBuffer.Poke(data, size));         // Cannot add another block
+    EXPECT_FALSE(mRingBuffer.ReserveWrite(data, size));         // Cannot add another block
     EXPECT_EQ(size, 0);
     EXPECT_EQ(mRingBuffer.CheckState(768, 1024, 1024), true);
 
     size = kBlockSize;
-    EXPECT_TRUE(mRingBuffer.Peek(data, size));          // Elements available from the start, 3 blocks
+    EXPECT_TRUE(mRingBuffer.ReserveRead(data, size));          // Elements available from the start, 3 blocks
     EXPECT_EQ(size, 768);
     EXPECT_EQ(mRingBuffer.Size(), 768);
 

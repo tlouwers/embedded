@@ -9,7 +9,7 @@ protected:
     ContiguousRingbuffer<int> mRingBuffer;
 
     void SetUp() override {
-        EXPECT_TRUE(mRingBuffer.Resize(40));
+        EXPECT_TRUE(mRingBuffer.Reserve(40));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     }
 
@@ -22,13 +22,13 @@ protected:
         int* data = nullptr;
         size_t size = block_size;
 
-        if (mRingBuffer.Poke(data, size)) {
+        if (mRingBuffer.ReserveWrite(data, size)) {
             // Fill the buffer with 'known' values
             for (size_t i = 0; i < block_size; i++) {
                 data[i] = index_start++;
             }
 
-            return mRingBuffer.Write(block_size);
+            return mRingBuffer.CommitWrite(block_size);
         }
         return false;
     }
@@ -38,7 +38,7 @@ protected:
         int* data = nullptr;
         size_t size = block_size;
 
-        if (mRingBuffer.Peek(data, size)) {
+        if (mRingBuffer.ReserveRead(data, size)) {
             // Empty the buffer with 'known' values
             for (size_t i = 1; i < block_size; i++)
             {
@@ -48,7 +48,7 @@ protected:
                 }
             }
 
-            return mRingBuffer.Read(size);
+            return mRingBuffer.CommitRead(size);
         }
         return false;
     }

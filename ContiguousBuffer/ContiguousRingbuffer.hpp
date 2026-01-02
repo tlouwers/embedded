@@ -19,16 +19,16 @@
  *          reserves space for elements and allows for thread-safe
  *          operations to check, read, and write data. It maintains
  *          a wrap-around mechanism to efficiently manage memory and
- *          prevent race conditions. The buffer supports resizing and
- *          provides methods to access the size and available contiguous
- *          blocks of data. The block sizes to read and write need not be
- *          equal in size.
+ *          prevent race conditions. The buffer uses a two-phase Reserve/Commit
+ *          API pattern and provides methods to access the size and available
+ *          contiguous blocks of data. The block sizes to read and write
+ *          need not be equal in size.
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/ContiguousBuffer
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.5
- * \date    02-2025
+ * \version 1.6
+ * \date    01-2026
  */
 
 #ifndef CONTIGUOUS_RING_BUFFER_HPP_
@@ -55,18 +55,18 @@ class ContiguousRingbuffer
 public:
     ContiguousRingbuffer() noexcept;
 
-    bool Resize(const size_t size) noexcept;
+    bool Reserve(const size_t capacity) noexcept;
 
-    bool Poke(T* &dest, size_t& size);
-    bool Write(const size_t size);
+    bool ReserveWrite(T* &dest, size_t& size) noexcept;
+    bool CommitWrite(const size_t size) noexcept;
 
-    bool Peek(T* &dest, size_t& size);
-    bool Read(const size_t size);
+    bool ReserveRead(T* &dest, size_t& size) noexcept;
+    bool CommitRead(const size_t size) noexcept;
 
-    size_t Size() const;
-    size_t Capacity() const;
-    void Clear();
-    bool IsLockFree() const;
+    size_t Size() const noexcept;
+    size_t Capacity() const noexcept;
+    void Clear() noexcept;
+    bool IsLockFree() const noexcept;
 
 #ifdef DEBUG
     void SetState(size_t write, size_t read, size_t wrap);
@@ -85,7 +85,7 @@ private:
 /**
  * \brief   Default constructor.
  * \details Initializes the buffer with zero capacity. The buffer must be
- *          resized using 'Resize()' before use.
+ *          initialized using 'Reserve()' before use.
  */
 template<typename T>
 ContiguousRingbuffer<T>::ContiguousRingbuffer() noexcept :
@@ -93,56 +93,79 @@ ContiguousRingbuffer<T>::ContiguousRingbuffer() noexcept :
 { }
 
 /**
- * \brief   Resizes the ring buffer to the specified number of elements.
- * \details Frees existing memory and allocates new memory for the buffer,
- *          adding one extra element to distinguish between 'full' and 'empty' states.
- *          Resizing to a previous size is permitted and handled similarly.
- * \param   size    The number of elements to allocate (must be greater than 0).
- * \returns True if allocation is successful; false if size is 0 or allocation fails.
+ * \brief   Reserves capacity for the ring buffer.
+ * \details Allocates storage for the specified number of elements. Frees any
+ *          existing memory first, then allocates new memory. The actual capacity
+ *          is increased by 1 internally to distinguish between 'full' and 'empty' states.
+ *          Calling this method multiple times is permitted and handled similarly.
+ * \param   capacity    The number of elements to allocate (must be greater than 0).
+ * \returns True if allocation is successful; false if capacity is 0 or allocation fails.
+ * \warning This method is NOT thread-safe and must NOT be called concurrently
+ *          with any other buffer operations. It should only be called during
+ *          initialization or after ensuring all producer and consumer threads have stopped.
+ * \note    Follows the naming convention of std::vector::reserve().
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::Resize(const size_t size) noexcept
+bool ContiguousRingbuffer<T>::Reserve(const size_t capacity) noexcept
 {
     // Free existing memory
     mElements.reset();
 
-    // Handle invalid size
-    if (0 == size) {
-        return false; // Requested size is zero
+    // Handle invalid capacity
+    if (0 == capacity) {
+        return false; // Requested capacity is zero
     }
 
     // Reset pointers and update capacity
-    mWrite.store(0, std::memory_order_release);
-    mRead.store(0, std::memory_order_release);
-    mWrap.store(size + 1, std::memory_order_release);
-    mCapacity = size + 1;
+    // Use relaxed ordering: Reserve() is not called concurrently with read/write
+    // operations. It's called during initialization or after all threads have stopped.
+    // No synchronization is needed since there's no concurrent access.
+    mWrite.store(0, std::memory_order_relaxed);
+    mRead.store(0, std::memory_order_relaxed);
+    mWrap.store(capacity + 1, std::memory_order_relaxed);
+    mCapacity = capacity + 1;
 
     // Allocate new memory
-    mElements = std::unique_ptr<T[]>(new(std::nothrow) T[size + 1]);
+    mElements = std::unique_ptr<T[]>(new(std::nothrow) T[capacity + 1]);
 
     return (nullptr != mElements); // Return true if allocation was successful
 }
 
 /**
- * \brief   Checks for available contiguous space in the buffer.
- * \details Returns a pointer to a contiguous block for writing data,
- *          either at the end or the start of the buffer. The user must
- *          call 'Write()' to commit the data. If the requested size exceeds
- *          the available space, the method will select the appropriate block
- *          and may leave unused elements at the end.
- * \param   dest    Reference to a pointer that will point to the start of
- *                  the contiguous block if found; otherwise, nullptr.
- * \param   size    Reference to the size of the requested block; updated
- *                  to the maximum available contiguous size if found, else 0.
+ * \brief   Reserves contiguous space in the buffer for writing.
+ * \details This is phase 1 of a two-phase write operation:
+ *          1. ReserveWrite() - Get pointer to writable memory
+ *          2. [User writes data to the pointer]
+ *          3. CommitWrite() - Mark the data as available for reading
+ *
+ *          Returns a pointer to a contiguous block for writing data,
+ *          either at the end or the start of the buffer. If the requested
+ *          size exceeds the available space, the method will select the
+ *          appropriate block and may leave unused elements at the end.
+ *
+ * \param   dest    [out] Reference to a pointer that will point to the start
+ *                  of the writable block if found; otherwise, nullptr.
+ * \param   size    [in/out] Reference to the requested size; updated to the
+ *                  maximum available contiguous size if found, else 0.
+ *
+ * \note    IMPORTANT: The returned size may be LARGER than requested. This
+ *          indicates the maximum contiguous block available. You may write
+ *          less than this size, but must pass the actual written size to
+ *          CommitWrite().
+ *
  * \note    An exceptional case occurs when the buffer is empty and the
  *          requested size equals the current read pointer, allowing a reset
- *          of both pointers to enable writing.
+ *          of both pointers to enable writing (optimization).
+ *
+ * \warning You MUST call CommitWrite() after writing data to make it visible
+ *          to the consumer. Failing to commit will leak buffer space.
+ *
  * \returns True if a contiguous block is found; false if size is invalid
  *          or no block is available. The 'dest' and 'size' parameters are
  *          updated accordingly.
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::Poke(T*& dest, size_t& size)
+bool ContiguousRingbuffer<T>::ReserveWrite(T*& dest, size_t& size) noexcept
 {
     // Handle invalid size
     if (0 == size || size >= mCapacity) {
@@ -157,7 +180,7 @@ bool ContiguousRingbuffer<T>::Poke(T*& dest, size_t& size)
     // Case 1: Space available at the end
     if (write >= read) {
         if (write < mCapacity) {                                // Robustness check
-            const size_t available = mCapacity - write - ((read > 0) ? 0 : 1);
+            const size_t available = mCapacity - write - ((read == 0) ? 1 : 0);
 
             if (size <= available) {                            // Does the requested block fit?
                 size = available;
@@ -173,7 +196,7 @@ bool ContiguousRingbuffer<T>::Poke(T*& dest, size_t& size)
             // Exceptional case: buffer is empty and requested size equals read
             else if ((write == read) && (size == read)) {
                 dest = &mElements[0];
-                mRead.store(0, std::memory_order_release);      // Note: Poke() modifies mWrite and mRead!
+                mRead.store(0, std::memory_order_release);      // Note: ReserveWrite() modifies mWrite and mRead in this exceptional case!
                 mWrite.store(0, std::memory_order_release);
                 return true;
             }
@@ -191,23 +214,33 @@ bool ContiguousRingbuffer<T>::Poke(T*& dest, size_t& size)
     // If none of the conditions were met, return false
     dest = nullptr;
     size = 0;
-    return false;                                           // No contiguous block available
+    return false;                                               // No contiguous block available
 }
 
 /**
- * \brief   Advances the write pointer by the specified size.
- * \details Increments the write pointer if a contiguous block of the given
+ * \brief   Commits a write operation started with ReserveWrite().
+ * \details This is phase 2 of a two-phase write operation. You MUST call
+ *          ReserveWrite() first to get a write pointer, write your data,
+ *          then call this method to make the data visible to the consumer.
+ *
+ *          Increments the write pointer if a contiguous block of the given
  *          size is available. If space is not available at the end, but
  *          it is at the start, the wrap pointer is adjusted to prevent
  *          further allocation at the end. The write pointer cannot exceed
  *          the read pointer, preventing race conditions.
- * \param   size    The number of elements to advance the write pointer by.
+ *
+ * \param   size    The actual number of elements written (may be less than
+ *                  the size returned by ReserveWrite(), but not more).
+ *
+ * \warning Calling CommitWrite() without ReserveWrite() or with incorrect
+ *          size causes buffer corruption and undefined behavior.
+ *
  * \returns True if the write pointer was successfully advanced; false if
  *          the size is invalid or no space is available. Returns true if
  *          size is 0, as no update occurs.
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::Write(const size_t size)
+bool ContiguousRingbuffer<T>::CommitWrite(const size_t size) noexcept
 {
     // Handle invalid size
     if (0 == size) {
@@ -223,14 +256,16 @@ bool ContiguousRingbuffer<T>::Write(const size_t size)
     // Case 1: Space at the end
     if (write >= read) {
         if (write < mCapacity) {                                // Robustness, condition should always be true
+            // Pre-calculate space at end for efficiency
+            const size_t space_at_end = mCapacity - write;
             // Calculate the size available at the end, take into account the extra element when the buffer is empty
-            const size_t available = mCapacity - write - ((read > 0) ? 0 : 1);
+            const size_t available = space_at_end - ((read == 0) ? 1 : 0);
 
             if (size <= available) {
-                if (size < (mCapacity - write)) {               // Does the requested block fit?
+                if (size < space_at_end) {                      // Does the requested block fit?
                     mWrite.store(write + size, std::memory_order_release);
                     return true;
-                } else if (size == (mCapacity - write)) {       // Exact fit, need to wrap
+                } else if (size == space_at_end) {              // Exact fit, need to wrap
                     mWrite.store(0, std::memory_order_release);
                     return true;
                 }
@@ -253,23 +288,36 @@ bool ContiguousRingbuffer<T>::Write(const size_t size)
 }
 
 /**
- * \brief   Checks for available filled contiguous data in the buffer.
- * \details Returns a pointer to a contiguous block of filled elements,
- *          either at the start or the end of the buffer. The user must
- *          call 'Read()' to release the data. If the requested size exceeds
- *          the available data, the method will return the size of the
- *          contiguous block at the end, while additional data may be
+ * \brief   Reserves contiguous data in the buffer for reading.
+ * \details This is phase 1 of a two-phase read operation:
+ *          1. ReserveRead() - Get pointer to readable data
+ *          2. [User reads/processes the data]
+ *          3. CommitRead() - Release the data, making space available
+ *
+ *          Returns a pointer to a contiguous block of filled elements,
+ *          either at the start or the end of the buffer. If the requested
+ *          size exceeds the available data, the method will return the size
+ *          of the contiguous block at the end, while additional data may be
  *          available at the start for subsequent reads.
- * \param   dest    Reference to a pointer that will point to the start of
- *                  the filled contiguous block if found; otherwise, nullptr.
- * \param   size    Reference to the size of the requested block; updated
- *                  to the maximum available contiguous size if found, else 0.
+ *
+ * \param   dest    [out] Reference to a pointer that will point to the start
+ *                  of the readable block if found; otherwise, nullptr.
+ * \param   size    [in/out] Reference to the requested size; updated to the
+ *                  maximum available contiguous size if found, else 0.
+ *
+ * \note    The returned size indicates the first contiguous block available,
+ *          up to the wrapping point. You may read less than this size, but
+ *          must pass the actual read size to CommitRead().
+ *
+ * \warning You MUST call CommitRead() after reading data to release the space.
+ *          Failing to commit will prevent the producer from reusing the space.
+ *
  * \returns True if a filled contiguous block is found; false if size is
  *          invalid or no block is available. The 'dest' and 'size'
  *          parameters are updated accordingly.
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::Peek(T*& dest, size_t& size)
+bool ContiguousRingbuffer<T>::ReserveRead(T*& dest, size_t& size) noexcept
 {
     // Handle invalid size
     if (0 == size || size >= mCapacity) {
@@ -283,8 +331,10 @@ bool ContiguousRingbuffer<T>::Peek(T*& dest, size_t& size)
 
     // Case 1: Data available at the start
     if (write >= read) {
-        if ((read + size) <= write) {                           // Requested size available?
-            size = write - read;
+        // Pre-calculate available data for efficiency
+        const size_t available_data = write - read;
+        if (size <= available_data) {                           // Requested size available?
+            size = available_data;
             dest = &mElements[read];
             return true;
         }
@@ -293,9 +343,11 @@ bool ContiguousRingbuffer<T>::Peek(T*& dest, size_t& size)
     else { // write < read
         if (read < mCapacity) {                                 // Robustness, condition should always be true
             const auto wrap = mWrap.load(std::memory_order_acquire);
+            // Pre-calculate available data at end for efficiency
+            const size_t available_at_end = wrap - read;
 
-            if ((read + size) <= wrap) {                        // Requested size available?
-                size = wrap - read;
+            if (size <= available_at_end) {                     // Requested size available?
+                size = available_at_end;
                 dest = &mElements[read];
                 return true;
             }
@@ -318,19 +370,29 @@ bool ContiguousRingbuffer<T>::Peek(T*& dest, size_t& size)
 }
 
 /**
- * \brief   Advances the read pointer by the specified size.
- * \details Increments the read pointer if the requested size is available
+ * \brief   Commits a read operation started with ReserveRead().
+ * \details This is phase 2 of a two-phase read operation. You MUST call
+ *          ReserveRead() first to get a read pointer, process your data,
+ *          then call this method to release the space for the producer.
+ *
+ *          Increments the read pointer if the requested size is available
  *          without exceeding the write pointer. If the read pointer wraps
  *          around, it restores the wrap pointer to prevent reading released
  *          data. The read pointer can only equal the write pointer,
  *          preventing race conditions.
- * \param   size    The number of elements to advance the read pointer by.
+ *
+ * \param   size    The actual number of elements read/consumed (may be less
+ *                  than the size returned by ReserveRead(), but not more).
+ *
+ * \warning Calling CommitRead() without ReserveRead() or with incorrect
+ *          size causes buffer corruption and undefined behavior.
+ *
  * \returns True if the read pointer was successfully advanced; false if
  *          the size is invalid or no data is available. Returns true if
  *          size is 0, as no update occurs.
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::Read(const size_t size)
+bool ContiguousRingbuffer<T>::CommitRead(const size_t size) noexcept
 {
     // Handle invalid size
     if (0 == size) {
@@ -383,28 +445,36 @@ bool ContiguousRingbuffer<T>::Read(const size_t size)
 
 /**
  * \brief   Returns the number of elements currently in the buffer.
+ * \details Uses relaxed memory ordering for optimal performance since this
+ *          method provides a best-effort snapshot that doesn't require
+ *          strict synchronization guarantees.
  * \remark  This value is a snapshot and may be slightly inaccurate due to
- *          concurrent read or write operations.
+ *          concurrent read or write operations. The approximate nature allows
+ *          the use of relaxed atomics for better performance.
  * \returns The total number of elements in the buffer, or 0 if the buffer
- *          is empty or not resized.
+ *          is empty or Reserve() has not been called yet.
  */
 template<typename T>
-size_t ContiguousRingbuffer<T>::Size() const
+size_t ContiguousRingbuffer<T>::Size() const noexcept
 {
     if (0 == mCapacity) {
-        return 0; // Buffer not resized yet
+        return 0; // Buffer not initialized (Reserve() not called yet)
     }
 
-    const auto write = mWrite.load(std::memory_order_acquire);
-    const auto read  = mRead.load(std::memory_order_acquire);
-    const auto wrap  = mWrap.load(std::memory_order_acquire);
+    // Use relaxed ordering: Size() provides a best-effort snapshot and doesn't
+    // require synchronization guarantees. Each atomic read is still atomic (no
+    // torn reads), but we avoid expensive memory barriers since approximate values
+    // are acceptable per the documented behavior.
+    const auto write = mWrite.load(std::memory_order_relaxed);
+    const auto read  = mRead.load(std::memory_order_relaxed);
+    const auto wrap  = mWrap.load(std::memory_order_relaxed);
 
     // Sanity checks: administration out-of-bounds, thus return a 'sane' value
     if (write >= wrap) {
-        return mCapacity - 1;           // Write out of bounds
+        return mCapacity - 1;                                   // Write out of bounds
     }
     if (read > wrap) {
-        return 0;                       // Read out of bounds
+        return 0;                                               // Read out of bounds
     }
     if ((read == wrap) && (read == mCapacity) && (write > 0)) {
         return 0; // More elements than specified in mCapacity
@@ -412,9 +482,9 @@ size_t ContiguousRingbuffer<T>::Size() const
 
     // Calculate the number of elements in the buffer
     if (write > read) {
-        return write - read;            // Case 1: Data available in the middle
+        return write - read;                                    // Case 1: Data available in the middle
     } else if (write < read) {
-        return (wrap - read) + write;   // Case 2: Data wraps around
+        return (wrap - read) + write;                           // Case 2: Data wraps around
     }
 
     // Else: write == read --> buffer empty, return 0
@@ -427,7 +497,7 @@ size_t ContiguousRingbuffer<T>::Size() const
  *          element used to distinguish between 'full' and 'empty' states.
  */
 template<typename T>
-size_t ContiguousRingbuffer<T>::Capacity() const
+size_t ContiguousRingbuffer<T>::Capacity() const noexcept
 {
     return mCapacity - 1;
 }
@@ -438,7 +508,7 @@ size_t ContiguousRingbuffer<T>::Capacity() const
  *          effectively emptying the buffer.
  */
 template<typename T>
-void ContiguousRingbuffer<T>::Clear()
+void ContiguousRingbuffer<T>::Clear() noexcept
 {
     mWrite.store(0, std::memory_order_release);
     mRead.store(0, std::memory_order_release);
@@ -450,7 +520,7 @@ void ContiguousRingbuffer<T>::Clear()
  * \returns True if all atomic operations are lock-free; otherwise, false.
  */
 template<typename T>
-bool ContiguousRingbuffer<T>::IsLockFree() const
+bool ContiguousRingbuffer<T>::IsLockFree() const noexcept
 {
     return (mWrite.is_lock_free() && mRead.is_lock_free() && mWrap.is_lock_free());
 }

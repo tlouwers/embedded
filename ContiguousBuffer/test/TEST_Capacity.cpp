@@ -10,10 +10,10 @@ protected:
 
 TEST_F(TEST_Capacity, CapacityOperationsAfterResize) {
     // Test resizing the ring buffer
-    EXPECT_TRUE(mRingBuffer.Resize(3));
+    EXPECT_TRUE(mRingBuffer.Reserve(3));
     EXPECT_EQ(mRingBuffer.Capacity(), 3);
-    EXPECT_TRUE(mRingBuffer.Resize(1));
+    EXPECT_TRUE(mRingBuffer.Reserve(1));
     EXPECT_EQ(mRingBuffer.Capacity(), 1);
-    EXPECT_TRUE(mRingBuffer.Resize(5));
+    EXPECT_TRUE(mRingBuffer.Reserve(5));
     EXPECT_EQ(mRingBuffer.Capacity(), 5);
 }
