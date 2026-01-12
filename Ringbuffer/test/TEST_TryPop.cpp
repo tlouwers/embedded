@@ -8,7 +8,7 @@ protected:
     int* pDest = &dest[0];
 
     void SetUp() override {
-        EXPECT_TRUE(ringBuff.Resize(3));
+        EXPECT_TRUE(ringBuff.Reserve(3));
     }
 };
 

@@ -8,7 +8,7 @@ protected:
     int* pSrc = &src[0];
 
     void SetUp() override {
-        ringBuff.Resize(3);
+        ringBuff.Reserve(3);
     }
 };
 

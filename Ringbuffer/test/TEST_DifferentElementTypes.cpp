@@ -20,7 +20,7 @@ protected:
     TwoTypes* pDest = &dest[0];
 
     void SetUp() override {
-        ringBuff.Resize(3);
+        ringBuff.Reserve(3);
     }
 };
 
@@ -67,7 +67,7 @@ protected:
     TypeAndArray* pDest = &dest[0];
 
     void SetUp() override {
-        ringBuff.Resize(3);
+        ringBuff.Reserve(3);
     }
 };
 

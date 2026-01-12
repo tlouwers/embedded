@@ -43,7 +43,7 @@ protected:
         EXPECT_EQ(NR_ITEMS_THREAD_TEST % cons_nr_items, 0);
 
         for (auto run = 0; run < nr_of_runs; run++) {
-            EXPECT_TRUE(ringBuff.Resize(buffer_size));  // Ensure resize is successful
+            EXPECT_TRUE(ringBuff.Reserve(buffer_size));  // Ensure resize is successful
             std::fill(std::begin(measArr), std::end(measArr), 0);
 
             std::thread prod(&RingbufferTestThreading::Producer, this, prod_nr_items);

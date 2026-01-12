@@ -6,7 +6,7 @@ protected:
     Ringbuffer<int> mRingBuffer;
 
     void SetUp() override {
-        mRingBuffer.Resize(3);
+        mRingBuffer.Reserve(3);
     }
 };
 
