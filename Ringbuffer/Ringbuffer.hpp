@@ -15,8 +15,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/Ringbuffer
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.2
- * \date    03-2025
+ * \version 1.3
+ * \date    01-2026
  */
 
 #ifndef RING_BUFFER_HPP_
@@ -43,19 +43,19 @@ class Ringbuffer
 {
 public:
     Ringbuffer() noexcept;
-    ~Ringbuffer();
+    ~Ringbuffer() = default;
 
-    bool Resize(const size_t size) noexcept;
+    bool Reserve(const size_t size) noexcept;
 
-    bool TryPush(const T* src, const size_t size = 1);
-    bool TryPop(T* &dest, const size_t size = 1);
+    bool TryPush(const T* src, const size_t size = 1) noexcept;
+    bool TryPop(T* &dest, const size_t size = 1) noexcept;
 
-    size_t Size() const;
-    size_t Capacity() const;
+    size_t Size() const noexcept;
+    size_t Capacity() const noexcept;
 
-    void Clear();
+    void Clear() noexcept;
 
-    bool IsLockFree() const;
+    bool IsLockFree() const noexcept;
 
 #ifdef DEBUG
     void Print() const;
@@ -68,53 +68,44 @@ private:
     std::atomic<size_t> mRead{0};
     size_t mCapacity{0};
     std::unique_ptr<T[]> mElements{nullptr}; // Use unique_ptr for automatic memory management
-
-    void DeleteBuffer();
 };
 
 
 /**
  * \brief Default constructor.
- * \details Initializes an empty ring buffer. Call 'Resize()' to set the buffer size.
+ * \details Initializes an empty ring buffer. Call 'Reserve()' to set the buffer size.
  */
 template<typename T>
 Ringbuffer<T>::Ringbuffer() noexcept :
-    mWrite(0), mRead(0), mCapacity(0), mElements(nullptr)
+    mWrite(0), mRead(0), mCapacity(0)
 { }
 
 /**
- * \brief Destructor that frees the buffer memory.
+ * \brief   Reserves capacity for the ring buffer.
+ * \details Allocates storage for the specified number of elements. Frees any
+ *          existing memory first, then allocates new memory. The actual capacity
+ *          is increased by 1 internally to distinguish between 'full' and 'empty' states.
+ *          Calling this method multiple times is permitted and handled similarly.
+ * \param   size    The number of elements to allocate (must be greater than 0).
+ * \returns True if allocation is successful; false if size is 0 or allocation fails.
+ * \warning This method is NOT thread-safe and must NOT be called concurrently
+ *          with any other buffer operations. It should only be called during
+ *          initialization or after ensuring all producer and consumer threads have stopped.
+ * \note    Follows the naming convention of std::vector::reserve().
  */
 template<typename T>
-Ringbuffer<T>::~Ringbuffer()
+bool Ringbuffer<T>::Reserve(const size_t size) noexcept
 {
-    // No need to explicitly delete the buffer; unique_ptr handles it
-}
-
-/**
- * \brief   Resizes the buffer to the specified size.
- * \details Frees any existing memory and allocates a new buffer of the requested size.
- *          The buffer allocates one additional element to distinguish between full and empty states.
- * \param   size    The desired size of the buffer (excluding the additional element).
- * \return  True if the buffer was successfully resized; otherwise, false.
- *          Returns false if the requested size is zero or if allocation fails.
- */
-template<typename T>
-bool Ringbuffer<T>::Resize(const size_t size) noexcept
-{
-    if (size == 0) {
+    if (0 == size) {
         return false;                                           // Invalid size
     }
 
     mCapacity = size + 1;                                       // +1 for distinguishing full/empty
     mElements = std::make_unique<T[]>(mCapacity);               // Allocate new buffer
 
-    if (!mElements) {
-        mCapacity = 0;                                          // Reset capacity if allocation fails
-        return false;                                           // Allocation failed
-    }
-
-    Clear();                                                    // Reset read and write indices
+    // Direct initialization is faster than Clear() - no concurrent access during Reserve
+    mWrite.store(0, std::memory_order_relaxed);
+    mRead.store(0, std::memory_order_relaxed);
 
     return true;                                                // Successfully resized
 }
@@ -129,45 +120,45 @@ bool Ringbuffer<T>::Resize(const size_t size) noexcept
  *          - 'src' is nullptr.
  */
 template<typename T>
-bool Ringbuffer<T>::TryPush(const T* src, const size_t size)
+bool Ringbuffer<T>::TryPush(const T* src, const size_t size) noexcept
 {
-    if (size == 0 || size >= mCapacity || src == nullptr)
+    if (0 == size || size >= mCapacity || nullptr == src)
     {
         return false;                                           // Early exit for invalid conditions
     }
 
     const auto write = mWrite.load(std::memory_order_relaxed);
-    const auto read = mRead.load(std::memory_order_relaxed);
+    const auto read = mRead.load(std::memory_order_acquire);    // Acquire: see consumer's updates
 
+    // Robustness check: write should never exceed capacity
     if (write >= mCapacity)
-    {
-        return false;                                           // Robustness check
-    }
-
-    size_t available;
-    if (write >= read)                                          // Space at the end
-    {
-        available = (write == read) ? (mCapacity - 1) : (mCapacity - write + read - 1);
-    }
-    else                                                        // Space at the start
-    {
-        available = (read - write - 1);
-    }
-
-    if (size > available)                                       // Not enough space
     {
         return false;
     }
 
-    const auto available_upto_end = std::min(size, mCapacity - write);
-    std::copy(src, src + available_upto_end, mElements.get() + write);
+    // Calculate available space
+    const size_t available = (write >= read)
+        ? ((write == read) ? (mCapacity - 1) : (mCapacity - write + read - 1))
+        : (read - write - 1);
 
-    if (size > available_upto_end)
+    if (size > available)
     {
-        std::copy(src + available_upto_end, src + size, mElements.get());
+        return false;                                           // Not enough space
     }
 
-    mWrite.store((write + size) % mCapacity, std::memory_order_release);
+    // Copy data, wrapping if necessary
+    const size_t first_chunk = std::min(size, mCapacity - write);
+    std::copy(src, src + first_chunk, mElements.get() + write);
+
+    if (size > first_chunk)
+    {
+        std::copy(src + first_chunk, src + size, mElements.get());
+    }
+
+    // Update write pointer - avoid expensive modulo with conditional wrap
+    const size_t new_write = write + size;
+    mWrite.store((new_write >= mCapacity) ? (new_write - mCapacity) : new_write,
+                 std::memory_order_release);
 
     return true;
 }
@@ -182,98 +173,108 @@ bool Ringbuffer<T>::TryPush(const T* src, const size_t size)
  *          - 'dest' is nullptr.
  */
 template<typename T>
-bool Ringbuffer<T>::TryPop(T* &dest, const size_t size)
+bool Ringbuffer<T>::TryPop(T* &dest, const size_t size) noexcept
 {
-    if (size == 0 || size >= mCapacity || dest == nullptr)
+    if (0 == size || size >= mCapacity || nullptr == dest)
     {
         return false;                                           // Early exit for invalid conditions
     }
 
-    const auto write = mWrite.load(std::memory_order_relaxed);
+    const auto write = mWrite.load(std::memory_order_acquire);  // Acquire: see producer's updates
     const auto read = mRead.load(std::memory_order_relaxed);
 
+    // Robustness check: read should never exceed capacity
     if (read >= mCapacity)
     {
-        return false;                                           // Robustness check
+        return false;
     }
 
-    size_t available;
-    if (write > read)                                           // Data at the start
-    {
-        available = write - read;
-    }
-    else if (write < read)                                      // Data at the end
-    {
-        available = (mCapacity - read) + write;
-    }
-    else
+    // Early exit for empty buffer
+    if (write == read)
     {
         return false;                                           // Buffer is empty
     }
+
+    // Calculate available data
+    const size_t available = (write > read)
+        ? (write - read)
+        : (mCapacity - read + write);
 
     if (size > available)
     {
         return false;                                           // Not enough elements available
     }
 
-    const auto available_upto_end = std::min(size, mCapacity - read);
-    std::copy(mElements.get() + read, mElements.get() + (read + available_upto_end), dest);
+    // Copy data, wrapping if necessary
+    const size_t first_chunk = std::min(size, mCapacity - read);
+    std::copy(mElements.get() + read, mElements.get() + read + first_chunk, dest);
 
-    if (size > available_upto_end)
+    if (size > first_chunk)
     {
-        std::copy(mElements.get(), mElements.get() + (size - available_upto_end), dest + available_upto_end);
+        std::copy(mElements.get(), mElements.get() + (size - first_chunk), dest + first_chunk);
     }
 
-    mRead.store((read + size) % mCapacity, std::memory_order_release);
+    // Update read pointer - avoid expensive modulo with conditional wrap
+    const size_t new_read = read + size;
+    mRead.store((new_read >= mCapacity) ? (new_read - mCapacity) : new_read,
+                std::memory_order_release);
 
     return true;
 }
 
 /**
  * \brief   Returns the number of elements in the buffer.
- * \remark  This is a snapshot; the size may be slightly incorrect if read
- *          or write operations occur concurrently.
+ * \details Uses relaxed memory ordering for optimal performance since this
+ *          method provides a best-effort snapshot that doesn't require
+ *          strict synchronization guarantees.
+ * \remark  This value is a snapshot and may be slightly inaccurate due to
+ *          concurrent read or write operations. The approximate nature allows
+ *          the use of relaxed atomics for better performance.
  * \return  The total number of elements currently in the buffer.
  */
 template<typename T>
-size_t Ringbuffer<T>::Size() const
+size_t Ringbuffer<T>::Size() const noexcept
 {
-    const auto write = mWrite.load(std::memory_order_acquire);
-    const auto read  = mRead.load(std::memory_order_acquire);
+    // Use relaxed ordering: Size() provides a best-effort snapshot and doesn't
+    // require synchronization guarantees. Each atomic read is still atomic (no
+    // torn reads), but we avoid expensive memory barriers since approximate values
+    // are acceptable per the documented behavior.
+    const auto write = mWrite.load(std::memory_order_relaxed);
+    const auto read  = mRead.load(std::memory_order_relaxed);
 
     // Calculate the number of elements based on the positions of write and read
     return (write >= read) ? (write - read) : (mCapacity - (read - write));
 }
 
 /**
- * \brief   Returns the usable capacity of the buffer.
- * \details The capacity is defined as the total number of elements that can be stored
- *          in the buffer, excluding one element used to distinguish between full and empty states.
- * \return  The number of elements that can be stored in the buffer.
+ * \brief   Returns the maximum number of elements the buffer can hold.
+ * \returns The maximum capacity of the buffer, accounting for the extra
+ *          element used to distinguish between 'full' and 'empty' states.
  */
 template<typename T>
-size_t Ringbuffer<T>::Capacity() const
+size_t Ringbuffer<T>::Capacity() const noexcept
 {
     return mCapacity - 1;
 }
 
 /**
- * \brief   Clears the buffer by resetting the read and write pointers.
- * \details The elements remain in memory until they are overwritten or the buffer is destructed.
+ * \brief   Clears the buffer.
+ * \details Resets the write and read pointers to their initial states,
+ *          effectively emptying the buffer.
  */
 template<typename T>
-void Ringbuffer<T>::Clear()
+void Ringbuffer<T>::Clear() noexcept
 {
     mWrite.store(0, std::memory_order_release);
     mRead.store(0, std::memory_order_release);
 }
 
 /**
- * \brief   Check if atomic operations in the buffer are truly lock-free.
- * \result  Returns true if the atomic operations are lock-free, else false.
+ * \brief   Checks if the buffer's atomic operations are lock-free.
+ * \returns True if all atomic operations are lock-free; otherwise, false.
  */
 template<typename T>
-bool Ringbuffer<T>::IsLockFree() const
+bool Ringbuffer<T>::IsLockFree() const noexcept
 {
     return (mWrite.is_lock_free() && mRead.is_lock_free());
 }
@@ -324,19 +325,5 @@ void Ringbuffer<T>::Print() const
     std::cout << "], Size(" << Size() << ")" << std::endl;
 }
 #endif // DEBUG
-
-/************************************************************************/
-/* Private Members                                                      */
-/************************************************************************/
-/**
- * \brief   Delete the buffer, set pointer to nullptr.
- * \details No effect when buffer already deleted.
- */
-template<class T>
-void Ringbuffer<T>::DeleteBuffer()
-{
-    // No need to explicitly delete the buffer; unique_ptr handles it
-    mElements.reset(); // Resetting unique_ptr to release memory
-}
 
 #endif // RING_BUFFER_HPP_

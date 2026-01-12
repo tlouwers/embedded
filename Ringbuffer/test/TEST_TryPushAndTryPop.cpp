@@ -7,9 +7,9 @@ protected:
     Ringbuffer<int> ringBuff_ext;
 
     void SetUp() override {
-        EXPECT_TRUE(ringBuff.Resize(10));
+        EXPECT_TRUE(ringBuff.Reserve(10));
         EXPECT_EQ(ringBuff.Size(), 0);
-        EXPECT_TRUE(ringBuff_ext.Resize(3));
+        EXPECT_TRUE(ringBuff_ext.Reserve(3));
         EXPECT_EQ(ringBuff_ext.Size(), 0);
     }
 

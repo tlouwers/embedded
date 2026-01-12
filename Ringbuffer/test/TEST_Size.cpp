@@ -6,7 +6,7 @@ protected:
     Ringbuffer<int> ringBuff;
 
     void SetUp() override {
-        EXPECT_TRUE(ringBuff.Resize(3));
+        EXPECT_TRUE(ringBuff.Reserve(3));
         EXPECT_EQ(ringBuff.Size(), 0);
     }
 };
