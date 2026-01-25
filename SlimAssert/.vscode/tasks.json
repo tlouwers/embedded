@@ -9,7 +9,7 @@
                 "-S", "${workspaceFolder}",
                 "-B", "${workspaceFolder}/build",
                 "-G", "Ninja",
-                "-DCMAKE_BUILD_TYPE=Debug",
+                "-DCMAKE_BUILD_TYPE=Debug"
             ],
             "group": "build",
             "problemMatcher": [],
@@ -23,7 +23,7 @@
                 "-S", "${workspaceFolder}",
                 "-B", "${workspaceFolder}/build",
                 "-G", "Ninja",
-                "-DCMAKE_BUILD_TYPE=Release",
+                "-DCMAKE_BUILD_TYPE=Release"
             ],
             "group": "build",
             "problemMatcher": [],
@@ -37,7 +37,7 @@
             "args": [
                 "--build",
                 "${workspaceFolder}/build",
-                "--target", "SlimAssertMain"  // Updated target name
+                "--target", "SlimAssertMain"
             ],
             "group": {
                 "kind": "build",
@@ -54,7 +54,7 @@
             "args": [
                 "--build",
                 "${workspaceFolder}/build",
-                "--target", "SlimAssertMain"  // Updated target name
+                "--target", "SlimAssertMain"
             ],
             "group": "build",
             "problemMatcher": ["$gcc"],

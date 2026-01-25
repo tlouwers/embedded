@@ -1,4 +1,6 @@
 {
+    // VSCode Debug/Run - F5 to debug, Ctrl+F5 to run
+    // Note: Set EXE_EXT=.exe on Windows, leave empty on Linux
     "version": "0.2.0",
     "configurations": [
         {
@@ -6,12 +8,17 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/SlimAssertMain${env:EXE_EXT}",
-            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
-            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
             "preLaunchTask": "Build Main (Debug)"
         },
         {
@@ -19,10 +26,8 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/SlimAssertMain${env:EXE_EXT}",
-            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
-            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "noDebug": true,

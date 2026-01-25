@@ -28,6 +28,7 @@
 /* Includes                                                             */
 /************************************************************************/
 #include <cstdint>
+#include <cstddef>
 #include <functional>
 #include "interfaces/ISoftTimer.hpp"
 
@@ -38,9 +39,11 @@
 /**
  * \brief   The maximum number of SoftTimers.
  * \details To save RAM this can be set to a lower value to save 32 bytes
- *          per timer. The default is 3, the maximum 254.
+ *          per timer. The default is 3, the minimum is 1, the maximum 254.
  */
 constexpr uint8_t MAX_SOFT_TIMERS = 3;
+
+static_assert(MAX_SOFT_TIMERS >= 1 && MAX_SOFT_TIMERS <= 254, "MAX_SOFT_TIMERS must be between 1 and 254");
 
 
 /************************************************************************/
@@ -82,12 +85,15 @@ private:
         uint32_t              mResetValue   = 0;                            ///< The reset timer value.
     };
 
-    // The +1 is for an empty unused entry, used for indicating an element is not present.
-    TimerEntry timers[MAX_SOFT_TIMERS + 1] = {};
+    // Timers storage. Keep the array size equal to MAX_SOFT_TIMERS.
+    TimerEntry timers[MAX_SOFT_TIMERS] = {};
     uint8_t timerIndex = 0;
-
-    TimerEntry& GetEntryForTimer(uint8_t id);
+    // Internal lookup helpers (pointer-returning). Prefer these for explicit not-found handling.
+    uint8_t AllocateTimerId();
     bool AddEntryForTimer(const TimerEntry& entryToAdd);
+    // Helpers that return nullptr when not found to simplify callers
+    TimerEntry* GetEntryPtrForTimer(uint8_t id);
+    const TimerEntry* GetEntryPtrForTimer(uint8_t id) const;
 
     void ProcessTimer(TimerEntry& timer);
     void ProcessTimeOutTimer(TimerEntry& timer);

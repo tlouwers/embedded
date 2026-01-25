@@ -81,9 +81,15 @@ uint8_t SoftTimer::AddPeriodTimer(uint32_t value, const std::function<void()>& c
         return INVALID_TIMER_ID; // Early return for invalid period value
     }
 
-    TimerEntry entry{ ++timerIndex, callback, Type::Period, State::Stopped, value, value };
+    uint8_t id = AllocateTimerId();
+    if (0 == id)
+    {
+        return INVALID_TIMER_ID;
+    }
 
-    return AddEntryForTimer(entry) ? timerIndex : INVALID_TIMER_ID; // Return the timer index or 0 if failed
+    TimerEntry entry{ id, callback, Type::Period, State::Stopped, value, value };
+
+    return AddEntryForTimer(entry) ? id : INVALID_TIMER_ID; // Return the timer id or 0 if failed
 }
 
 /**
@@ -102,9 +108,15 @@ uint8_t SoftTimer::AddTimeoutTimer(uint32_t value, const std::function<void()>& 
         return INVALID_TIMER_ID; // Early return for invalid timeout value
     }
 
-    TimerEntry entry{ ++timerIndex, callback, Type::TimeOut, State::Stopped, value, value };
+    uint8_t id = AllocateTimerId();
+    if (0 == id)
+    {
+        return INVALID_TIMER_ID;
+    }
 
-    return AddEntryForTimer(entry) ? timerIndex : INVALID_TIMER_ID; // Return the timer index or 0 if failed
+    TimerEntry entry{ id, callback, Type::TimeOut, State::Stopped, value, value };
+
+    return AddEntryForTimer(entry) ? id : INVALID_TIMER_ID; // Return the timer id or 0 if failed
 }
 
 /**
@@ -116,9 +128,15 @@ uint8_t SoftTimer::AddTimeoutTimer(uint32_t value, const std::function<void()>& 
  */
 uint8_t SoftTimer::AddStopwatchTimer()
 {
-    TimerEntry entry{ ++timerIndex, nullptr, Type::StopWatch, State::Stopped, 0, 0 };
+    uint8_t id = AllocateTimerId();
+    if (0 == id)
+    {
+        return INVALID_TIMER_ID;
+    }
 
-    return AddEntryForTimer(entry) ? timerIndex : INVALID_TIMER_ID; // Return the timer index or 0 if failed
+    TimerEntry entry{ id, nullptr, Type::StopWatch, State::Stopped, 0, 0 };
+
+    return AddEntryForTimer(entry) ? id : INVALID_TIMER_ID; // Return the timer id or 0 if failed
 }
 
 /**
@@ -129,20 +147,14 @@ uint8_t SoftTimer::AddStopwatchTimer()
  */
 bool SoftTimer::RemoveTimer(uint8_t id)
 {
-    if (INVALID_TIMER_ID == id)
+    TimerEntry* entry = GetEntryPtrForTimer(id);
+    if (nullptr == entry)
     {
-        return false; // Early return for invalid id
+        return false;
     }
 
-    TimerEntry& entry = GetEntryForTimer(id);
-    if (0 == entry.mIndex)
-    {
-        return false; // Early return if timer not found
-    }
-
-    // Reset the entry to indicate it is no longer in use
-    entry = {};  // Clear the entry
-    return true; // Timer successfully removed
+    *entry = {};
+    return true;
 }
 
 /**
@@ -152,19 +164,14 @@ bool SoftTimer::RemoveTimer(uint8_t id)
  */
 bool SoftTimer::StartTimer(uint8_t id)
 {
-    if (INVALID_TIMER_ID == id)
+    TimerEntry* entry = GetEntryPtrForTimer(id);
+    if (nullptr == entry)
     {
         return false;
     }
 
-    TimerEntry& entry = GetEntryForTimer(id);
-
-    if (0 != entry.mIndex)
-    {
-        entry.mState = State::Running;
-        return true;
-    }
-    return false;
+    entry->mState = State::Running;
+    return true;
 }
 
 /**
@@ -175,19 +182,14 @@ bool SoftTimer::StartTimer(uint8_t id)
  */
 bool SoftTimer::StopTimer(uint8_t id)
 {
-    if (INVALID_TIMER_ID == id)
+    TimerEntry* entry = GetEntryPtrForTimer(id);
+    if (nullptr == entry)
     {
-        return false;               // Early return for invalid id
+        return false;
     }
 
-    TimerEntry& entry = GetEntryForTimer(id);
-    if (0 == entry.mIndex)
-    {
-        return false;               // Early return if timer not found
-    }
-
-    entry.mState = State::Stopped;  // Stop the timer
-    return true;                    // Timer successfully stopped
+    entry->mState = State::Stopped;
+    return true;
 }
 
 /**
@@ -201,28 +203,24 @@ bool SoftTimer::StopTimer(uint8_t id)
  */
 bool SoftTimer::ResetTimeoutTimer(uint8_t id)
 {
-    if (INVALID_TIMER_ID == id)
+    TimerEntry* entry = GetEntryPtrForTimer(id);
+    if (nullptr == entry)
     {
-        return false; // Early return for invalid id
+        return false;
     }
 
-    TimerEntry& entry = GetEntryForTimer(id);
-    if (0 == entry.mIndex)
+    if (entry->mType != Type::TimeOut)
     {
-        return false; // Early return if timer not found
+        return false;
     }
 
-    // Check if the timer is in a valid state for resetting
-    if (entry.mType == Type::TimeOut)
+    if (entry->mState == State::Expired || entry->mState == State::Stopped)
     {
-        if (State::Expired == entry.mState || State::Stopped == entry.mState)
-        {
-            entry.mCurrentValue = entry.mResetValue; // Reset the current value
-            return true; // Timer successfully reset
-        }
+        entry->mCurrentValue = entry->mResetValue;
+        return true;
     }
 
-    return false; // Timer not in a valid state for reset
+    return false;
 }
 
 /**
@@ -238,29 +236,30 @@ bool SoftTimer::ResetTimeoutTimer(uint8_t id)
  */
 bool SoftTimer::ResetTimeoutTimer(uint8_t id, uint32_t value)
 {
-    if (INVALID_TIMER_ID == id || 0 == value)
+    if (0 == value)
     {
-        return false; // Early return for invalid id or timeout value
+        return false;
     }
 
-    TimerEntry& entry = GetEntryForTimer(id);
-    if (0 == entry.mIndex)
+    TimerEntry* entry = GetEntryPtrForTimer(id);
+    if (nullptr == entry)
     {
-        return false; // Early return if timer not found
+        return false;
     }
 
-    // Check if the timer is in a valid state for resetting
-    if (entry.mType == Type::TimeOut)
+    if (entry->mType != Type::TimeOut)
     {
-        if (State::Expired == entry.mState || State::Stopped == entry.mState)
-        {
-            entry.mResetValue = value; // Set the new reset value
-            entry.mCurrentValue = value; // Reset the current value
-            return true; // Timer successfully reset
-        }
+        return false;
     }
 
-    return false; // Timer not in a valid state for reset
+    if (entry->mState == State::Expired || entry->mState == State::Stopped)
+    {
+        entry->mResetValue = value;
+        entry->mCurrentValue = value;
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -279,14 +278,13 @@ SoftTimer::Status SoftTimer::GetTimerStatus(uint8_t id)
         return Status(Type::Invalid, State::Invalid, 0);
     }
 
-    const TimerEntry& entry = GetEntryForTimer(id);
-    if (0 == entry.mIndex)
+    const TimerEntry* entry = GetEntryPtrForTimer(id);
+    if (nullptr == entry)
     {
-        return Status(Type::Invalid, State::Invalid, 0); // Timer not found
+        return Status(Type::Invalid, State::Invalid, 0);
     }
 
-    // Return the current status of the timer
-    return Status(entry.mType, entry.mState, entry.mCurrentValue);
+    return Status(entry->mType, entry->mState, entry->mCurrentValue);
 }
 
 
@@ -299,18 +297,68 @@ SoftTimer::Status SoftTimer::GetTimerStatus(uint8_t id)
  * \returns The entry in the timers table if found, else the element at
  *           the last position with mIndex 0.
  */
-SoftTimer::TimerEntry& SoftTimer::GetEntryForTimer(uint8_t id)
+// Removed ref-based lookup functions in favor of pointer-returning helpers.
+
+/**
+ * \brief   Allocate a new non-zero timer id not currently in use.
+ * \details Tries up to 254 different candidate ids. Returns 0 if none free.
+ */
+uint8_t SoftTimer::AllocateTimerId()
 {
-    for (auto i = 0; i < MAX_SOFT_TIMERS; i++)
+    // Try up to 254 candidates to find a free id. This avoids returning 0.
+    for (int i = 0; i < 254; ++i)
     {
-        if (id == timers[i].mIndex)
+        ++timerIndex;
+        if (0 == timerIndex) // skip reserved 0
         {
-            return timers[i];
+            ++timerIndex;
+        }
+
+        // If not present in table, it's free
+        if (nullptr == GetEntryPtrForTimer(timerIndex))
+        {
+            return timerIndex;
         }
     }
 
-    // No entry found
-    return timers[MAX_SOFT_TIMERS];
+    // No free id found
+    return 0;
+}
+
+SoftTimer::TimerEntry* SoftTimer::GetEntryPtrForTimer(uint8_t id)
+{
+    if (INVALID_TIMER_ID == id)
+    {
+        return nullptr;
+    }
+
+    for (uint8_t i = 0; i < MAX_SOFT_TIMERS; ++i)
+    {
+        if (id == timers[i].mIndex)
+        {
+            return &timers[i];
+        }
+    }
+
+    return nullptr;
+}
+
+const SoftTimer::TimerEntry* SoftTimer::GetEntryPtrForTimer(uint8_t id) const
+{
+    if (INVALID_TIMER_ID == id)
+    {
+        return nullptr;
+    }
+
+    for (uint8_t i = 0; i < MAX_SOFT_TIMERS; ++i)
+    {
+        if (id == timers[i].mIndex)
+        {
+            return &timers[i];
+        }
+    }
+
+    return nullptr;
 }
 
 /**
@@ -322,13 +370,13 @@ SoftTimer::TimerEntry& SoftTimer::GetEntryForTimer(uint8_t id)
 bool SoftTimer::AddEntryForTimer(const TimerEntry& entryToAdd)
 {
     // Make sure the entry does not exist yet
-    if (0 != GetEntryForTimer(entryToAdd.mIndex).mIndex)
+    if (nullptr != GetEntryPtrForTimer(entryToAdd.mIndex))
     {
         return false;
     }
 
     // If no entry/duplicate found, add the entry
-    for (auto i = 0; i < MAX_SOFT_TIMERS; i++)
+    for (uint8_t i = 0; i < MAX_SOFT_TIMERS; i++)
     {
         // Find an empty entry
         if (0 == timers[i].mIndex)
