@@ -28,8 +28,8 @@ If you encounter any issues or have suggestions for improvements, please reach o
 // Declare the buffer
 Ringbuffer<int> ringBuff;
 
-// Resize the buffer to hold elements
-ringBuff.Resize(5);
+// Reserve space in the buffer to hold elements
+ringBuff.Reserve(5);
 
 // Check the number of elements in the buffer
 size_t nr_elements = ringBuff.Size();

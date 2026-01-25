@@ -32,6 +32,14 @@ else()
     # When not building tests, build main.cpp into a release executable.
     add_executable(ContiguousRingbufferMain Main.cpp)
 
+    # Define DEBUG for single-config generators (Make/Ninja) when configured with -DCMAKE_BUILD_TYPE=Debug
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      target_compile_definitions(ContiguousRingbufferMain PRIVATE DEBUG)
+    endif()
+
+    # Define DEBUG for multi-config generators (Visual Studio, Xcode, etc.) when Debug config is built
+    target_compile_definitions(ContiguousRingbufferMain PRIVATE $<$<CONFIG:Debug>:DEBUG>)
+
     # Add the current source directory to the include path so Main.cpp can find the header.
     target_include_directories(ContiguousRingbufferMain PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

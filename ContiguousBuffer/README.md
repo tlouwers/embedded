@@ -5,9 +5,9 @@ A thread-safe, lock-free, single producer, single consumer contiguous ring buffe
 This lock-free, wait-free contiguous ring buffer is designed for embedded use, particularly for DMA handling in Cortex-M4 microcontrollers. It functions similarly to a bip-buffer. Refer to the documentation for unique behaviors.
 
 ### Usage
-In this setup, an Interrupt Service Routine (ISR) acts as the producer, while the main application loop serves as the consumer. The producer uses `Poke()` to request a contiguous block of elements for DMA to fill. Once the DMA completes, it calls `Write()` to indicate the data is ready. The consumer checks for available data using `Peek()`, either specifying a size or using 1 to find the largest contiguous block. After processing, it releases memory with `Read()`.
+In this setup, an Interrupt Service Routine (ISR) acts as the producer, while the main application loop serves as the consumer. The producer uses `ReserveCommitWrite()` to request a contiguous block of elements for DMA to fill. Once the DMA completes, it calls `CommitWrite()` to indicate the data is ready. The consumer checks for available data using `ReserveCommitRead()`, either specifying a size or using 1 to find the largest contiguous block. After processing, it releases memory with `CommitRead()`.
 
-Thread safety is ensured by preventing the write pointer from overtaking the read pointer, allowing them to be equal but not reversed. If `Poke()`/`Write()` uses an outdated read pointer, it indicates the buffer is fuller than expected, limiting data insertion. Conversely, if `Peek()`/`Read()` uses an outdated write pointer, it suggests the buffer is emptier, limiting data removal. The wrap pointer's race condition is mitigated by ensuring `Write()` and `Read()` do not overtake each other.
+Thread safety is ensured by preventing the write pointer from overtaking the read pointer, allowing them to be equal but not reversed. If `ReserveCommitWrite()`/`CommitWrite()` uses an outdated read pointer, it indicates the buffer is fuller than expected, limiting data insertion. Conversely, if `ReserveCommitRead()`/`CommitRead()` uses an outdated write pointer, it suggests the buffer is emptier, limiting data removal. The wrap pointer's race condition is mitigated by ensuring `CommitWrite()` and `CommitRead()` do not overtake each other.
 
 ### Efficiency Comparison
 The ContiguousRingbuffer provides enhanced efficiency compared to traditional thread-safe buffers in FreeRTOS when operating under single producer and single consumer conditions. By eliminating the need for data copying, it allows direct access to data during DMA operations, reducing CPU cycles and memory usage. In contrast, thread-safe buffers typically require locking mechanisms to manage concurrent access, which can introduce latency and complexity. This makes the ContiguousRingbuffer particularly well-suited for real-time applications in embedded systems.
@@ -32,7 +32,7 @@ Inspired by: [PEEK and POKE](https://en.wikipedia.org/wiki/PEEK_and_POKE), [Lock
 ContiguousRingbuffer<int> ringBuff;
 
 // Reserve size for elements
-ringBuff.Resize(5);
+ringBuff.Reserve(5);
 
 // Check for room and write 1 element
 int* data = nullptr;
@@ -61,8 +61,8 @@ This buffer may not efficiently fill to capacity since it operates in blocks. Sm
 Once users access the data pointer, they must avoid reading or writing beyond the specified boundaries.
 
 ## Explored Options
-- Not changing the 'size' parameter in `Poke()`, which would require a new method like `ContiguousAvailable()`. This added complexity was deemed unnecessary for users.
-- Implementing a `ContiguousSize()` method to indicate the first contiguous block available. This information is already provided by `Peek()`, making an additional method redundant.
+- Not changing the 'size' parameter in `ReserveCommitWrite()`, which would require a new method like `ContiguousAvailable()`. This added complexity was deemed unnecessary for users.
+- Implementing a `ContiguousSize()` method to indicate the first contiguous block available. This information is already provided by `ReserveCommitRead()`, making an additional method redundant.
 
 ## More Examples
 Loop to transfer data between the buffer and a peripheral component, such as Bluetooth or UART:

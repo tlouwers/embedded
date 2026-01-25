@@ -20,35 +20,35 @@ protected:
     };
 
     // Helper method to add a block of elements to buffer
-    bool AddBlock(int index_start, size_t kBlockSize) {
+    bool AddBlock(int index_start, size_t block_size) {
         int* data   = nullptr;
-        size_t size = kBlockSize;
+        size_t size = block_size;
 
         if (mRingBuffer.ReserveWrite(data, size)) {
             // Fill the buffer with 'known' values
-            for (size_t i = 0; i < kBlockSize; i++) {
+            for (size_t i = 0; i < block_size; i++) {
                 data[i] = index_start++;
             }
 
-            size = kBlockSize;
+            size = block_size;
             return mRingBuffer.CommitWrite(size);
         }
         return false;
     }
 
     // Helper method to remove a block of elements
-    bool RemoveBlock(int index_start, size_t kBlockSize) {
+    bool RemoveBlock(int index_start, size_t block_size) {
         int* data   = nullptr;
-        size_t size = kBlockSize;
+        size_t size = block_size;
 
         if (mRingBuffer.ReserveRead(data, size)) {
             // Empty the buffer with 'known' values
-            for (size_t i = 0; i < kBlockSize; i++) {
+            for (size_t i = 0; i < block_size; i++) {
                 EXPECT_EQ(data[i], index_start);
                 index_start++;
             }
 
-            size = kBlockSize;
+            size = block_size;
             return mRingBuffer.CommitRead(size);
         }
         return false;

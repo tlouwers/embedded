@@ -112,7 +112,7 @@ int main() {
     // Calculate elapsed time.
     auto endTime = std::chrono::high_resolution_clock::now();
     auto elapsedUs = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-    double seconds = elapsedUs / 1e6;
+    double seconds = static_cast<double>(elapsedUs) / 1e6;
 
     // Display results
     std::cout << "========================================" << std::endl;
@@ -124,10 +124,10 @@ int main() {
     std::cout << "Consumer checksum:   " << consumerSum << std::endl;
     std::cout << std::endl;
     std::cout << "Producer throughput: "
-              << static_cast<size_t>(itemsProduced.load(std::memory_order_relaxed) / seconds)
+              << static_cast<size_t>(static_cast<double>(itemsProduced.load(std::memory_order_relaxed)) / seconds)
               << " items/sec" << std::endl;
     std::cout << "Consumer throughput: "
-              << static_cast<size_t>(itemsConsumed.load(std::memory_order_relaxed) / seconds)
+              << static_cast<size_t>(static_cast<double>(itemsConsumed.load(std::memory_order_relaxed)) / seconds)
               << " items/sec" << std::endl;
     std::cout << "========================================" << std::endl;
 
