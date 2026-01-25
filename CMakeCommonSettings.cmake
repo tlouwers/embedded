@@ -1,40 +1,89 @@
 # CMakeCommonSettings.cmake
+# ============================================================================
+# Common build settings for embedded C++ projects (GCC toolchain)
+#
+# Usage in your CMakeLists.txt:
+#   include(${CMAKE_SOURCE_DIR}/../CMakeCommonSettings.cmake)
+#
+# Build commands:
+#   Debug build:    cmake -DCMAKE_BUILD_TYPE=Debug ..
+#   Release build:  cmake -DCMAKE_BUILD_TYPE=Release ..
+#   Embedded build: cmake -DCMAKE_BUILD_TYPE=Release -DEMBEDDED_BUILD=ON ..
+# ============================================================================
+
 cmake_minimum_required(VERSION 3.10)
 
-# Set the C++ standard
+# ----------------------------------------------------------------------------
+# Build Target: Hosted (Linux/Windows) or Embedded (bare-metal)
+# ----------------------------------------------------------------------------
+# OFF = Build for Linux/Windows with full C++ library (default)
+# ON  = Build for bare-metal microcontroller without OS or STL
+option(EMBEDDED_BUILD "Build for bare-metal embedded target" OFF)
+
+# ----------------------------------------------------------------------------
+# C++ Standard
+# ----------------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Add compiler optimization flags for Debug build (no optimization, maximum debug info)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g -DDEBUG -Wall -Wextra -Wpedantic")
+# ----------------------------------------------------------------------------
+# Warning Flags
+# ----------------------------------------------------------------------------
+# -Wall        Enable common warnings
+# -Wextra      Enable extra warnings
+# -Wpedantic   Strict ISO C++ compliance
+# -Wshadow     Warn when variable shadows another
+# -Wconversion Warn on implicit type conversions
+set(WARNING_FLAGS "-Wall -Wextra -Wpedantic -Wshadow -Wconversion")
 
-# Add compiler optimization flags for Release build
+# ----------------------------------------------------------------------------
+# Debug Build
+# ----------------------------------------------------------------------------
+# -O0     No optimization (easier debugging)
+# -g      Include debug symbols
+# -DDEBUG Define DEBUG macro for conditional code
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG ${WARNING_FLAGS}")
 
-# Base settings:
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+# ----------------------------------------------------------------------------
+# Release Build
+# ----------------------------------------------------------------------------
+if(EMBEDDED_BUILD)
+    # === Embedded/Bare-Metal Settings ===
 
-# Additional flags for performance:
-# -ftree-vectorize enables auto-vectorization.
-# -funroll-loops enables loop unrolling.
-# -finline-functions allows function inlining across translation units.
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ftree-vectorize -funroll-loops -finline-functions")
+    # -Os      Optimize for size (flash is usually limited)
+    # -g       Keep debug symbols (strip later if needed)
+    # -DNDEBUG Disable assert() for production
+    set(CMAKE_CXX_FLAGS_RELEASE "-Os -g -DNDEBUG ${WARNING_FLAGS}")
 
-# Additional flags for robustness:
-# -fstack-protector-strong adds extra protection against stack smashing.
-# -fno-strict-overflow disables some optimizations that assume no signed overflow - sometimes useful for subtle bugs.
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fstack-protector-strong -fno-strict-overflow")
+    # Disable features that need runtime support
+    string(APPEND CMAKE_CXX_FLAGS " -fno-exceptions")          # No try/catch
+    string(APPEND CMAKE_CXX_FLAGS " -fno-rtti")                # No typeid/dynamic_cast
+    string(APPEND CMAKE_CXX_FLAGS " -fno-threadsafe-statics")  # No mutex for static init
+    string(APPEND CMAKE_CXX_FLAGS " -fno-use-cxa-atexit")      # No global destructors
+    string(APPEND CMAKE_CXX_FLAGS " -ffreestanding")           # No hosted C++ library
 
-# Optionally, if you want to push performance further, you might experiment with:
-# -Ofast (be aware that it relaxes strict standards compliance and might impact floating point accuracy)
-# But if you decide to use Ofast, ensure that your code is validated under these assumptions.
-# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
+    # Dead code elimination (reduces binary size)
+    string(APPEND CMAKE_CXX_FLAGS " -ffunction-sections -fdata-sections")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS " -Wl,--gc-sections")
 
-# Print the flags based on the chosen build type
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    message(STATUS "CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
-elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    message(STATUS "CMAKE_CXX_FLAGS_RELEASE: ${CMAKE_CXX_FLAGS_RELEASE}")
+    # Link-time optimization (further size reduction)
+    string(APPEND CMAKE_CXX_FLAGS_RELEASE " -flto")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS_RELEASE " -flto")
+
+    message(STATUS "Target: EMBEDDED (bare-metal, no STL)")
 else()
-    message(STATUS "CMAKE_BUILD_TYPE is set to: ${CMAKE_BUILD_TYPE}. No specific flags to print.")
+    # === Hosted Linux/Windows Settings ===
+
+    # -O3      Maximum optimization for speed
+    # -DNDEBUG Disable assert() for production
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG ${WARNING_FLAGS}")
+
+    message(STATUS "Target: HOSTED (Linux/Windows with STL)")
 endif()
+
+# ----------------------------------------------------------------------------
+# Print Summary
+# ----------------------------------------------------------------------------
+message(STATUS "C++ Standard: C++${CMAKE_CXX_STANDARD}")
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")

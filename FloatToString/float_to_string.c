@@ -20,7 +20,7 @@
  *          LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *          OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *          THE SOFTWARE.
- * 
+ *
  * \brief   Convert a float or double integral type to string.
  *
  * \note    https://github.com/tlouwers/embedded/tree/master/FloatToString
@@ -51,17 +51,17 @@
 /************************************************************************/
 static const double rounders[MAX_PRECISION + 1] =
 {
-	0.5,				// 0
-	0.05,				// 1
-	0.005,				// 2
-	0.0005,				// 3
-	0.00005,			// 4
-	0.000005,			// 5
-	0.0000005,			// 6
-	0.00000005,			// 7
-	0.000000005,		// 8
-	0.0000000005,		// 9
-	0.00000000005		// 10
+    0.5,                // 0
+    0.05,               // 1
+    0.005,              // 2
+    0.0005,             // 3
+    0.00005,            // 4
+    0.000005,           // 5
+    0.0000005,          // 6
+    0.00000005,         // 7
+    0.000000005,        // 8
+    0.0000000005,       // 9
+    0.00000000005       // 10
 };
 
 
@@ -76,92 +76,92 @@ static const double rounders[MAX_PRECISION + 1] =
  */
 char* ftoa(double f, char* buf, int precision)
 {
-	// check precision bounds, clip to maximum
-	if (precision > MAX_PRECISION)
+    // check precision bounds, clip to maximum
+    if (precision > MAX_PRECISION)
     {
-		precision = MAX_PRECISION;
+        precision = MAX_PRECISION;
     }
 
     char* ptr = buf;
 
-	// handle the sign of the float
-	if (f < 0)
+    // handle the sign of the float
+    if (f < 0)
     {
-		f = -f;
-		*ptr++ = '-';
-	}
+        f = -f;
+        *ptr++ = '-';
+    }
 
     // negative precision -> perform automatic precision guess
-	if (precision < 0)
-	{
-		     if (f <      1.0) { precision = 6; }
-		else if (f <     10.0) { precision = 5; }
-		else if (f <    100.0) { precision = 4; }
-		else if (f <   1000.0) { precision = 3; }
-		else if (f <  10000.0) { precision = 2; }
-		else if (f < 100000.0) { precision = 1; }
-		else                   { precision = 0; }
-	}
-
-	// round value according the precision
-	if (precision)
+    if (precision < 0)
     {
-		f += rounders[precision];
+             if (f <      1.0) { precision = 6; }
+        else if (f <     10.0) { precision = 5; }
+        else if (f <    100.0) { precision = 4; }
+        else if (f <   1000.0) { precision = 3; }
+        else if (f <  10000.0) { precision = 2; }
+        else if (f < 100000.0) { precision = 1; }
+        else                   { precision = 0; }
     }
 
-	// integer part...
-	long intPart = f;
-	f -= intPart;
-
-	if (!intPart)
+    // round value according the precision
+    if (precision)
     {
-		*ptr++ = '0';
+        f += rounders[precision];
     }
-	else
-	{
-		// save start pointer
-		char* p = ptr;
 
-		// convert (reverse order)
-		while (intPart)
-		{
-			*p++ = '0' + intPart % 10;
-			intPart /= 10;
-		}
+    // integer part...
+    long intPart = f;
+    f -= intPart;
 
-		// save end pos
-		char* p1 = p;
+    if (!intPart)
+    {
+        *ptr++ = '0';
+    }
+    else
+    {
+        // save start pointer
+        char* p = ptr;
 
-		// reverse result
-		while (p > ptr)
-		{
-			char c = *--p;
-			*p = *ptr;
-			*ptr++ = c;
-		}
+        // convert (reverse order)
+        while (intPart)
+        {
+        	*p++ = '0' + intPart % 10;
+        	intPart /= 10;
+        }
 
-		// restore end pos
-		ptr = p1;
-	}
+        // save end pos
+        char* p1 = p;
 
-	// decimal part
-	if (precision)
-	{
-		// place decimal point
-		*ptr++ = '.';
+        // reverse result
+        while (p > ptr)
+        {
+        	char c = *--p;
+        	*p = *ptr;
+        	*ptr++ = c;
+        }
 
-		// convert
-		while (precision--)
-		{
-			f *= 10.0;
-			char c = f;
-			*ptr++ = '0' + c;
-			f -= c;
-		}
-	}
+        // restore end pos
+        ptr = p1;
+    }
 
-	// add terminating zero
-	*ptr = 0;
+    // decimal part
+    if (precision)
+    {
+        // place decimal point
+        *ptr++ = '.';
 
-	return buf;
+        // convert
+        while (precision--)
+        {
+            f *= 10.0;
+            char c = f;
+            *ptr++ = '0' + c;
+            f -= c;
+        }
+    }
+
+    // add terminating zero
+    *ptr = 0;
+
+    return buf;
 }
