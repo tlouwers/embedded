@@ -50,9 +50,9 @@ public:
     ~MovingAverage();
 
     bool Resize(uint16_t size) noexcept;
-    bool Fill(T value);
-    bool Add(T value);
-    T GetAverage() const;
+    bool Fill(T value) noexcept;
+    bool Add(T value) noexcept;
+    T GetAverage() const noexcept;
 
 private:
     uint16_t mCapacity{0};
@@ -61,30 +61,30 @@ private:
     double mSum{0.0};               // Use a known large type which supports fractional numbers
     T* mElements{nullptr};
 
-    void DeleteBuffer();
-    void CustomFill(T* begin, T* end, const T& value);
-    bool IsTypeSupported() const;
+    void DeleteBuffer() noexcept;
+    void CustomFill(T* begin, T* end, const T& value) noexcept;
+    bool IsTypeSupported() const noexcept;
 
     // Private type_trait implementation
     struct IsSupportedType {
-        static const bool value = true; // Default to true
+        static constexpr bool value = true; // Default to true
     };
 };
 
 // Specializations for unsupported types
 template <>
 struct MovingAverage<double>::IsSupportedType {
-    static const bool value = false;
+    static constexpr bool value = false;
 };
 
 template <>
 struct MovingAverage<int64_t>::IsSupportedType {
-    static const bool value = false;
+    static constexpr bool value = false;
 };
 
 template <>
 struct MovingAverage<uint64_t>::IsSupportedType {
-    static const bool value = false;
+    static constexpr bool value = false;
 };
 
 /**
@@ -145,7 +145,7 @@ bool MovingAverage<T>::Resize(uint16_t size) noexcept
  * \returns True if the internal buffer could be filled, else false.
  */
 template<class T>
-bool MovingAverage<T>::Fill(T value)
+bool MovingAverage<T>::Fill(T value) noexcept
 {
     if (nullptr == mElements)
     {
@@ -155,8 +155,8 @@ bool MovingAverage<T>::Fill(T value)
     // Fill the entire internal buffer with 'value'
     CustomFill(mElements, mElements + mCapacity, value);
 
-    // Update mSum accordingly
-    mSum = static_cast<double>(mCapacity) * value;
+    // Update mSum accordingly; do multiplication in double to avoid overflow
+    mSum = static_cast<double>(mCapacity) * static_cast<double>(value);
 
     // Reset the counters
     mIndex = 0;
@@ -171,7 +171,7 @@ bool MovingAverage<T>::Fill(T value)
  * \returns True if the value could be added, else false.
  */
 template<class T>
-bool MovingAverage<T>::Add(T value)
+bool MovingAverage<T>::Add(T value) noexcept
 {
     // Check if the buffer is initialized
     if (nullptr == mElements)
@@ -182,15 +182,16 @@ bool MovingAverage<T>::Add(T value)
     // If the buffer is full, remove the oldest sample from the sum
     if (mItemsInBuffer == mCapacity)
     {
-        mSum -= mElements[mIndex];
+        mSum -= static_cast<double>(mElements[mIndex]);
     }
 
     // Add the new value to the buffer and update the sum
     mElements[mIndex] = value;
-    mSum += value;
+    mSum += static_cast<double>(value);
 
     // Move to the next index, wrapping around if necessary
-    mIndex = (mIndex + 1) % mCapacity;
+    // Use modular arithmetic on unsigned to avoid signed/unsigned conversions
+    mIndex = static_cast<uint16_t>((static_cast<uint32_t>(mIndex) + 1u) % static_cast<uint32_t>(mCapacity));
 
     // Keep track of the number of items in the buffer, up to buffer full
     if (mItemsInBuffer < mCapacity)
@@ -206,9 +207,15 @@ bool MovingAverage<T>::Add(T value)
  * \returns The average if successful, 0 if the buffer has no elements.
  */
 template<class T>
-T MovingAverage<T>::GetAverage() const
+T MovingAverage<T>::GetAverage() const noexcept
 {
-    return mItemsInBuffer > 0 ? static_cast<T>(mSum / mItemsInBuffer) : T{};
+    if (mItemsInBuffer == 0u) {
+        return T{};
+    }
+
+    // Compute average in double and cast back to T
+    const double avg = mSum / static_cast<double>(mItemsInBuffer);
+    return static_cast<T>(avg);
 }
 
 /************************************************************************/
@@ -219,7 +226,7 @@ T MovingAverage<T>::GetAverage() const
  * \details No effect when the buffer is already deleted.
  */
 template<class T>
-void MovingAverage<T>::DeleteBuffer()
+void MovingAverage<T>::DeleteBuffer() noexcept
 {
     if (nullptr != mElements) {
         delete[] mElements;
@@ -236,7 +243,7 @@ void MovingAverage<T>::DeleteBuffer()
  *          to each element. It is a simple alternative to std::fill.
  */
 template<class T>
-void MovingAverage<T>::CustomFill(T* begin, T* end, const T& value)
+void MovingAverage<T>::CustomFill(T* begin, T* end, const T& value) noexcept
 {
     for (T* ptr = begin; ptr != end; ++ptr) {
         *ptr = value;
@@ -248,7 +255,7 @@ void MovingAverage<T>::CustomFill(T* begin, T* end, const T& value)
  * \returns True if the type is supported, false otherwise.
  */
 template<class T>
-bool MovingAverage<T>::IsTypeSupported() const
+bool MovingAverage<T>::IsTypeSupported() const noexcept
 {
     return IsSupportedType::value; // Accessing the static member directly
 }

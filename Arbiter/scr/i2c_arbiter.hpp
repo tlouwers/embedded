@@ -14,8 +14,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/Arbiter
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.0
- * \date    09-2018
+ * \version 1.1
+ * \date    01-2026
  */
 
 #ifndef I2C_ARBITER_HPP_

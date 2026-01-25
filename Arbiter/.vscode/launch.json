@@ -1,13 +1,11 @@
 {
-    // VSCode Debug/Run - F5 to debug, Ctrl+F5 to run
-    // Note: Set EXE_EXT=.exe on Windows, leave empty on Linux
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run SlimAssertMain (Debug)",
+            "name": "Run ArbiterMain (Debug)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/SlimAssertMain${env:EXE_EXT}",
+            "program": "${workspaceFolder}/build/ArbiterMain${env:EXE_EXT}",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
             "externalConsole": false,
@@ -22,10 +20,10 @@
             "preLaunchTask": "Build Main (Debug)"
         },
         {
-            "name": "Run SlimAssertMain (No Debug)",
+            "name": "Run ArbiterMain (No Debug)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/SlimAssertMain${env:EXE_EXT}",
+            "program": "${workspaceFolder}/build/ArbiterMain${env:EXE_EXT}",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
             "externalConsole": false,

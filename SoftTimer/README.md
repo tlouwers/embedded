@@ -20,6 +20,9 @@ The `SoftTimer` class supports three types of timers:
 - The accuracy of the software timers is directly influenced by the frequency of the tick. For example, if a timer interrupt service routine (ISR) ticks every 100 ms, all timers will execute their callbacks within this period without drift.
 - To minimize execution time during timer callbacks, keep the callback functions lightweight. Use them primarily to set flags that are processed later in the main loop. Heavy processing in callbacks can quickly exceed timing limits.
 
+- Returned timer IDs are `uint8_t`; `0` is reserved and indicates failure/invalid id (for example when registration fails).
+- `MAX_SOFT_TIMERS` is a compile-time constant in `SoftTimer.hpp` (default 3, valid range 1..254). Increase it at build time to allow more timers (memory usage grows per timer).
+
 If you encounter any issues or have suggestions for improvements, please reach out with a reproducible scenario or code enhancements.
 
 ## Example Usage

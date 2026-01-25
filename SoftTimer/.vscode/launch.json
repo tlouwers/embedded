@@ -1,15 +1,15 @@
 {
+    // VSCode Debug/Run - F5 to debug, Ctrl+F5 to run
+    // Note: Set EXE_EXT=.exe on Windows, leave empty on Linux
     "version": "0.2.0",
     "configurations": [
         {
             "name": "Run SoftTimerTest (Debug)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/SoftTimerTest${env:EXE_EXT}",
-            "args": [],
+            "program": "${workspaceFolder}/build/test/SoftTimerTest${env:EXE_EXT}",
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build",
-            "environment": [],
+            "cwd": "${workspaceFolder}/build/test",
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
@@ -26,10 +26,8 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/SoftTimerMain${env:EXE_EXT}",
-            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
-            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "preLaunchTask": "Build Main (Debug)"
@@ -39,10 +37,8 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/SoftTimerMain${env:EXE_EXT}",
-            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
-            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "noDebug": true,

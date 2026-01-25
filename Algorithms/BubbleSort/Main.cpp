@@ -25,15 +25,15 @@
 #include "BubbleSort.hpp"
 
 const int SIZE = 1000;
-const int NUM_TESTS = 10; // Number of tests to run for performance measurement
-const int SEED = 42; // Fixed seed for reproducibility
+const int NUM_TESTS = 10;       // Number of tests to run for performance measurement
+const int SEED = 42;            // Fixed seed for reproducibility
 
 void FillRandomNumbers(int* array, size_t size) {
-    std::mt19937 eng(SEED); // Seed the generator with a fixed value
+    std::mt19937 eng(SEED);     // Seed the generator with a fixed value
     std::uniform_int_distribution<> distr(1, 10000); // Define the range
 
     for (size_t i = 0; i < size; ++i) {
-        array[i] = distr(eng); // Generate random numbers
+        array[i] = distr(eng);  // Generate random numbers
     }
 }
 

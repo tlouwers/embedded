@@ -14,8 +14,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/Arbiter
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.0
- * \date    09-2018
+ * \version 1.1
+ * \date    01-2026
  */
 
 /************************************************************************/
@@ -37,7 +37,7 @@ irqflags_t cpu_irq_save(void)
 
 void cpu_irq_restore(irqflags_t irq_state)
 {
-    ;
+    (void)irq_state;  // Suppress unused parameter warning
 }
 
 #define __NOP()     { asm volatile (""); }
@@ -60,10 +60,8 @@ I2CArbiter::I2CArbiter() :
  */
 I2CArbiter::~I2CArbiter()
 {
-    mBusy = false;
-
+    mBusy.store(false, std::memory_order_release);
     mLock.clear(std::memory_order_release);
-
     mBuffer.clear();
 }
 
@@ -93,7 +91,7 @@ bool I2CArbiter::IsInit() const
  */
 void I2CArbiter::Sleep()
 {
-    while (mBusy) { __NOP() }                                               // Blocking wait until we can use the bus. Use __ASM instruction to prevent loop from being optimized away.
+    while (mBusy.load(std::memory_order_acquire)) { __NOP(); }              // Blocking wait until we can use the bus.
 
     irqflags_t irq_state = cpu_irq_save();                                  // Disable global interrupts to prevent race condition
     while (mLock.test_and_set(std::memory_order_acquire)) { __NOP(); }      // Acquire lock - start of critical section
@@ -143,12 +141,13 @@ bool I2CArbiter::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t
     cpu_irq_restore(irq_state);                                             // Restore global interrupts
 
     // Start the transmission, if not busy yet
+    // Use atomic compare-exchange to prevent race condition where multiple
+    // threads could both see mBusy as false and both start a transmission.
     if (mI2C.IsInit())
     {
-        if (!mBusy)
+        bool expected = false;
+        if (mBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
         {
-            mBusy = true;
-
             // Reroute the data received callback to the arbiter
             result = mI2C.Write(refHeader, ptrSrc, length, [this]() { this->DataRequestHandler(); });
             assert(result);
@@ -195,12 +194,13 @@ bool I2CArbiter::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t lengt
     cpu_irq_restore(irq_state);                                             // Restore global interrupts
 
     // Start the transmission, if not busy yet
+    // Use atomic compare-exchange to prevent race condition where multiple
+    // threads could both see mBusy as false and both start a transmission.
     if (mI2C.IsInit())
     {
-        if (!mBusy)
+        bool expected = false;
+        if (mBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
         {
-            mBusy = true;
-
             // Reroute the data received callback to the arbiter
             result = mI2C.Read(refHeader, ptrDest, length, [this]() { this->DataRequestHandler(); });
             assert(result);
@@ -228,12 +228,17 @@ bool I2CArbiter::WriteBlocking(const HeaderI2C& refHeader, const uint8_t* ptrSrc
 
     if (mI2C.IsInit())
     {
-        while (mBusy) { __NOP(); }
+        // Wait for bus to become idle, then atomically acquire it
+        bool expected = false;
+        while (!mBusy.compare_exchange_weak(expected, true, std::memory_order_acq_rel))
+        {
+            expected = false;  // Reset for next attempt
+            __NOP();
+        }
 
-        mBusy = true;
         result = mI2C.WriteBlocking(refHeader, ptrSrc, length);
         assert(result);
-        mBusy = false;
+        mBusy.store(false, std::memory_order_release);
     }
 
     return result;
@@ -257,12 +262,17 @@ bool I2CArbiter::ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size
 
     if (mI2C.IsInit())
     {
-        while (mBusy) { __NOP(); }
+        // Wait for bus to become idle, then atomically acquire it
+        bool expected = false;
+        while (!mBusy.compare_exchange_weak(expected, true, std::memory_order_acq_rel))
+        {
+            expected = false;  // Reset for next attempt
+            __NOP();
+        }
 
-        mBusy = true;
         result = mI2C.ReadBlocking(refHeader, ptrDest, length);
         assert(result);
-        mBusy = false;
+        mBusy.store(false, std::memory_order_release);
     }
 
     return result;
@@ -314,7 +324,7 @@ void I2CArbiter::DataRequestHandler()
     }
     else
     {
-        mBusy = false;
+        mBusy.store(false, std::memory_order_release);
     }
 
     (void)(result);     // Hide compiler warning: unused variable

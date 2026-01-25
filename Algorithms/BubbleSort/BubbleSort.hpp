@@ -22,8 +22,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/Algorithms/BubbleSort
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    03-2025
+ * \version 1.2
+ * \date    01-2026
  */
 
 #ifndef BUBBLESORT_HPP_
@@ -33,13 +33,30 @@
  * Includes                                                                   *
  *****************************************************************************/
 #include <cstdint>
+#include <utility>
 
+/******************************************************************************
+ * Internal helper functions                                                  *
+ *****************************************************************************/
+/** @brief Swaps two elements of any type, avoid pulling in <algorithm> for
+ *         just std::swap.
+ * \param a First element.
+ * \param b Second element.
+ */
+template <typename T>
+inline void Swap(T& a, T& b) noexcept
+{
+    T tmp = std::move(a);
+    a = std::move(b);
+    b = std::move(tmp);
+}
 
 /******************************************************************************
  * Template methods                                                           *
  *****************************************************************************/
 /**
  * \brief Sorts an array using the optimized BubbleSort algorithm.
+ *        Uses the "last swap" optimization to reduce the next pass length.
  * \param arr The array to sort.
  * \param length The length of the array.
  * \returns True if successful, false if the length is invalid.
@@ -59,10 +76,7 @@ bool BubbleSort(T arr[], size_t length)
         {
             if (arr[j] > arr[j + 1])
             {
-                // Swap values
-                T temp = arr[j];
-                arr[j] = arr[j + 1];
-                arr[j + 1] = temp;
+                Swap(arr[j], arr[j + 1]);
                 swapped = true;
             }
         }

@@ -13,7 +13,7 @@
             ],
             "group": "build",
             "problemMatcher": [],
-            "detail": "Configure the project for Main in Debug mode"
+            "detail": "Configure the Arbiter project for Main in Debug mode"
         },
         {
             "label": "CMake: Configure Main (Release)",
@@ -27,7 +27,7 @@
             ],
             "group": "build",
             "problemMatcher": [],
-            "detail": "Configure the project for Main in Release mode"
+            "detail": "Configure the Arbiter project for Main in Release mode"
         },
         {
             "label": "Build Main (Debug)",
@@ -37,14 +37,14 @@
             "args": [
                 "--build",
                 "${workspaceFolder}/build",
-                "--target", "SlimAssertMain"
+                "--target", "ArbiterMain"
             ],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
             "problemMatcher": ["$gcc"],
-            "detail": "Build the main application in Debug mode"
+            "detail": "Build the Arbiter main application in Debug mode"
         },
         {
             "label": "Build Main (Release)",
@@ -54,11 +54,11 @@
             "args": [
                 "--build",
                 "${workspaceFolder}/build",
-                "--target", "SlimAssertMain"
+                "--target", "ArbiterMain"
             ],
             "group": "build",
             "problemMatcher": ["$gcc"],
-            "detail": "Build the main application in Release mode"
+            "detail": "Build the Arbiter main application in Release mode"
         },
         {
             "label": "Clean",
