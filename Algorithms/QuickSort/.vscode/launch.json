@@ -1,4 +1,6 @@
 {
+    // VSCode Debug/Run - F5 to debug, Ctrl+F5 to run
+    // Note: Set EXE_EXT=.exe on Windows, leave empty on Linux
     "version": "0.2.0",
     "configurations": [
         {
@@ -6,10 +8,8 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/test/QuickSortTest${env:EXE_EXT}",
-            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/test",
-            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
@@ -26,10 +26,8 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/QuickSortMain${env:EXE_EXT}",
-            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
-            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "preLaunchTask": "Build Main (Debug)"
@@ -39,10 +37,8 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/QuickSortMain${env:EXE_EXT}",
-            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
-            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "noDebug": true,

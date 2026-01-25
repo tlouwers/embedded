@@ -16,7 +16,7 @@ TEST_F(MovingAverageLongRunningTest, FloatNumbers) {
     MovingAverage<float> movAvgF;
 
     EXPECT_TRUE(movAvgF.Resize(SIZE));
-    EXPECT_TRUE(AreSame(movAvgF.GetAverage(), 0.0));
+    EXPECT_TRUE(AreSame(movAvgF.GetAverage(), 0.0f));
 
     const float INCREMENT = 1.0000001f;
 
@@ -42,7 +42,7 @@ TEST_F(MovingAverageLongRunningTest, IntegerNumbers) {
     MovingAverage<int> movAvg;
 
     EXPECT_TRUE(movAvg.Resize(SIZE));
-    EXPECT_TRUE(AreSame(movAvg.GetAverage(), 0.0));
+    EXPECT_EQ(movAvg.GetAverage(), 0);
 
     const int INCREMENT = 1;
 

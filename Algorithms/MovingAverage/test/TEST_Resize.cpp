@@ -3,7 +3,7 @@
 
 class MovingAverageResizeTest : public ::testing::Test {
 protected:
-    const int SIZE = 5;
+    const uint16_t SIZE = 5;
     MovingAverage<int> movAvg;
 };
 
