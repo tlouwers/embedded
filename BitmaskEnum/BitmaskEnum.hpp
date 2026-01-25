@@ -92,13 +92,11 @@ struct EnableBitMaskOperators
  * \details Will perform bitwise OR operation to the enum.
  */
 template<typename Enum>
-typename std::enable_if<EnableBitMaskOperators<Enum>::enable, Enum>::type
-operator |(Enum lhs, Enum rhs)
+constexpr typename std::enable_if<EnableBitMaskOperators<Enum>::enable && std::is_enum<Enum>::value, Enum>::type
+operator |(Enum lhs, Enum rhs) noexcept
 {
-    return static_cast<Enum> (
-        static_cast<std::underlying_type_t<Enum>>(lhs) |
-        static_cast<std::underlying_type_t<Enum>>(rhs)
-    );
+    using UT = typename std::underlying_type<Enum>::type;
+    return static_cast<Enum>(static_cast<UT>(lhs) | static_cast<UT>(rhs));
 }
 
 /**
@@ -106,13 +104,11 @@ operator |(Enum lhs, Enum rhs)
  * \details Will perform bitwise AND operation to the enum.
  */
 template<typename Enum>
-typename std::enable_if<EnableBitMaskOperators<Enum>::enable, Enum>::type
-operator &(Enum lhs, Enum rhs)
+constexpr typename std::enable_if<EnableBitMaskOperators<Enum>::enable && std::is_enum<Enum>::value, Enum>::type
+operator &(Enum lhs, Enum rhs) noexcept
 {
-    return static_cast<Enum> (
-        static_cast<std::underlying_type_t<Enum>>(lhs) &
-        static_cast<std::underlying_type_t<Enum>>(rhs)
-    );
+    using UT = typename std::underlying_type<Enum>::type;
+    return static_cast<Enum>(static_cast<UT>(lhs) & static_cast<UT>(rhs));
 }
 
 /**
@@ -120,13 +116,11 @@ operator &(Enum lhs, Enum rhs)
  * \details Will perform bitwise XOR operation to the enum.
  */
 template<typename Enum>
-typename std::enable_if<EnableBitMaskOperators<Enum>::enable, Enum>::type
-operator ^(Enum lhs, Enum rhs)
+constexpr typename std::enable_if<EnableBitMaskOperators<Enum>::enable && std::is_enum<Enum>::value, Enum>::type
+operator ^(Enum lhs, Enum rhs) noexcept
 {
-    return static_cast<Enum> (
-        static_cast<std::underlying_type_t<Enum>>(lhs) ^
-        static_cast<std::underlying_type_t<Enum>>(rhs)
-    );
+    using UT = typename std::underlying_type<Enum>::type;
+    return static_cast<Enum>(static_cast<UT>(lhs) ^ static_cast<UT>(rhs));
 }
 
 /**
@@ -134,12 +128,11 @@ operator ^(Enum lhs, Enum rhs)
  * \details Will perform bitwise NOT operation to the enum.
  */
 template<typename Enum>
-typename std::enable_if<EnableBitMaskOperators<Enum>::enable, Enum>::type
-operator ~(Enum rhs)
+constexpr typename std::enable_if<EnableBitMaskOperators<Enum>::enable && std::is_enum<Enum>::value, Enum>::type
+operator ~(Enum rhs) noexcept
 {
-    return static_cast<Enum> (
-        ~static_cast<std::underlying_type_t<Enum>>(rhs)
-    );
+    using UT = typename std::underlying_type<Enum>::type;
+    return static_cast<Enum>(~static_cast<UT>(rhs));
 }
 
 /**
@@ -147,10 +140,11 @@ operator ~(Enum rhs)
  * \details Will perform bitwise OR operation to the enum and assign the result to the lhs.
  */
 template<typename Enum>
-typename std::enable_if<EnableBitMaskOperators<Enum>::enable, Enum>::type
-operator |=(Enum &lhs, Enum rhs)
+constexpr typename std::enable_if<EnableBitMaskOperators<Enum>::enable && std::is_enum<Enum>::value, Enum&>::type
+operator |=(Enum &lhs, Enum rhs) noexcept
 {
-    return lhs = lhs | rhs;
+    lhs = lhs | rhs;
+    return lhs;
 }
 
 /**
@@ -158,10 +152,11 @@ operator |=(Enum &lhs, Enum rhs)
  * \details Will perform bitwise AND operation to the enum and assign the result to the lhs.
  */
 template<typename Enum>
-typename std::enable_if<EnableBitMaskOperators<Enum>::enable, Enum>::type
-operator &=(Enum &lhs, Enum rhs)
+constexpr typename std::enable_if<EnableBitMaskOperators<Enum>::enable && std::is_enum<Enum>::value, Enum&>::type
+operator &=(Enum &lhs, Enum rhs) noexcept
 {
-    return lhs = lhs & rhs;
+    lhs = lhs & rhs;
+    return lhs;
 }
 
 /**
@@ -169,10 +164,11 @@ operator &=(Enum &lhs, Enum rhs)
  * \details Will perform bitwise XOR operation to the enum and assign the result to the lhs.
  */
 template<typename Enum>
-typename std::enable_if<EnableBitMaskOperators<Enum>::enable, Enum>::type
-operator ^=(Enum &lhs, Enum rhs)
+constexpr typename std::enable_if<EnableBitMaskOperators<Enum>::enable && std::is_enum<Enum>::value, Enum&>::type
+operator ^=(Enum &lhs, Enum rhs) noexcept
 {
-    return lhs = lhs ^ rhs;
+    lhs = lhs ^ rhs;
+    return lhs;
 }
 
 

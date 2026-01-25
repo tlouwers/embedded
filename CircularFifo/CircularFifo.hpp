@@ -56,7 +56,7 @@ public:
     void clear();
 
 private:
-    inline size_t increment(size_t idx) const;
+    inline size_t increment(size_t idx) const noexcept;
 
     std::atomic<size_t>   _tail;            // Tail (input) index
     Element               _array[Capacity]; // Circular buffer storage
@@ -135,8 +135,10 @@ bool CircularFifo<Element, Size>::peek(Element& item) const
 template<typename Element, size_t Size>
 bool CircularFifo<Element, Size>::empty() const
 {
-    // Snapshot with acceptance that this comparison operation is not atomic.
-    return _head.load() == _tail.load();
+    // Snapshot: use acquire semantics to observe recent updates from the
+    // producer/consumer. This is still a snapshot and can change immediately
+    // after returning.
+    return _head.load(std::memory_order_acquire) == _tail.load(std::memory_order_acquire);
 }
 
 /**
@@ -148,10 +150,13 @@ bool CircularFifo<Element, Size>::empty() const
 template<typename Element, size_t Size>
 bool CircularFifo<Element, Size>::full() const
 {
-    const auto next_tail = increment(_tail.load());
+    // Read the producer-owned tail with relaxed ordering, compute the next
+    // position, and compare against the head with acquire ordering to
+    // synchronize with consumer stores.
+    const auto next_tail = increment(_tail.load(std::memory_order_relaxed));
 
     // Snapshot with acceptance that this comparison is not atomic
-    return next_tail == _head.load();
+    return next_tail == _head.load(std::memory_order_acquire);
 }
 
 /**
@@ -172,8 +177,10 @@ bool CircularFifo<Element, Size>::isLockFree() const
 template<typename Element, size_t Size>
 void CircularFifo<Element, Size>::clear()
 {
-    _tail.store(0, std::memory_order_release);
-    _head.store(0, std::memory_order_release);
+    // Not thread-safe. Use relaxed stores since this function is intended to
+    // be called when there are no concurrent accesses.
+    _tail.store(0, std::memory_order_relaxed);
+    _head.store(0, std::memory_order_relaxed);
 }
 
 /**
@@ -182,7 +189,7 @@ void CircularFifo<Element, Size>::clear()
  * \return  The incremented index, wrapped around if it exceeds the capacity.
  */
 template<typename Element, size_t Size>
-inline size_t CircularFifo<Element, Size>::increment(size_t idx) const
+inline size_t CircularFifo<Element, Size>::increment(size_t idx) const noexcept
 {
     return (idx + 1) % Capacity;
 }
