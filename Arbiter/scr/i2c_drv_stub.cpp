@@ -142,6 +142,7 @@ bool I2C::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length
         mRefI2CVariables.callbackDone = refCallback;
 
         // Do not care about the header, this is a stub.
+        (void)refHeader;
 
         // Small delay to mimic DMA setup
         std::this_thread::sleep_for(std::chrono::milliseconds(3));
@@ -176,6 +177,7 @@ bool I2C::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, cons
         mRefI2CVariables.callbackDone = refCallback;
 
         // Do not care about the header, this is a stub.
+        (void)refHeader;
 
         // Small delay to mimic DMA setup
         std::this_thread::sleep_for(std::chrono::milliseconds(3));
@@ -203,6 +205,8 @@ bool I2C::WriteBlocking(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_
     if (length == 0) { return false; }
 
     // Do not care about the header, this is a stub.
+    (void)refHeader;
+    (void)ptrSrc;
 
     // Small delay to mimic I2C transmission
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -225,6 +229,8 @@ bool I2C::ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t leng
     if (length == 0) { return false; }
 
     // Do not care about the header, this is a stub.
+    (void)refHeader;
+    (void)ptrDest;
 
     // Small delay to mimic I2C transmission
     std::this_thread::sleep_for(std::chrono::milliseconds(200));

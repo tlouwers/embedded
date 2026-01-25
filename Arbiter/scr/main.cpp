@@ -48,6 +48,7 @@ int main(void)
 
     bool result = app.Init();
     assert(result);
+    (void)result;
 
 
     // Queuing 10 requests
