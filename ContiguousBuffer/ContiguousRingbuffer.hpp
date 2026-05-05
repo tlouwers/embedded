@@ -27,8 +27,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/ContiguousBuffer
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.6
- * \date    01-2026
+ * \version 1.7
+ * \date    05-2026
  */
 
 #ifndef CONTIGUOUS_RING_BUFFER_HPP_
@@ -41,10 +41,6 @@
 #include <atomic>
 #include <memory>
 
-#ifdef DEBUG
-#include <iostream>
-#endif // DEBUG
-
 
 /******************************************************************************
  * Template Class                                                             *
@@ -53,7 +49,7 @@ template<typename T>
 class ContiguousRingbuffer
 {
 public:
-    ContiguousRingbuffer() noexcept;
+    ContiguousRingbuffer() noexcept = default;
 
     bool Reserve(const size_t capacity) noexcept;
 
@@ -83,16 +79,6 @@ private:
 
 
 /**
- * \brief   Default constructor.
- * \details Initializes the buffer with zero capacity. The buffer must be
- *          initialized using 'Reserve()' before use.
- */
-template<typename T>
-ContiguousRingbuffer<T>::ContiguousRingbuffer() noexcept :
-    mWrite(0), mRead(0), mWrap(0), mCapacity(0)
-{ }
-
-/**
  * \brief   Reserves capacity for the ring buffer.
  * \details Allocates storage for the specified number of elements. Frees any
  *          existing memory first, then allocates new memory. The actual capacity
@@ -120,15 +106,23 @@ bool ContiguousRingbuffer<T>::Reserve(const size_t capacity) noexcept
     // Use relaxed ordering: Reserve() is not called concurrently with read/write
     // operations. It's called during initialization or after all threads have stopped.
     // No synchronization is needed since there's no concurrent access.
+    const size_t newCapacity = capacity + 1;
     mWrite.store(0, std::memory_order_relaxed);
     mRead.store(0, std::memory_order_relaxed);
-    mWrap.store(capacity + 1, std::memory_order_relaxed);
-    mCapacity = capacity + 1;
+    mWrap.store(newCapacity, std::memory_order_relaxed);
+    mCapacity = newCapacity;
 
     // Allocate new memory
-    mElements = std::unique_ptr<T[]>(new(std::nothrow) T[capacity + 1]);
+    mElements = std::unique_ptr<T[]>(new(std::nothrow) T[newCapacity]);
 
-    return (nullptr != mElements); // Return true if allocation was successful
+    if (nullptr == mElements) {
+        // Keep state consistent so callers that ignore the return value
+        // cannot accidentally dereference a null buffer.
+        mCapacity = 0;
+        mWrap.store(0, std::memory_order_relaxed);
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -495,11 +489,12 @@ size_t ContiguousRingbuffer<T>::Size() const noexcept
  * \brief   Returns the maximum number of elements the buffer can hold.
  * \returns The maximum capacity of the buffer, accounting for the extra
  *          element used to distinguish between 'full' and 'empty' states.
+ *          Returns 0 if Reserve() has not been called yet.
  */
 template<typename T>
 size_t ContiguousRingbuffer<T>::Capacity() const noexcept
 {
-    return mCapacity - 1;
+    return (0 == mCapacity) ? 0 : (mCapacity - 1);
 }
 
 /**
@@ -526,6 +521,8 @@ bool ContiguousRingbuffer<T>::IsLockFree() const noexcept
 }
 
 #ifdef DEBUG
+#warning ContiguousRingbuffer DEBUG methods (SetState/CheckState) enabled - here be dragons.
+
 /**
  * \brief   Debug method to force a state to be set to the mWrite/mRead/mWrap
  *          pointers.
@@ -537,8 +534,6 @@ bool ContiguousRingbuffer<T>::IsLockFree() const noexcept
 template<typename T>
 void ContiguousRingbuffer<T>::SetState(size_t write, size_t read, size_t wrap)
 {
-    #warning DEBUG method SetState() enabled - carefull, there be dragons here.
-
     mWrite.store(write, std::memory_order_release);
     mRead.store(read, std::memory_order_release);
     mWrap.store(wrap, std::memory_order_release);
@@ -554,8 +549,6 @@ void ContiguousRingbuffer<T>::SetState(size_t write, size_t read, size_t wrap)
 template<typename T>
 bool ContiguousRingbuffer<T>::CheckState(size_t write, size_t read, size_t wrap)
 {
-    #warning DEBUG method CheckState() enabled.
-
     const auto current_write = mWrite.load(std::memory_order_acquire);
     const auto current_read  = mRead.load(std::memory_order_acquire);
     const auto current_wrap  = mWrap.load(std::memory_order_acquire);
