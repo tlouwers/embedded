@@ -235,7 +235,9 @@ bool I2CArbiter::Enqueue(bool isWrite, const HeaderI2C& refHeader, uint8_t* ptrD
     if (result && mI2C.IsInit())
     {
         bool expected = false;
-        if (mBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
+        if (mBusy.compare_exchange_strong(expected, true,
+                                          std::memory_order_acq_rel,
+                                          std::memory_order_acquire))
         {
             // Reroute the data received callback to the arbiter
             const bool started = isWrite

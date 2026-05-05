@@ -33,13 +33,13 @@
 
 
 /************************************************************************/
-/* Defines                                                              */
+/* Constants                                                            */
 /************************************************************************/
 /**
- * \def     I2C_ARBITER_BUFFER_SIZE
- * \brief   Size of the I2C Arbiter buffer.
+ * \brief   Size of the I2C Arbiter buffer (number of pending requests).
+ *          Tweak to suit the application; typical value is 4.
  */
-#define I2C_ARBITER_BUFFER_SIZE       10        // Tweak to get better results, usually 4
+constexpr size_t I2C_ARBITER_BUFFER_SIZE = 10;
 
 
 /************************************************************************/

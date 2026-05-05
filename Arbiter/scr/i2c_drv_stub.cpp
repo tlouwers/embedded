@@ -18,8 +18,8 @@
  * \details See 'i2c_arbiter.cpp' as main project file.
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.0
- * \date    09-2018
+ * \version 1.1
+ * \date    05-2026
  */
 
 /************************************************************************/
@@ -29,7 +29,7 @@
 #include <cassert>
 #include <iostream>         // std::cout, std::endl
 #include <string>           // std::to_string
-#include <thread>           // std::this_thread::sleep_for
+#include <thread>           // std::thread, std::this_thread::sleep_for
 #include <chrono>           // std::chrono::seconds
 
 
@@ -147,8 +147,11 @@ bool I2C::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length
         // Small delay to mimic DMA setup
         std::this_thread::sleep_for(std::chrono::milliseconds(3));
 
-        // Setup and start DMA stub
-        std::async(std::launch::async, &I2C::AsyncCallbackStub, this);
+        // Setup and start DMA stub. Detach so we return immediately and the
+        // bus appears 'busy' for the duration of the mimicked transfer; this
+        // lets the arbiter actually overlap requests instead of running each
+        // one synchronously to completion.
+        std::thread(&I2C::AsyncCallbackStub, this).detach();
 
         return true;
     }
@@ -182,8 +185,11 @@ bool I2C::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, cons
         // Small delay to mimic DMA setup
         std::this_thread::sleep_for(std::chrono::milliseconds(3));
 
-        // Setup and start DMA stub
-        std::async(std::launch::async, &I2C::AsyncCallbackStub, this);
+        // Setup and start DMA stub. Detach so we return immediately and the
+        // bus appears 'busy' for the duration of the mimicked transfer; this
+        // lets the arbiter actually overlap requests instead of running each
+        // one synchronously to completion.
+        std::thread(&I2C::AsyncCallbackStub, this).detach();
 
         return true;
     }
