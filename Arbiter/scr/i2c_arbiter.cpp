@@ -14,8 +14,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/Arbiter
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    01-2026
+ * \version 1.2
+ * \date    05-2026
  */
 
 /************************************************************************/
@@ -51,26 +51,14 @@ void cpu_irq_restore(irqflags_t irq_state)
  */
 I2CArbiter::I2CArbiter() :
     mBusy(false)
-{
-    mBuffer.clear();
-}
-
-/**
- * \brief   Destructor.
- */
-I2CArbiter::~I2CArbiter()
-{
-    mBusy.store(false, std::memory_order_release);
-    mLock.clear(std::memory_order_release);
-    mBuffer.clear();
-}
+{ }
 
 /**
  * \brief   Initializes the I2C bus.
  * \param   refConfig   Configuration of the I2C bus.
  * \returns True if initialized successful, else false.
  */
-bool I2CArbiter::Init(const I2C::Config& refConfig) const
+bool I2CArbiter::Init(const I2C::Config& refConfig)
 {
     return mI2C.Init(refConfig);
 }
@@ -87,7 +75,9 @@ bool I2CArbiter::IsInit() const
 /**
  * \brief   Put I2C Arbiter module to sleep, first wait until all messages are sent,
  *          then clear the buffer and put I2C bus to sleep.
- * \remarks When timeout is reached the I2C bus is forced to sleep regardless.
+ * \remarks Spins until the bus becomes idle. Callers must not invoke Write/Read
+ *          concurrently with Sleep, otherwise the bus may be put to sleep with
+ *          a transaction in flight.
  */
 void I2CArbiter::Sleep()
 {
@@ -117,44 +107,7 @@ void I2CArbiter::Sleep()
  */
 bool I2CArbiter::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t length, const std::function<void()>& refCallback)
 {
-    assert(mI2C.IsInit());
-
-    ArbiterElementI2C element;
-        element.is_write_request = true;
-        element.header           = refHeader;
-        element.ptrData          = const_cast<uint8_t *>(ptrSrc);
-        element.length           = length;
-        element.callbackDone     = refCallback;
-
-    // The lock is needed to make a multiple producer of the CircularBuffer
-    //  (which is single producer thread safe only).
-    // The DataRequestHandler is the single consumer, there no lock is
-    //  needed (or allowed! as it is inside an ISR).
-
-    irqflags_t irq_state = cpu_irq_save();                                  // Disable global interrupts to prevent race condition
-    while (mLock.test_and_set(std::memory_order_acquire)) { __NOP(); }      // Acquire lock - start of critical section
-
-    bool result = mBuffer.push(element);
-    assert(result);
-
-    mLock.clear(std::memory_order_release);                                 // Release lock - end of critical section
-    cpu_irq_restore(irq_state);                                             // Restore global interrupts
-
-    // Start the transmission, if not busy yet
-    // Use atomic compare-exchange to prevent race condition where multiple
-    // threads could both see mBusy as false and both start a transmission.
-    if (mI2C.IsInit())
-    {
-        bool expected = false;
-        if (mBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
-        {
-            // Reroute the data received callback to the arbiter
-            result = mI2C.Write(refHeader, ptrSrc, length, [this]() { this->DataRequestHandler(); });
-            assert(result);
-        }
-    }
-
-    return result;
+    return Enqueue(true, refHeader, const_cast<uint8_t*>(ptrSrc), length, refCallback);
 }
 
 /**
@@ -170,44 +123,7 @@ bool I2CArbiter::Write(const HeaderI2C& refHeader, const uint8_t* ptrSrc, size_t
  */
 bool I2CArbiter::Read(const HeaderI2C& refHeader, uint8_t* ptrDest, size_t length, const std::function<void()>& refCallback)
 {
-    assert(mI2C.IsInit());
-
-    ArbiterElementI2C element;
-        element.is_write_request = false;
-        element.header           = refHeader;
-        element.ptrData          = ptrDest;
-        element.length           = length;
-        element.callbackDone     = refCallback;
-
-    // The lock is needed to make a multiple producer of the CircularBuffer
-    //  (which is single producer thread safe only).
-    // The DataRequestHandler is the single consumer, there no lock is
-    //  needed (or allowed! as it is inside an ISR).
-
-    irqflags_t irq_state = cpu_irq_save();                                  // Disable global interrupts to prevent race condition
-    while (mLock.test_and_set(std::memory_order_acquire)) { __NOP(); }      // Acquire lock - start of critical section
-
-    bool result = mBuffer.push(element);
-    assert(result);
-
-    mLock.clear(std::memory_order_release);                                 // Release lock - end of critical section
-    cpu_irq_restore(irq_state);                                             // Restore global interrupts
-
-    // Start the transmission, if not busy yet
-    // Use atomic compare-exchange to prevent race condition where multiple
-    // threads could both see mBusy as false and both start a transmission.
-    if (mI2C.IsInit())
-    {
-        bool expected = false;
-        if (mBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
-        {
-            // Reroute the data received callback to the arbiter
-            result = mI2C.Read(refHeader, ptrDest, length, [this]() { this->DataRequestHandler(); });
-            assert(result);
-        }
-    }
-
-    return result;
+    return Enqueue(false, refHeader, ptrDest, length, refCallback);
 }
 
 /**
@@ -228,13 +144,9 @@ bool I2CArbiter::WriteBlocking(const HeaderI2C& refHeader, const uint8_t* ptrSrc
 
     if (mI2C.IsInit())
     {
-        // Wait for bus to become idle, then atomically acquire it
-        bool expected = false;
-        while (!mBusy.compare_exchange_weak(expected, true, std::memory_order_acq_rel))
-        {
-            expected = false;  // Reset for next attempt
-            __NOP();
-        }
+        // Wait for bus to become idle, then atomically acquire it.
+        // exchange returns the previous value: spin while we observed 'true'.
+        while (mBusy.exchange(true, std::memory_order_acq_rel)) { __NOP(); }
 
         result = mI2C.WriteBlocking(refHeader, ptrSrc, length);
         assert(result);
@@ -262,13 +174,9 @@ bool I2CArbiter::ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size
 
     if (mI2C.IsInit())
     {
-        // Wait for bus to become idle, then atomically acquire it
-        bool expected = false;
-        while (!mBusy.compare_exchange_weak(expected, true, std::memory_order_acq_rel))
-        {
-            expected = false;  // Reset for next attempt
-            __NOP();
-        }
+        // Wait for bus to become idle, then atomically acquire it.
+        // exchange returns the previous value: spin while we observed 'true'.
+        while (mBusy.exchange(true, std::memory_order_acq_rel)) { __NOP(); }
 
         result = mI2C.ReadBlocking(refHeader, ptrDest, length);
         assert(result);
@@ -282,6 +190,70 @@ bool I2CArbiter::ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size
 /************************************************************************/
 /* Private Members                                                      */
 /************************************************************************/
+/**
+ * \brief   Queue a request and start the bus if it is idle.
+ * \details Common path for Write/Read. Holds the multi-producer lock only
+ *          while pushing to the SPSC queue, then attempts to claim the bus
+ *          via a single CAS on mBusy. The CAS losers leave their element
+ *          in the queue for the in-flight transaction's callback
+ *          (DataRequestHandler) to pick up.
+ * \param   isWrite     True for a write request, false for a read request.
+ * \param   refHeader   Slave/register header.
+ * \param   ptrData     Source (write) or destination (read) pointer.
+ * \param   length      Number of bytes to transfer.
+ * \param   refCallback Callback to invoke when the transaction completes.
+ * \returns True if the request was queued (and possibly started), else false.
+ */
+bool I2CArbiter::Enqueue(bool isWrite, const HeaderI2C& refHeader, uint8_t* ptrData, size_t length, const std::function<void()>& refCallback)
+{
+    assert(mI2C.IsInit());
+
+    ArbiterElementI2C element;
+        element.is_write_request = isWrite;
+        element.header           = refHeader;
+        element.ptrData          = ptrData;
+        element.length           = length;
+        element.callbackDone     = refCallback;
+
+    // The lock is needed to make a multiple producer of the CircularBuffer
+    //  (which is single producer thread safe only).
+    // The DataRequestHandler is the single consumer, there no lock is
+    //  needed (or allowed! as it is inside an ISR).
+
+    irqflags_t irq_state = cpu_irq_save();                                  // Disable global interrupts to prevent race condition
+    while (mLock.test_and_set(std::memory_order_acquire)) { __NOP(); }      // Acquire lock - start of critical section
+
+    bool result = mBuffer.push(element);
+    assert(result);
+
+    mLock.clear(std::memory_order_release);                                 // Release lock - end of critical section
+    cpu_irq_restore(irq_state);                                             // Restore global interrupts
+
+    // Start the transmission, if not busy yet.
+    // Use atomic compare-exchange to prevent race condition where multiple
+    // threads could both see mBusy as false and both start a transmission.
+    if (result && mI2C.IsInit())
+    {
+        bool expected = false;
+        if (mBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
+        {
+            // Reroute the data received callback to the arbiter
+            const bool started = isWrite
+                ? mI2C.Write(refHeader, ptrData, length, [this]() { this->DataRequestHandler(); })
+                : mI2C.Read (refHeader, ptrData, length, [this]() { this->DataRequestHandler(); });
+            assert(started);
+            if (!started)
+            {
+                // Could not start: release the bus so a future call can retry.
+                // The element remains queued; a future Enqueue/DataRequestHandler will pick it up.
+                mBusy.store(false, std::memory_order_release);
+            }
+        }
+    }
+
+    return result;
+}
+
 /**
  * \brief   Handler which is called when either TX or RX is done
  *          for I2C, allowing arbitration on the bus.
@@ -304,28 +276,27 @@ void I2CArbiter::DataRequestHandler()
         element.callbackDone();
     }
 
-    bool result = false;
-
-    // Check if we need to handle the next item.
-    if (mBuffer.peek(element))
+    // Drive the queue forward: start the next transaction if any, otherwise
+    // release the bus. On a failed start we must not leave the bus claimed:
+    // drop the offending head and retry, so a single bad request does not
+    // wedge the bus permanently.
+    while (mBuffer.peek(element))
     {
-        if (element.is_write_request)
+        const bool started = element.is_write_request
+            ? mI2C.Write(element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); })
+            : mI2C.Read (element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); });
+        assert(started);
+        if (started)
         {
-            // Reroute the data to send callback to the arbiter
-            result = mI2C.Write(element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); });
-            assert(result);
+            return;     // Bus stays busy; callback will re-enter this handler.
         }
-        else
-        {
-            // Reroute the data received callback to the arbiter
-            result = mI2C.Read(element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); });
-            assert(result);
-        }
-    }
-    else
-    {
-        mBusy.store(false, std::memory_order_release);
+
+        // Could not start this one; discard it (caller's callback was already
+        // invoked above for the prior element, but this failed element gets
+        // no completion callback) and try the next.
+        ArbiterElementI2C dropped;
+        mBuffer.pop(dropped);
     }
 
-    (void)(result);     // Hide compiler warning: unused variable
+    mBusy.store(false, std::memory_order_release);
 }
