@@ -28,7 +28,7 @@
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
  * \version 1.7
- * \date    05-2026
+ * \date    06-2026
  */
 
 #ifndef CONTIGUOUS_RING_BUFFER_HPP_
@@ -245,7 +245,11 @@ bool ContiguousRingbuffer<T>::CommitWrite(const size_t size) noexcept
     }
 
     const auto write = mWrite.load(std::memory_order_relaxed);
-    const auto read  = mRead.load(std::memory_order_acquire);
+    // Relaxed is sufficient here: the synchronizing acquire on mRead was done in
+    // ReserveWrite() before the data was written. CommitWrite() writes no data, it
+    // only publishes, and coherence guarantees this load cannot observe a value
+    // older than the one ReserveWrite() saw.
+    const auto read  = mRead.load(std::memory_order_relaxed);
 
     // Case 1: Space at the end
     if (write >= read) {
@@ -266,7 +270,10 @@ bool ContiguousRingbuffer<T>::CommitWrite(const size_t size) noexcept
             }
             // Case 2: Space at the start
             if (size < read) {
-                mWrap.store(write, std::memory_order_release);  // Shrink wrap to prevent claiming memory at the end
+                // Relaxed store: the consumer only acts on the shrunk wrap in branches
+                // gated on (write < read), i.e. after acquiring the new mWrite below.
+                // That release store publishes this wrap store as well.
+                mWrap.store(write, std::memory_order_relaxed);  // Shrink wrap to prevent claiming memory at the end
                 mWrite.store(size, std::memory_order_release);
                 return true;
             }
@@ -397,7 +404,11 @@ bool ContiguousRingbuffer<T>::CommitRead(const size_t size) noexcept
     }
 
     const auto read  = mRead.load(std::memory_order_relaxed);
-    const auto write = mWrite.load(std::memory_order_acquire);
+    // Relaxed is sufficient here: the synchronizing acquire on mWrite was done in
+    // ReserveRead() before the data was read. CommitRead() reads no data, it only
+    // releases space, and coherence guarantees this load cannot observe a value
+    // older than the one ReserveRead() saw.
+    const auto write = mWrite.load(std::memory_order_relaxed);
     const auto read_and_size = read + size;
 
     // Case 1: Data available at the start
@@ -417,7 +428,10 @@ bool ContiguousRingbuffer<T>::CommitRead(const size_t size) noexcept
                 return true;
             }
             else if (read_and_size == wrap) {                   // Requested size available? And we do wrap?
-                mWrap.store(mCapacity, std::memory_order_release);
+                // Relaxed store: the producer never loads mWrap, and Size() reads it
+                // relaxed (best-effort). The mRead release store below keeps it
+                // ordered for any cross-thread observer anyway.
+                mWrap.store(mCapacity, std::memory_order_relaxed);
                 mRead.store(0, std::memory_order_release);
                 return true;
             }
@@ -425,7 +439,8 @@ bool ContiguousRingbuffer<T>::CommitRead(const size_t size) noexcept
             //            this resulted in wrap being shrunk and becoming equal to read.
             else if (read == wrap) {                            // Data available at the start?
                 if (size <= write) {                            // Requested size available?
-                    mWrap.store(mCapacity, std::memory_order_release);
+                    // Relaxed store: same reasoning as the wrap restore above.
+                    mWrap.store(mCapacity, std::memory_order_relaxed);
                     mRead.store(size, std::memory_order_release);
                     return true;
                 }
