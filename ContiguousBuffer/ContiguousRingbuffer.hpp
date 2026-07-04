@@ -24,11 +24,17 @@
  *          contiguous blocks of data. The block sizes to read and write
  *          need not be equal in size.
  *
+ * \note    Intended for single-core embedded systems: one producer (typically
+ *          DMA/ISR context) and one consumer (typically the main loop). On
+ *          multi-core systems, or when the consumer polls with variable block
+ *          sizes, see the \warning at ReserveWrite() regarding the exceptional
+ *          case where block size equals buffer capacity.
+ *
  * \note    https://github.com/tlouwers/embedded/tree/master/ContiguousBuffer
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
  * \version 1.7
- * \date    06-2026
+ * \date    07-2026
  */
 
 #ifndef CONTIGUOUS_RING_BUFFER_HPP_
@@ -39,7 +45,9 @@
  *****************************************************************************/
 #include <cstddef>
 #include <atomic>
+#include <limits>
 #include <memory>
+#include <new>
 
 
 /******************************************************************************
@@ -49,14 +57,24 @@ template<typename T>
 class ContiguousRingbuffer
 {
 public:
+    /**
+     * \brief   Default constructor.
+     * \details Initializes the buffer with zero capacity. The buffer must be
+     *          initialized using 'Reserve()' before use.
+     */
     ContiguousRingbuffer() noexcept = default;
+
+    // Non-copyable and non-movable: contains atomics and is intended to be
+    // shared by reference between a single producer and a single consumer.
+    ContiguousRingbuffer(const ContiguousRingbuffer&) = delete;
+    ContiguousRingbuffer& operator=(const ContiguousRingbuffer&) = delete;
 
     bool Reserve(const size_t capacity) noexcept;
 
-    bool ReserveWrite(T* &dest, size_t& size) noexcept;
+    bool ReserveWrite(T*& dest, size_t& size) noexcept;
     bool CommitWrite(const size_t size) noexcept;
 
-    bool ReserveRead(T* &dest, size_t& size) noexcept;
+    bool ReserveRead(T*& dest, size_t& size) noexcept;
     bool CommitRead(const size_t size) noexcept;
 
     size_t Size() const noexcept;
@@ -86,6 +104,8 @@ private:
  *          Calling this method multiple times is permitted and handled similarly.
  * \param   capacity    The number of elements to allocate (must be greater than 0).
  * \returns True if allocation is successful; false if capacity is 0 or allocation fails.
+ *          On failure the buffer is left in the safe 'not initialized' state:
+ *          all operations except Reserve() will fail until a successful Reserve().
  * \warning This method is NOT thread-safe and must NOT be called concurrently
  *          with any other buffer operations. It should only be called during
  *          initialization or after ensuring all producer and consumer threads have stopped.
@@ -94,34 +114,33 @@ private:
 template<typename T>
 bool ContiguousRingbuffer<T>::Reserve(const size_t capacity) noexcept
 {
-    // Free existing memory
-    mElements.reset();
-
-    // Handle invalid capacity
-    if (0 == capacity) {
-        return false; // Requested capacity is zero
-    }
-
-    // Reset pointers and update capacity
+    // Free existing memory and mark the buffer as 'not initialized'. Should
+    // anything below fail, the buffer remains in this safe state instead of
+    // referring to memory it no longer owns.
     // Use relaxed ordering: Reserve() is not called concurrently with read/write
     // operations. It's called during initialization or after all threads have stopped.
     // No synchronization is needed since there's no concurrent access.
-    const size_t newCapacity = capacity + 1;
+    mElements.reset();
+    mCapacity = 0;
     mWrite.store(0, std::memory_order_relaxed);
     mRead.store(0, std::memory_order_relaxed);
-    mWrap.store(newCapacity, std::memory_order_relaxed);
-    mCapacity = newCapacity;
+    mWrap.store(0, std::memory_order_relaxed);
+
+    // Handle invalid capacity: zero, or so large that 'capacity + 1' would overflow
+    if ((0 == capacity) || (std::numeric_limits<size_t>::max() == capacity)) {
+        return false; // Requested capacity out of range
+    }
 
     // Allocate new memory
-    mElements = std::unique_ptr<T[]>(new(std::nothrow) T[newCapacity]);
-
+    mElements = std::unique_ptr<T[]>(new(std::nothrow) T[capacity + 1]);
     if (nullptr == mElements) {
-        // Keep state consistent so callers that ignore the return value
-        // cannot accidentally dereference a null buffer.
-        mCapacity = 0;
-        mWrap.store(0, std::memory_order_relaxed);
-        return false;
+        return false; // Allocation failed
     }
+
+    // Allocation succeeded: update wrap and capacity
+    mWrap.store(capacity + 1, std::memory_order_relaxed);
+    mCapacity = capacity + 1;
+
     return true;
 }
 
@@ -149,7 +168,22 @@ bool ContiguousRingbuffer<T>::Reserve(const size_t capacity) noexcept
  *
  * \note    An exceptional case occurs when the buffer is empty and the
  *          requested size equals the current read pointer, allowing a reset
- *          of both pointers to enable writing (optimization).
+ *          of both pointers to enable writing (optimization). In practice
+ *          this happens when using a fixed block size equal to the buffer
+ *          capacity: from the second block onward every ReserveWrite() takes
+ *          this path. This is stable, correct behavior.
+ *
+ * \warning The exceptional case is the only place where the producer modifies
+ *          the read pointer (two separate atomic stores, not one atomic
+ *          update). This is safe on a SINGLE-CORE system as long as the
+ *          consumer requests the same fixed block size in ReserveRead(): a
+ *          consumer preempted mid-check then sees at most a failed poll,
+ *          never stale data. It is NOT safe when the consumer polls with
+ *          smaller/variable sizes, or on a multi-core system: the consumer
+ *          may then observe a half-updated state and be granted stale data.
+ *          In those situations either reserve at least twice the block size
+ *          (the exceptional case is then never triggered), or synchronize
+ *          producer and consumer externally (e.g. a data-ready flag).
  *
  * \warning You MUST call CommitWrite() after writing data to make it visible
  *          to the consumer. Failing to commit will leak buffer space.
@@ -353,7 +387,7 @@ bool ContiguousRingbuffer<T>::ReserveRead(T*& dest, size_t& size) noexcept
                 return true;
             }
             // Exception: when read/write were equal at the end of the buffer and a large block was written,
-        	//            this resulted in wrap being shrunk and becoming equal to read.
+            //            this resulted in wrap being shrunk and becoming equal to read.
             else if (read == wrap) {                            // Data available at the start?
                 if (size <= write) {                            // Requested size available?
                     size = write;
@@ -504,7 +538,7 @@ size_t ContiguousRingbuffer<T>::Size() const noexcept
  * \brief   Returns the maximum number of elements the buffer can hold.
  * \returns The maximum capacity of the buffer, accounting for the extra
  *          element used to distinguish between 'full' and 'empty' states.
- *          Returns 0 if Reserve() has not been called yet.
+ *          Returns 0 if Reserve() has not been called (successfully) yet.
  */
 template<typename T>
 size_t ContiguousRingbuffer<T>::Capacity() const noexcept
@@ -516,6 +550,9 @@ size_t ContiguousRingbuffer<T>::Capacity() const noexcept
  * \brief   Clears the buffer.
  * \details Resets the write, read, and wrap pointers to their initial states,
  *          effectively emptying the buffer.
+ * \warning This method is NOT thread-safe: it modifies both producer and
+ *          consumer state. It must NOT be called concurrently with any other
+ *          buffer operations, only when producer and consumer are stopped.
  */
 template<typename T>
 void ContiguousRingbuffer<T>::Clear() noexcept
@@ -536,7 +573,12 @@ bool ContiguousRingbuffer<T>::IsLockFree() const noexcept
 }
 
 #ifdef DEBUG
-#warning ContiguousRingbuffer DEBUG methods (SetState/CheckState) enabled - here be dragons.
+// '#warning' is a GCC/Clang extension (standard only since C++23); MSVC uses '#pragma message'.
+#if defined(_MSC_VER)
+#pragma message("DEBUG methods SetState()/CheckState() enabled - careful, there be dragons here.")
+#else
+#warning DEBUG methods SetState()/CheckState() enabled - careful, there be dragons here.
+#endif
 
 /**
  * \brief   Debug method to force a state to be set to the mWrite/mRead/mWrap
