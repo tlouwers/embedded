@@ -14,8 +14,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/Arbiter
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.1
- * \date    01-2026
+ * \version 1.2
+ * \date    05-2026
  */
 
 #ifndef I2C_ARBITER_HPP_
@@ -33,13 +33,13 @@
 
 
 /************************************************************************/
-/* Defines                                                              */
+/* Constants                                                            */
 /************************************************************************/
 /**
- * \def     I2C_ARBITER_BUFFER_SIZE
- * \brief   Size of the I2C Arbiter buffer.
+ * \brief   Size of the I2C Arbiter buffer (number of pending requests).
+ *          Tweak to suit the application; typical value is 4.
  */
-#define I2C_ARBITER_BUFFER_SIZE       10        // Tweak to get better results, usually 4
+constexpr size_t I2C_ARBITER_BUFFER_SIZE = 10;
 
 
 /************************************************************************/
@@ -68,9 +68,9 @@ class I2CArbiter
 {
 public:
     I2CArbiter();
-    ~I2CArbiter();
+    ~I2CArbiter() = default;
 
-    bool Init(const I2C::Config& refConfig) const;
+    bool Init(const I2C::Config& refConfig);
     bool IsInit() const;
     void Sleep();
 
@@ -87,6 +87,8 @@ private:
     std::atomic<bool>  mBusy;
     std::atomic_flag   mLock = ATOMIC_FLAG_INIT;
 
+    bool Enqueue(bool isWrite, const HeaderI2C& refHeader, uint8_t* ptrData, size_t length, const std::function<void()>& refCallback);
+    void StartQueuedTransfer();
     void DataRequestHandler();
 };
 

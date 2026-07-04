@@ -18,8 +18,8 @@
  * \details See 'i2c_arbiter.cpp' as main project file.
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.0
- * \date    09-2018
+ * \version 1.1
+ * \date    05-2026
  */
 
 #ifndef I2C_DRV_STUB_HPP_
@@ -31,7 +31,6 @@
 #include <cstddef>          // size_t
 #include <cstdint>          // uint8_t, uint16_t, uint32_t
 #include <functional>
-#include <future>           // std::async, mimic DMA duration
 
 // Forward declaration as the struct I2CVariables uses a pointer to I2C.
 class I2C;

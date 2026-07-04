@@ -38,8 +38,8 @@
 class Application_Stub
 {
 public:
-    Application_Stub();
-    virtual ~Application_Stub();
+    Application_Stub() = default;
+    virtual ~Application_Stub() = default;
 
     bool Init();
     void Test();

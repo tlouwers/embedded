@@ -33,23 +33,6 @@
 /* Public Methods                                                       */
 /************************************************************************/
 /**
- * \brief   Constructor, prepares callback.
- */
-Application_Stub::Application_Stub() :
-    mI2CArbiter()
-{
-   ;
-}
-
-/**
- * \brief   Destructor.
- */
-Application_Stub::~Application_Stub()
-{
-    //dtor
-}
-
-/**
  * \brief   Initializes the I2C example arbiter.
  * \returns True if the arbiter (and I2C stub) could be initialized, else
  *          false.
