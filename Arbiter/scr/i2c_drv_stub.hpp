@@ -31,7 +31,6 @@
 #include <cstddef>          // size_t
 #include <cstdint>          // uint8_t, uint16_t, uint32_t
 #include <functional>
-#include <future>           // std::async, mimic DMA duration
 
 // Forward declaration as the struct I2CVariables uses a pointer to I2C.
 class I2C;

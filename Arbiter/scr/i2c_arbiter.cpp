@@ -194,8 +194,9 @@ bool I2CArbiter::ReadBlocking(const HeaderI2C& refHeader, uint8_t* ptrDest, size
  * \brief   Queue a request and start the bus if it is idle.
  * \details Common path for Write/Read. Holds the multi-producer lock only
  *          while pushing to the SPSC queue, then attempts to claim the bus
- *          via a single CAS on mBusy. The CAS losers leave their element
- *          in the queue for the in-flight transaction's callback
+ *          via a single CAS on mBusy. The CAS winner starts the transfer at
+ *          the head of the queue; the losers leave their element in the
+ *          queue for the in-flight transaction's callback
  *          (DataRequestHandler) to pick up.
  * \param   isWrite     True for a write request, false for a read request.
  * \param   refHeader   Slave/register header.
@@ -239,17 +240,11 @@ bool I2CArbiter::Enqueue(bool isWrite, const HeaderI2C& refHeader, uint8_t* ptrD
                                           std::memory_order_acq_rel,
                                           std::memory_order_acquire))
         {
-            // Reroute the data received callback to the arbiter
-            const bool started = isWrite
-                ? mI2C.Write(refHeader, ptrData, length, [this]() { this->DataRequestHandler(); })
-                : mI2C.Read (refHeader, ptrData, length, [this]() { this->DataRequestHandler(); });
-            assert(started);
-            if (!started)
-            {
-                // Could not start: release the bus so a future call can retry.
-                // The element remains queued; a future Enqueue/DataRequestHandler will pick it up.
-                mBusy.store(false, std::memory_order_release);
-            }
+            // We claimed the idle bus. Start the element at the head of the
+            // queue - not necessarily our own: another producer may have
+            // pushed just before us. Starting the head keeps transfers and
+            // their completion callbacks in queue order.
+            StartQueuedTransfer();
         }
     }
 
@@ -257,19 +252,51 @@ bool I2CArbiter::Enqueue(bool isWrite, const HeaderI2C& refHeader, uint8_t* ptrD
 }
 
 /**
+ * \brief   Start the transfer at the head of the queue, or release the bus.
+ * \details May only be called while owning the bus (mBusy is true). Because
+ *          only the bus owner touches the head of the queue, this keeps the
+ *          buffer single-consumer. If a transfer fails to start, that element
+ *          is dropped (it gets no completion callback) and the next one is
+ *          tried, so a single bad request cannot wedge the bus. When the
+ *          queue is empty the bus is released.
+ */
+void I2CArbiter::StartQueuedTransfer()
+{
+    ArbiterElementI2C element;
+
+    while (mBuffer.peek(element))
+    {
+        // Reroute the transfer-done callback to the arbiter.
+        const bool started = element.is_write_request
+            ? mI2C.Write(element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); })
+            : mI2C.Read (element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); });
+        assert(started);
+        if (started)
+        {
+            return;     // Bus stays busy; the callback enters DataRequestHandler.
+        }
+
+        // Could not start this element; discard it and try the next.
+        ArbiterElementI2C dropped;
+        mBuffer.pop(dropped);
+    }
+
+    mBusy.store(false, std::memory_order_release);
+}
+
+/**
  * \brief   Handler which is called when either TX or RX is done
  *          for I2C, allowing arbitration on the bus.
- * \details Checks if there is queued data, if so send it, else
- *          release the bus.
+ * \details Pops the finished element, calls its callback, then starts
+ *          the next queued transfer (or releases the bus).
  */
 void I2CArbiter::DataRequestHandler()
 {
     ArbiterElementI2C element;
 
-    // Since we are the only consumer, using the CircularBuffer class
-    // provides thread safety.
-
-    // Remove the element from the queue, handled.
+    // We own the bus while in this handler, so we are the only consumer of
+    // the queue. The finished transfer is always the head of the queue,
+    // because transfers are only ever started from the head.
     mBuffer.pop(element);
 
     // Call the callback, if there was one set.
@@ -278,27 +305,5 @@ void I2CArbiter::DataRequestHandler()
         element.callbackDone();
     }
 
-    // Drive the queue forward: start the next transaction if any, otherwise
-    // release the bus. On a failed start we must not leave the bus claimed:
-    // drop the offending head and retry, so a single bad request does not
-    // wedge the bus permanently.
-    while (mBuffer.peek(element))
-    {
-        const bool started = element.is_write_request
-            ? mI2C.Write(element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); })
-            : mI2C.Read (element.header, element.ptrData, element.length, [this]() { this->DataRequestHandler(); });
-        assert(started);
-        if (started)
-        {
-            return;     // Bus stays busy; callback will re-enter this handler.
-        }
-
-        // Could not start this one; discard it (caller's callback was already
-        // invoked above for the prior element, but this failed element gets
-        // no completion callback) and try the next.
-        ArbiterElementI2C dropped;
-        mBuffer.pop(dropped);
-    }
-
-    mBusy.store(false, std::memory_order_release);
+    StartQueuedTransfer();
 }

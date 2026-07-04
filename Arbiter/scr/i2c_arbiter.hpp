@@ -88,6 +88,7 @@ private:
     std::atomic_flag   mLock = ATOMIC_FLAG_INIT;
 
     bool Enqueue(bool isWrite, const HeaderI2C& refHeader, uint8_t* ptrData, size_t length, const std::function<void()>& refCallback);
+    void StartQueuedTransfer();
     void DataRequestHandler();
 };
 
