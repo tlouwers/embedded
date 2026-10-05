@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
 #include "ContiguousRingbuffer.hpp"
 
-class TEST_WriteAndRead : public ::testing::Test {
+template<size_t N>
+class TEST_WriteAndReadFixture : public ::testing::Test {
 protected:
-    ContiguousRingbuffer<int> mRingBuffer;
+    ContiguousRingbuffer<int, N> mRingBuffer;
 
     void TearDown() override
     {
@@ -47,8 +48,12 @@ protected:
 };
 
 
-TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize1) {
-    EXPECT_TRUE(mRingBuffer.Reserve(10));
+// One fixture per buffer capacity used by the tests below.
+using TEST_WriteAndRead_N3 = TEST_WriteAndReadFixture<3>;
+using TEST_WriteAndRead_N5 = TEST_WriteAndReadFixture<5>;
+using TEST_WriteAndRead_N10 = TEST_WriteAndReadFixture<10>;
+
+TEST_F(TEST_WriteAndRead_N10, WriteAndReadOperations_BlockSize1) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int* data = nullptr;
@@ -69,8 +74,7 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize1) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
-TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize2) {
-    EXPECT_TRUE(mRingBuffer.Reserve(10));
+TEST_F(TEST_WriteAndRead_N10, WriteAndReadOperations_BlockSize2) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int* data = nullptr;
@@ -93,8 +97,7 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize2) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
-TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize3) {
-    EXPECT_TRUE(mRingBuffer.Reserve(10));
+TEST_F(TEST_WriteAndRead_N10, WriteAndReadOperations_BlockSize3) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int* data;
@@ -119,8 +122,7 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize3) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
-TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize4) {
-    EXPECT_TRUE(mRingBuffer.Reserve(10));
+TEST_F(TEST_WriteAndRead_N10, WriteAndReadOperations_BlockSize4) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int* data = nullptr;
@@ -147,8 +149,7 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_BlockSize4) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
-TEST_F(TEST_WriteAndRead, WriteAndReadOperations_DeepInspection) {
-    EXPECT_TRUE(mRingBuffer.Reserve(3));
+TEST_F(TEST_WriteAndRead_N3, WriteAndReadOperations_DeepInspection) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     int index = 1;
@@ -194,8 +195,7 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_DeepInspection) {
     mRingBuffer.Clear();
 }
 
-TEST_F(TEST_WriteAndRead, WriteAndReadOperations_DataMustBeContiguous) {
-    EXPECT_TRUE(mRingBuffer.Reserve(3));
+TEST_F(TEST_WriteAndRead_N3, WriteAndReadOperations_DataMustBeContiguous) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     mRingBuffer.SetState(3, 3, 4); // Set mWrite(3), mRead(3), mWrap(4)
@@ -227,8 +227,7 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_DataMustBeContiguous) {
     EXPECT_TRUE(mRingBuffer.CheckState(0, 1, 4));
 }
 
-TEST_F(TEST_WriteAndRead, WriteAndReadOperations_WithWrap) {
-    EXPECT_TRUE(mRingBuffer.Reserve(5));
+TEST_F(TEST_WriteAndRead_N5, WriteAndReadOperations_WithWrap) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     EXPECT_TRUE(AddOne(1)); // Add 5 elements
@@ -268,8 +267,7 @@ TEST_F(TEST_WriteAndRead, WriteAndReadOperations_WithWrap) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
-TEST_F(TEST_WriteAndRead, RegressionCheck_ThreadingIssue) {
-    EXPECT_TRUE(mRingBuffer.Reserve(3));
+TEST_F(TEST_WriteAndRead_N3, RegressionCheck_ThreadingIssue) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     EXPECT_TRUE(AddOne(1)); // Add 3 elements

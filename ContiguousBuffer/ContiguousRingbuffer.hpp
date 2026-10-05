@@ -24,6 +24,19 @@
  *          contiguous blocks of data. The block sizes to read and write
  *          need not be equal in size.
  *
+ *          Storage is a fixed-size array inside the object: no heap is used.
+ *          The capacity is a template argument, so a buffer that does not fit
+ *          in RAM fails at link time instead of at run time.
+ *
+ * \note    Declare buffers with static storage duration (global, namespace
+ *          scope or 'static'). A large buffer as a local variable may overflow
+ *          the stack. Placement in a specific RAM region (e.g. DMA-capable
+ *          memory) is done on the object itself, for instance with
+ *          '__attribute__((section(".dma_ram")))'. On cores with a data cache
+ *          (Cortex-M7) the element storage shares cache lines with the
+ *          read/write/wrap indices: do not invalidate the cache over the
+ *          element storage without accounting for this.
+ *
  * \note    Intended for single-core embedded systems: one producer (typically
  *          DMA/ISR context) and one consumer (typically the main loop). On
  *          multi-core systems, or when the consumer polls with variable block
@@ -33,8 +46,8 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/ContiguousBuffer
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.7
- * \date    07-2026
+ * \version 2.0
+ * \date    10-2026
  */
 
 #ifndef CONTIGUOUS_RING_BUFFER_HPP_
@@ -44,32 +57,44 @@
  * Includes                                                                   *
  *****************************************************************************/
 #include <cstddef>
+#include <array>
 #include <atomic>
 #include <limits>
-#include <memory>
-#include <new>
 
 
 /******************************************************************************
  * Template Class                                                             *
  *****************************************************************************/
-template<typename T>
+/**
+ * \tparam  T   Element type.
+ * \tparam  N   Capacity: the maximum number of elements the buffer can hold.
+ *              One extra element is allocated internally to distinguish
+ *              between 'full' and 'empty' states.
+ */
+template<typename T, size_t N>
 class ContiguousRingbuffer
 {
+    static_assert(N > 0, "ContiguousRingbuffer capacity must be greater than 0");
+    static_assert(N < std::numeric_limits<size_t>::max(), "ContiguousRingbuffer capacity too large");
+
 public:
     /**
      * \brief   Default constructor.
-     * \details Initializes the buffer with zero capacity. The buffer must be
-     *          initialized using 'Reserve()' before use.
+     * \details Initializes an empty buffer, ready for use. For trivial types
+     *          the constructor is constexpr, so a buffer with static storage
+     *          duration is constant-initialized: no constructor runs at
+     *          startup and the buffer is usable before main(), e.g. from an ISR.
+     * \note    The empty state has a non-zero wrap index, so a static buffer is
+     *          placed in .data, not .bss: its initial image (about the size of
+     *          the buffer) is stored in flash and copied to RAM by the startup
+     *          code.
      */
-    ContiguousRingbuffer() noexcept = default;
+    ContiguousRingbuffer() = default;
 
     // Non-copyable and non-movable: contains atomics and is intended to be
     // shared by reference between a single producer and a single consumer.
     ContiguousRingbuffer(const ContiguousRingbuffer&) = delete;
     ContiguousRingbuffer& operator=(const ContiguousRingbuffer&) = delete;
-
-    bool Reserve(const size_t capacity) noexcept;
 
     bool ReserveWrite(T*& dest, size_t& size) noexcept;
     bool CommitWrite(const size_t size) noexcept;
@@ -78,7 +103,7 @@ public:
     bool CommitRead(const size_t size) noexcept;
 
     size_t Size() const noexcept;
-    size_t Capacity() const noexcept;
+    static constexpr size_t Capacity() noexcept;
     void Clear() noexcept;
     bool IsLockFree() const noexcept;
 
@@ -88,61 +113,20 @@ public:
 #endif // DEBUG
 
 private:
+    // Number of elements in storage: one more than the capacity, to
+    // distinguish between 'full' and 'empty' states.
+    static constexpr size_t kStorageSize = N + 1;
+
     std::atomic<size_t> mWrite{0};
     std::atomic<size_t> mRead{0};
-    std::atomic<size_t> mWrap{0};
-    size_t mCapacity{0};
-    std::unique_ptr<T[]> mElements;
+    std::atomic<size_t> mWrap{kStorageSize};
+    std::array<T, kStorageSize> mElements{};
 };
 
+// Out-of-class definition, required when odr-used before C++17.
+template<typename T, size_t N>
+constexpr size_t ContiguousRingbuffer<T, N>::kStorageSize;
 
-/**
- * \brief   Reserves capacity for the ring buffer.
- * \details Allocates storage for the specified number of elements. Frees any
- *          existing memory first, then allocates new memory. The actual capacity
- *          is increased by 1 internally to distinguish between 'full' and 'empty' states.
- *          Calling this method multiple times is permitted and handled similarly.
- * \param   capacity    The number of elements to allocate (must be greater than 0).
- * \returns True if allocation is successful; false if capacity is 0 or allocation fails.
- *          On failure the buffer is left in the safe 'not initialized' state:
- *          all operations except Reserve() will fail until a successful Reserve().
- * \warning This method is NOT thread-safe and must NOT be called concurrently
- *          with any other buffer operations. It should only be called during
- *          initialization or after ensuring all producer and consumer threads have stopped.
- * \note    Follows the naming convention of std::vector::reserve().
- */
-template<typename T>
-bool ContiguousRingbuffer<T>::Reserve(const size_t capacity) noexcept
-{
-    // Free existing memory and mark the buffer as 'not initialized'. Should
-    // anything below fail, the buffer remains in this safe state instead of
-    // referring to memory it no longer owns.
-    // Use relaxed ordering: Reserve() is not called concurrently with read/write
-    // operations. It's called during initialization or after all threads have stopped.
-    // No synchronization is needed since there's no concurrent access.
-    mElements.reset();
-    mCapacity = 0;
-    mWrite.store(0, std::memory_order_relaxed);
-    mRead.store(0, std::memory_order_relaxed);
-    mWrap.store(0, std::memory_order_relaxed);
-
-    // Handle invalid capacity: zero, or so large that 'capacity + 1' would overflow
-    if ((0 == capacity) || (std::numeric_limits<size_t>::max() == capacity)) {
-        return false; // Requested capacity out of range
-    }
-
-    // Allocate new memory
-    mElements = std::unique_ptr<T[]>(new(std::nothrow) T[capacity + 1]);
-    if (nullptr == mElements) {
-        return false; // Allocation failed
-    }
-
-    // Allocation succeeded: update wrap and capacity
-    mWrap.store(capacity + 1, std::memory_order_relaxed);
-    mCapacity = capacity + 1;
-
-    return true;
-}
 
 /**
  * \brief   Reserves contiguous space in the buffer for writing.
@@ -192,11 +176,11 @@ bool ContiguousRingbuffer<T>::Reserve(const size_t capacity) noexcept
  *          or no block is available. The 'dest' and 'size' parameters are
  *          updated accordingly.
  */
-template<typename T>
-bool ContiguousRingbuffer<T>::ReserveWrite(T*& dest, size_t& size) noexcept
+template<typename T, size_t N>
+bool ContiguousRingbuffer<T, N>::ReserveWrite(T*& dest, size_t& size) noexcept
 {
     // Handle invalid size
-    if (0 == size || size >= mCapacity) {
+    if (0 == size || size >= kStorageSize) {
         dest = nullptr;
         size = 0;
         return false; // Size is not within valid range
@@ -207,8 +191,8 @@ bool ContiguousRingbuffer<T>::ReserveWrite(T*& dest, size_t& size) noexcept
 
     // Case 1: Space available at the end
     if (write >= read) {
-        if (write < mCapacity) {                                // Robustness check
-            const size_t available = mCapacity - write - ((read == 0) ? 1 : 0);
+        if (write < kStorageSize) {                                // Robustness check
+            const size_t available = kStorageSize - write - ((read == 0) ? 1 : 0);
 
             if (size <= available) {                            // Does the requested block fit?
                 size = available;
@@ -267,14 +251,14 @@ bool ContiguousRingbuffer<T>::ReserveWrite(T*& dest, size_t& size) noexcept
  *          the size is invalid or no space is available. Returns true if
  *          size is 0, as no update occurs.
  */
-template<typename T>
-bool ContiguousRingbuffer<T>::CommitWrite(const size_t size) noexcept
+template<typename T, size_t N>
+bool ContiguousRingbuffer<T, N>::CommitWrite(const size_t size) noexcept
 {
     // Handle invalid size
     if (0 == size) {
         return true; // No update is done
     }
-    if (size >= mCapacity) {
+    if (size >= kStorageSize) {
         return false; // Size is not within valid range
     }
 
@@ -287,9 +271,9 @@ bool ContiguousRingbuffer<T>::CommitWrite(const size_t size) noexcept
 
     // Case 1: Space at the end
     if (write >= read) {
-        if (write < mCapacity) {                                // Robustness, condition should always be true
+        if (write < kStorageSize) {                                // Robustness, condition should always be true
             // Pre-calculate space at end for efficiency
-            const size_t space_at_end = mCapacity - write;
+            const size_t space_at_end = kStorageSize - write;
             // Calculate the size available at the end, take into account the extra element when the buffer is empty
             const size_t available = space_at_end - ((read == 0) ? 1 : 0);
 
@@ -351,11 +335,11 @@ bool ContiguousRingbuffer<T>::CommitWrite(const size_t size) noexcept
  *          invalid or no block is available. The 'dest' and 'size'
  *          parameters are updated accordingly.
  */
-template<typename T>
-bool ContiguousRingbuffer<T>::ReserveRead(T*& dest, size_t& size) noexcept
+template<typename T, size_t N>
+bool ContiguousRingbuffer<T, N>::ReserveRead(T*& dest, size_t& size) noexcept
 {
     // Handle invalid size
-    if (0 == size || size >= mCapacity) {
+    if (0 == size || size >= kStorageSize) {
         dest = nullptr;
         size = 0;
         return false; // Size is not within valid range
@@ -376,7 +360,7 @@ bool ContiguousRingbuffer<T>::ReserveRead(T*& dest, size_t& size) noexcept
     }
     // Case 2: Data available at the end
     else { // write < read
-        if (read < mCapacity) {                                 // Robustness, condition should always be true
+        if (read < kStorageSize) {                                 // Robustness, condition should always be true
             const auto wrap = mWrap.load(std::memory_order_acquire);
             // Pre-calculate available data at end for efficiency
             const size_t available_at_end = wrap - read;
@@ -426,14 +410,14 @@ bool ContiguousRingbuffer<T>::ReserveRead(T*& dest, size_t& size) noexcept
  *          the size is invalid or no data is available. Returns true if
  *          size is 0, as no update occurs.
  */
-template<typename T>
-bool ContiguousRingbuffer<T>::CommitRead(const size_t size) noexcept
+template<typename T, size_t N>
+bool ContiguousRingbuffer<T, N>::CommitRead(const size_t size) noexcept
 {
     // Handle invalid size
     if (0 == size) {
         return true; // No update is done
     }
-    if (size >= mCapacity) {
+    if (size >= kStorageSize) {
         return false; // Size is not within valid range
     }
 
@@ -454,7 +438,7 @@ bool ContiguousRingbuffer<T>::CommitRead(const size_t size) noexcept
     }
     // Case 2: Data available at the end
     else if (read > write) {
-        if (read < mCapacity) {                                 // Robustness, condition should always be true
+        if (read < kStorageSize) {                                 // Robustness, condition should always be true
             const auto wrap = mWrap.load(std::memory_order_acquire);
 
             if (read_and_size < wrap) {                         // Requested size available? And we do not wrap?
@@ -465,7 +449,7 @@ bool ContiguousRingbuffer<T>::CommitRead(const size_t size) noexcept
                 // Relaxed store: the producer never loads mWrap, and Size() reads it
                 // relaxed (best-effort). The mRead release store below keeps it
                 // ordered for any cross-thread observer anyway.
-                mWrap.store(mCapacity, std::memory_order_relaxed);
+                mWrap.store(kStorageSize, std::memory_order_relaxed);
                 mRead.store(0, std::memory_order_release);
                 return true;
             }
@@ -474,7 +458,7 @@ bool ContiguousRingbuffer<T>::CommitRead(const size_t size) noexcept
             else if (read == wrap) {                            // Data available at the start?
                 if (size <= write) {                            // Requested size available?
                     // Relaxed store: same reasoning as the wrap restore above.
-                    mWrap.store(mCapacity, std::memory_order_relaxed);
+                    mWrap.store(kStorageSize, std::memory_order_relaxed);
                     mRead.store(size, std::memory_order_release);
                     return true;
                 }
@@ -495,15 +479,11 @@ bool ContiguousRingbuffer<T>::CommitRead(const size_t size) noexcept
  *          concurrent read or write operations. The approximate nature allows
  *          the use of relaxed atomics for better performance.
  * \returns The total number of elements in the buffer, or 0 if the buffer
- *          is empty or Reserve() has not been called yet.
+ *          is empty.
  */
-template<typename T>
-size_t ContiguousRingbuffer<T>::Size() const noexcept
+template<typename T, size_t N>
+size_t ContiguousRingbuffer<T, N>::Size() const noexcept
 {
-    if (0 == mCapacity) {
-        return 0; // Buffer not initialized (Reserve() not called yet)
-    }
-
     // Use relaxed ordering: Size() provides a best-effort snapshot and doesn't
     // require synchronization guarantees. Each atomic read is still atomic (no
     // torn reads), but we avoid expensive memory barriers since approximate values
@@ -514,13 +494,13 @@ size_t ContiguousRingbuffer<T>::Size() const noexcept
 
     // Sanity checks: administration out-of-bounds, thus return a 'sane' value
     if (write >= wrap) {
-        return mCapacity - 1;                                   // Write out of bounds
+        return kStorageSize - 1;                                   // Write out of bounds
     }
     if (read > wrap) {
         return 0;                                               // Read out of bounds
     }
-    if ((read == wrap) && (read == mCapacity) && (write > 0)) {
-        return 0; // More elements than specified in mCapacity
+    if ((read == wrap) && (read == kStorageSize) && (write > 0)) {
+        return 0; // More elements than specified in kStorageSize
     }
 
     // Calculate the number of elements in the buffer
@@ -536,14 +516,13 @@ size_t ContiguousRingbuffer<T>::Size() const noexcept
 
 /**
  * \brief   Returns the maximum number of elements the buffer can hold.
- * \returns The maximum capacity of the buffer, accounting for the extra
- *          element used to distinguish between 'full' and 'empty' states.
- *          Returns 0 if Reserve() has not been called (successfully) yet.
+ * \returns The capacity N given as template argument. The extra element used
+ *          to distinguish between 'full' and 'empty' states is not included.
  */
-template<typename T>
-size_t ContiguousRingbuffer<T>::Capacity() const noexcept
+template<typename T, size_t N>
+constexpr size_t ContiguousRingbuffer<T, N>::Capacity() noexcept
 {
-    return (0 == mCapacity) ? 0 : (mCapacity - 1);
+    return N;
 }
 
 /**
@@ -554,20 +533,20 @@ size_t ContiguousRingbuffer<T>::Capacity() const noexcept
  *          consumer state. It must NOT be called concurrently with any other
  *          buffer operations, only when producer and consumer are stopped.
  */
-template<typename T>
-void ContiguousRingbuffer<T>::Clear() noexcept
+template<typename T, size_t N>
+void ContiguousRingbuffer<T, N>::Clear() noexcept
 {
     mWrite.store(0, std::memory_order_release);
     mRead.store(0, std::memory_order_release);
-    mWrap.store(mCapacity, std::memory_order_release);
+    mWrap.store(kStorageSize, std::memory_order_release);
 }
 
 /**
  * \brief   Checks if the buffer's atomic operations are lock-free.
  * \returns True if all atomic operations are lock-free; otherwise, false.
  */
-template<typename T>
-bool ContiguousRingbuffer<T>::IsLockFree() const noexcept
+template<typename T, size_t N>
+bool ContiguousRingbuffer<T, N>::IsLockFree() const noexcept
 {
     return (mWrite.is_lock_free() && mRead.is_lock_free() && mWrap.is_lock_free());
 }
@@ -588,8 +567,8 @@ bool ContiguousRingbuffer<T>::IsLockFree() const noexcept
  * \param   wrap    Value to set mWrap to.
  * \remarks There are no checks, so know what you are doing!
  */
-template<typename T>
-void ContiguousRingbuffer<T>::SetState(size_t write, size_t read, size_t wrap)
+template<typename T, size_t N>
+void ContiguousRingbuffer<T, N>::SetState(size_t write, size_t read, size_t wrap)
 {
     mWrite.store(write, std::memory_order_release);
     mRead.store(read, std::memory_order_release);
@@ -603,8 +582,8 @@ void ContiguousRingbuffer<T>::SetState(size_t write, size_t read, size_t wrap)
  * \param   wrap    Value to check mWrap against.
  * \returns True if the state matches, else false.
  */
-template<typename T>
-bool ContiguousRingbuffer<T>::CheckState(size_t write, size_t read, size_t wrap)
+template<typename T, size_t N>
+bool ContiguousRingbuffer<T, N>::CheckState(size_t write, size_t read, size_t wrap)
 {
     const auto current_write = mWrite.load(std::memory_order_acquire);
     const auto current_read  = mRead.load(std::memory_order_acquire);

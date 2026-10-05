@@ -4,6 +4,8 @@ A thread-safe, lock-free, single producer, single consumer contiguous ring buffe
 ## Description
 This lock-free, wait-free contiguous ring buffer is designed for embedded use, particularly for DMA handling in Cortex-M4 microcontrollers. It functions similarly to a bip-buffer. Refer to the documentation for unique behaviors.
 
+Storage is a fixed-size array inside the object, sized by the template argument `N`: no heap is used. Declare buffers with static storage duration (global or `static`); they are ready for use without any initialization call.
+
 ### Usage
 In this setup, an Interrupt Service Routine (ISR) acts as the producer, while the main application loop serves as the consumer. The producer uses `ReserveWrite()` to request a contiguous block of elements for DMA to fill. Once the DMA completes, it calls `CommitWrite()` to indicate the data is ready. The consumer checks for available data using `ReserveRead()`, either specifying a size or using 1 to find the largest contiguous block. After processing, it releases memory with `CommitRead()`.
 
@@ -14,6 +16,12 @@ The ContiguousRingbuffer provides enhanced efficiency compared to traditional th
 
 ## Requirements
 - C++11 or later
+
+## Changes in 2.0
+- Capacity is a template argument: `ContiguousRingbuffer<T, N>` replaces `ContiguousRingbuffer<T>` + `Reserve(N)`.
+- No heap: storage is part of the object. `Reserve()` is removed; the buffer is empty and ready after construction. Use `Clear()` to discard its contents.
+- `Capacity()` is `static constexpr`.
+- A static buffer is placed in `.data` (not `.bss`) because the empty state has a non-zero wrap index; its initial image takes flash about the size of the buffer.
 
 ## Contents
 | Folder | Contents |
@@ -28,11 +36,8 @@ Inspired by: [PEEK and POKE](https://en.wikipedia.org/wiki/PEEK_and_POKE), [Lock
 // Producer fills the buffer, Consumer empties it.
 // Check result values in actual code; omitted here for clarity.
 
-// Declare the buffer
-ContiguousRingbuffer<int> ringBuff;
-
-// Reserve size for elements
-ringBuff.Reserve(5);
+// Declare the buffer: room for 5 elements, no heap
+static ContiguousRingbuffer<int, 5> ringBuff;
 
 // Check for room and write 1 element
 int* data = nullptr;
@@ -68,8 +73,8 @@ Once users access the data pointer, they must avoid reading or writing beyond th
 Loop to transfer data between the buffer and a peripheral component, such as Bluetooth or UART:
 ```cpp
 // Assuming these buffers
-ContiguousRingbuffer<uint8_t> buffRx; // Holds received data
-ContiguousRingbuffer<uint8_t> buffTx; // Holds data to send
+static ContiguousRingbuffer<uint8_t, 256> buffRx; // Holds received data
+static ContiguousRingbuffer<uint8_t, 256> buffTx; // Holds data to send
 
 // <initialization omitted>
 

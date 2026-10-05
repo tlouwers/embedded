@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 #include "ContiguousRingbuffer.hpp"
 
-class TEST_Wrap : public ::testing::Test {
+template<size_t N>
+class TEST_WrapFixture : public ::testing::Test {
 protected:
-    ContiguousRingbuffer<int> mRingBuffer;
+    ContiguousRingbuffer<int, N> mRingBuffer;
 
     void SetUp() override {
-        EXPECT_TRUE(mRingBuffer.Reserve(40));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     }
 
@@ -26,8 +26,12 @@ protected:
     }
 };
 
-TEST_F(TEST_Wrap, SmallestWrapPossible) {
-    EXPECT_TRUE(mRingBuffer.Reserve(3));
+// One fixture per buffer capacity used by the tests below.
+using TEST_Wrap_N3 = TEST_WrapFixture<3>;
+using TEST_Wrap_N4 = TEST_WrapFixture<4>;
+using TEST_Wrap_N20 = TEST_WrapFixture<20>;
+
+TEST_F(TEST_Wrap_N3, SmallestWrapPossible) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     // -----
@@ -73,8 +77,7 @@ TEST_F(TEST_Wrap, SmallestWrapPossible) {
     EXPECT_EQ(size, 3);
 }
 
-TEST_F(TEST_Wrap, WrapWithSmallBufferReadStartsUnequalToWrap) {
-    EXPECT_TRUE(mRingBuffer.Reserve(4));
+TEST_F(TEST_Wrap_N4, WrapWithSmallBufferReadStartsUnequalToWrap) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     // -----
@@ -126,8 +129,7 @@ TEST_F(TEST_Wrap, WrapWithSmallBufferReadStartsUnequalToWrap) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
-TEST_F(TEST_Wrap, WrapWithSmallBufferReadStartsEqualToWrap) {
-    EXPECT_TRUE(mRingBuffer.Reserve(4));
+TEST_F(TEST_Wrap_N4, WrapWithSmallBufferReadStartsEqualToWrap) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     // -----
@@ -164,8 +166,7 @@ TEST_F(TEST_Wrap, WrapWithSmallBufferReadStartsEqualToWrap) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
-TEST_F(TEST_Wrap, WrapWithLargeBuffer) {
-    EXPECT_TRUE(mRingBuffer.Reserve(20));
+TEST_F(TEST_Wrap_N20, WrapWithLargeBuffer) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     // -----

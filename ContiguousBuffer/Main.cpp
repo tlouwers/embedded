@@ -3,8 +3,8 @@
  *
  * \brief   CPU-bound throughput benchmark for ContiguousRingbuffer.
  *
- * \details  1. The ring buffer is configured using the Reserve() method
- *               (with total usable capacity as ringBufferSize).
+ * \details  1. The ring buffer has a fixed capacity of ringBufferSize
+ *               elements, given as template argument (no heap).
  *           2. Both producer and consumer threads work on blocks of up
  *               to 4 integers per iteration at full CPU speed.
  *           3. Global atomic counters record the number of items produced
@@ -17,8 +17,8 @@
  *          the maximum throughput of the ring buffer implementation.
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 1.2
- * \date    01-2026
+ * \version 1.3
+ * \date    10-2026
  */
 
 #include <iostream>
@@ -26,6 +26,13 @@
 #include <chrono>
 #include <atomic>
 #include "ContiguousRingbuffer.hpp"
+
+// Buffer type under test: fixed capacity, no heap.
+constexpr size_t ringBufferSize = 1024;
+using Ringbuffer = ContiguousRingbuffer<int, ringBufferSize>;
+
+// Static storage duration: the intended embedded use, and keeps the storage off the stack.
+static Ringbuffer ringBuffer;
 
 // Global atomic flag to request threads to stop.
 std::atomic<bool> running{true};
@@ -35,7 +42,7 @@ std::atomic<size_t> itemsProduced{0};
 std::atomic<size_t> itemsConsumed{0};
 
 // Producer thread: write sequential integers at full speed.
-void producer(ContiguousRingbuffer<int>& buffer) {
+void producer(Ringbuffer& buffer) {
     int counter = 1;
     while (running.load(std::memory_order_acquire)) {
         // Try to reserve a block for up to 4 integers.
@@ -59,7 +66,7 @@ void producer(ContiguousRingbuffer<int>& buffer) {
 }
 
 // Consumer thread: reads integers from the buffer at full speed.
-void consumer(ContiguousRingbuffer<int>& buffer, long long& sum) {
+void consumer(Ringbuffer& buffer, long long& sum) {
     while (running.load(std::memory_order_acquire)) {
         size_t reqSize = 4;
         int* dest = nullptr;
@@ -78,13 +85,6 @@ void consumer(ContiguousRingbuffer<int>& buffer, long long& sum) {
 }
 
 int main() {
-    constexpr size_t ringBufferSize = 1024;
-    ContiguousRingbuffer<int> ringBuffer;
-    if (!ringBuffer.Reserve(ringBufferSize)) {
-        std::cerr << "Failed to allocate ring buffer.\n";
-        return 1;
-    }
-
     std::cout << "========================================" << std::endl;
     std::cout << "ContiguousRingbuffer CPU Benchmark" << std::endl;
     std::cout << "========================================" << std::endl;

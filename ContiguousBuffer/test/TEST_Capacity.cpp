@@ -2,18 +2,19 @@
 #include "ContiguousRingbuffer.hpp"
 
 
-class TEST_Capacity : public ::testing::Test {
-protected:
-    ContiguousRingbuffer<int> mRingBuffer;
-};
+// Capacity is a compile-time property of the type
+static_assert(ContiguousRingbuffer<int, 1>::Capacity() == 1, "Capacity must equal N");
+static_assert(ContiguousRingbuffer<int, 3>::Capacity() == 3, "Capacity must equal N");
+static_assert(ContiguousRingbuffer<int, 5>::Capacity() == 5, "Capacity must equal N");
 
 
-TEST_F(TEST_Capacity, CapacityOperationsAfterResize) {
-    // Test resizing the ring buffer
-    EXPECT_TRUE(mRingBuffer.Reserve(3));
-    EXPECT_EQ(mRingBuffer.Capacity(), 3);
-    EXPECT_TRUE(mRingBuffer.Reserve(1));
-    EXPECT_EQ(mRingBuffer.Capacity(), 1);
-    EXPECT_TRUE(mRingBuffer.Reserve(5));
-    EXPECT_EQ(mRingBuffer.Capacity(), 5);
+TEST(TEST_Capacity, CapacityEqualsTemplateArgument) {
+    ContiguousRingbuffer<int, 3> ringBuffer3;
+    EXPECT_EQ(ringBuffer3.Capacity(), 3);
+
+    ContiguousRingbuffer<int, 1> ringBuffer1;
+    EXPECT_EQ(ringBuffer1.Capacity(), 1);
+
+    ContiguousRingbuffer<int, 5> ringBuffer5;
+    EXPECT_EQ(ringBuffer5.Capacity(), 5);
 }
