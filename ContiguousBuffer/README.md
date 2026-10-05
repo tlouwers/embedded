@@ -4,7 +4,7 @@ A thread-safe, lock-free, single producer, single consumer contiguous ring buffe
 ## Description
 This lock-free, wait-free contiguous ring buffer is designed for embedded use, particularly for DMA handling in Cortex-M4 microcontrollers. It functions similarly to a bip-buffer. Refer to the documentation for unique behaviors.
 
-Storage is a fixed-size array inside the object, sized by the template argument `N`: no heap is used. Declare buffers with static storage duration (global or `static`); they are ready for use without any initialization call.
+Storage is a fixed-size array inside the object, sized by the template argument `N`: no heap is used. Declare buffers with static storage duration (global or `static`); they are ready for use without any initialization call. The empty state is all zeros, so a static buffer is placed in `.bss` (RAM only, no flash). When placing a buffer in a section the startup code does not initialize (e.g. `NOLOAD`), call `Clear()` once before the producer and consumer start.
 
 ### Usage
 In this setup, an Interrupt Service Routine (ISR) acts as the producer, while the main application loop serves as the consumer. The producer uses `ReserveWrite()` to request a contiguous block of elements for DMA to fill. Once the DMA completes, it calls `CommitWrite()` to indicate the data is ready. The consumer checks for available data using `ReserveRead()`, either specifying a size or using 1 to find the largest contiguous block. After processing, it releases memory with `CommitRead()`.
@@ -21,7 +21,7 @@ The ContiguousRingbuffer provides enhanced efficiency compared to traditional th
 - Capacity is a template argument: `ContiguousRingbuffer<T, N>` replaces `ContiguousRingbuffer<T>` + `Reserve(N)`.
 - No heap: storage is part of the object. `Reserve()` is removed; the buffer is empty and ready after construction. Use `Clear()` to discard its contents.
 - `Capacity()` is `static constexpr`.
-- A static buffer is placed in `.data` (not `.bss`) because the empty state has a non-zero wrap index; its initial image takes flash about the size of the buffer.
+- A static buffer is placed in `.bss`: the wrap index is stored internally as its distance from the end of the storage, making the empty state all zeros.
 
 ## Contents
 | Folder | Contents |

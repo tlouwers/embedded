@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "ContiguousRingbuffer.hpp"
 #include <cstdint>      // uintptr_t, uint8_t
+#include <cstring>      // memcpy
 #include <type_traits>
 
 
@@ -15,6 +16,9 @@ static_assert(std::is_trivially_destructible<ContiguousRingbuffer<int, 64>>::val
 
 // Buffer with static storage duration, the intended embedded use
 static ContiguousRingbuffer<int, 10> gStaticRingBuffer;
+
+// Never modified: used to inspect the initial object representation
+static ContiguousRingbuffer<uint8_t, 7> gUntouchedRingBuffer;
 
 
 class TEST_StaticStorage : public ::testing::Test {
@@ -121,4 +125,30 @@ TEST_F(TEST_StaticStorage, InstancesAreIndependent) {
     EXPECT_EQ(mRingBuffer.Size(), 3);
     EXPECT_EQ(other.Size(), 0);
     EXPECT_TRUE(other.CheckState(0, 0, 6));
+}
+
+TEST_F(TEST_StaticStorage, EmptyStateIsAllZeroBytes) {
+    // All zeros is what places a static buffer in .bss instead of .data
+    unsigned char bytes[sizeof(gUntouchedRingBuffer)];
+    std::memcpy(bytes, &gUntouchedRingBuffer, sizeof(bytes));
+    for (size_t i = 0; i < sizeof(bytes); i++) {
+        EXPECT_EQ(bytes[i], 0) << "at byte " << i;
+    }
+
+    // ... and is the valid empty state, wrap at N + 1
+    EXPECT_TRUE(gUntouchedRingBuffer.CheckState(0, 0, 8));
+    EXPECT_EQ(gUntouchedRingBuffer.Size(), 0);
+}
+
+TEST_F(TEST_StaticStorage, ClearRecoversFromArbitraryState) {
+    // E.g. a buffer in a section the startup code does not initialize
+    mRingBuffer.SetState(12345, 999, 7);
+    mRingBuffer.Clear();
+    EXPECT_TRUE(mRingBuffer.CheckState(0, 0, 6));
+    EXPECT_EQ(mRingBuffer.Size(), 0);
+
+    int* data = nullptr;
+    size_t size = 1;
+    EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size));
+    EXPECT_EQ(size, 5);
 }

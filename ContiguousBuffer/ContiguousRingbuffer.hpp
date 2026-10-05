@@ -32,7 +32,9 @@
  *          scope or 'static'). A large buffer as a local variable may overflow
  *          the stack. Placement in a specific RAM region (e.g. DMA-capable
  *          memory) is done on the object itself, for instance with
- *          '__attribute__((section(".dma_ram")))'. On cores with a data cache
+ *          '__attribute__((section(".dma_ram")))'. If the startup code does
+ *          not initialize that section (e.g. NOLOAD), call Clear() once before
+ *          the producer and consumer start. On cores with a data cache
  *          (Cortex-M7) the element storage shares cache lines with the
  *          read/write/wrap indices: do not invalidate the cache over the
  *          element storage without accounting for this.
@@ -84,10 +86,8 @@ public:
      *          the constructor is constexpr, so a buffer with static storage
      *          duration is constant-initialized: no constructor runs at
      *          startup and the buffer is usable before main(), e.g. from an ISR.
-     * \note    The empty state has a non-zero wrap index, so a static buffer is
-     *          placed in .data, not .bss: its initial image (about the size of
-     *          the buffer) is stored in flash and copied to RAM by the startup
-     *          code.
+     * \note    The empty state is all zeros, so a static buffer is placed in
+     *          .bss: it takes RAM only, no flash for an initial image.
      */
     ContiguousRingbuffer() = default;
 
@@ -117,10 +117,20 @@ private:
     // distinguish between 'full' and 'empty' states.
     static constexpr size_t kStorageSize = N + 1;
 
+    // The wrap index is stored as its distance from the end of the storage
+    // ('kStorageSize - wrap'): the empty state is then all zeros, placing a
+    // static buffer in .bss instead of .data. Use LoadWrap()/StoreWrap().
     std::atomic<size_t> mWrite{0};
     std::atomic<size_t> mRead{0};
-    std::atomic<size_t> mWrap{kStorageSize};
+    std::atomic<size_t> mWrapGap{0};
     std::array<T, kStorageSize> mElements{};
+
+    size_t LoadWrap(std::memory_order order) const noexcept {
+        return kStorageSize - mWrapGap.load(order);
+    }
+    void StoreWrap(size_t wrap, std::memory_order order) noexcept {
+        mWrapGap.store(kStorageSize - wrap, order);
+    }
 };
 
 // Out-of-class definition, required when odr-used before C++17.
@@ -291,7 +301,7 @@ bool ContiguousRingbuffer<T, N>::CommitWrite(const size_t size) noexcept
                 // Relaxed store: the consumer only acts on the shrunk wrap in branches
                 // gated on (write < read), i.e. after acquiring the new mWrite below.
                 // That release store publishes this wrap store as well.
-                mWrap.store(write, std::memory_order_relaxed);  // Shrink wrap to prevent claiming memory at the end
+                StoreWrap(write, std::memory_order_relaxed);    // Shrink wrap to prevent claiming memory at the end
                 mWrite.store(size, std::memory_order_release);
                 return true;
             }
@@ -361,7 +371,7 @@ bool ContiguousRingbuffer<T, N>::ReserveRead(T*& dest, size_t& size) noexcept
     // Case 2: Data available at the end
     else { // write < read
         if (read < kStorageSize) {                                 // Robustness, condition should always be true
-            const auto wrap = mWrap.load(std::memory_order_acquire);
+            const auto wrap = LoadWrap(std::memory_order_acquire);
             // Pre-calculate available data at end for efficiency
             const size_t available_at_end = wrap - read;
 
@@ -439,17 +449,17 @@ bool ContiguousRingbuffer<T, N>::CommitRead(const size_t size) noexcept
     // Case 2: Data available at the end
     else if (read > write) {
         if (read < kStorageSize) {                                 // Robustness, condition should always be true
-            const auto wrap = mWrap.load(std::memory_order_acquire);
+            const auto wrap = LoadWrap(std::memory_order_acquire);
 
             if (read_and_size < wrap) {                         // Requested size available? And we do not wrap?
                 mRead.store(read_and_size, std::memory_order_release);
                 return true;
             }
             else if (read_and_size == wrap) {                   // Requested size available? And we do wrap?
-                // Relaxed store: the producer never loads mWrap, and Size() reads it
+                // Relaxed store: the producer never loads the wrap, and Size() reads it
                 // relaxed (best-effort). The mRead release store below keeps it
                 // ordered for any cross-thread observer anyway.
-                mWrap.store(kStorageSize, std::memory_order_relaxed);
+                StoreWrap(kStorageSize, std::memory_order_relaxed);
                 mRead.store(0, std::memory_order_release);
                 return true;
             }
@@ -458,7 +468,7 @@ bool ContiguousRingbuffer<T, N>::CommitRead(const size_t size) noexcept
             else if (read == wrap) {                            // Data available at the start?
                 if (size <= write) {                            // Requested size available?
                     // Relaxed store: same reasoning as the wrap restore above.
-                    mWrap.store(kStorageSize, std::memory_order_relaxed);
+                    StoreWrap(kStorageSize, std::memory_order_relaxed);
                     mRead.store(size, std::memory_order_release);
                     return true;
                 }
@@ -490,7 +500,7 @@ size_t ContiguousRingbuffer<T, N>::Size() const noexcept
     // are acceptable per the documented behavior.
     const auto write = mWrite.load(std::memory_order_relaxed);
     const auto read  = mRead.load(std::memory_order_relaxed);
-    const auto wrap  = mWrap.load(std::memory_order_relaxed);
+    const auto wrap  = LoadWrap(std::memory_order_relaxed);
 
     // Sanity checks: administration out-of-bounds, thus return a 'sane' value
     if (write >= wrap) {
@@ -538,7 +548,7 @@ void ContiguousRingbuffer<T, N>::Clear() noexcept
 {
     mWrite.store(0, std::memory_order_release);
     mRead.store(0, std::memory_order_release);
-    mWrap.store(kStorageSize, std::memory_order_release);
+    StoreWrap(kStorageSize, std::memory_order_release);
 }
 
 /**
@@ -548,7 +558,7 @@ void ContiguousRingbuffer<T, N>::Clear() noexcept
 template<typename T, size_t N>
 bool ContiguousRingbuffer<T, N>::IsLockFree() const noexcept
 {
-    return (mWrite.is_lock_free() && mRead.is_lock_free() && mWrap.is_lock_free());
+    return (mWrite.is_lock_free() && mRead.is_lock_free() && mWrapGap.is_lock_free());
 }
 
 #ifdef DEBUG
@@ -560,11 +570,11 @@ bool ContiguousRingbuffer<T, N>::IsLockFree() const noexcept
 #endif
 
 /**
- * \brief   Debug method to force a state to be set to the mWrite/mRead/mWrap
+ * \brief   Debug method to force a state to be set to the write/read/wrap
  *          pointers.
  * \param   write   Value to set mWrite to.
  * \param   read    Value to set mRead to.
- * \param   wrap    Value to set mWrap to.
+ * \param   wrap    Value to set the wrap index to.
  * \remarks There are no checks, so know what you are doing!
  */
 template<typename T, size_t N>
@@ -572,14 +582,14 @@ void ContiguousRingbuffer<T, N>::SetState(size_t write, size_t read, size_t wrap
 {
     mWrite.store(write, std::memory_order_release);
     mRead.store(read, std::memory_order_release);
-    mWrap.store(wrap, std::memory_order_release);
+    StoreWrap(wrap, std::memory_order_release);
 }
 
 /**
- * \brief   Debug method to check the state of the mWrite/mRead/mWrap pointers.
+ * \brief   Debug method to check the state of the write/read/wrap pointers.
  * \param   write   Value to check mWrite against.
  * \param   read    Value to check mRead against.
- * \param   wrap    Value to check mWrap against.
+ * \param   wrap    Value to check the wrap index against.
  * \returns True if the state matches, else false.
  */
 template<typename T, size_t N>
@@ -587,7 +597,7 @@ bool ContiguousRingbuffer<T, N>::CheckState(size_t write, size_t read, size_t wr
 {
     const auto current_write = mWrite.load(std::memory_order_acquire);
     const auto current_read  = mRead.load(std::memory_order_acquire);
-    const auto current_wrap  = mWrap.load(std::memory_order_acquire);
+    const auto current_wrap  = LoadWrap(std::memory_order_acquire);
 
     return ( ( write == current_write ) &&
              ( read  == current_read  ) &&
