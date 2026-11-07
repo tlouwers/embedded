@@ -6,10 +6,9 @@
 
 class TEST_Speed : public ::testing::Test {
 protected:
-    ContiguousRingbuffer<int> mRingBuffer;
+    ContiguousRingbuffer<int, 40> mRingBuffer;
 
     void SetUp() override {
-        EXPECT_TRUE(mRingBuffer.Reserve(40));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     }
 

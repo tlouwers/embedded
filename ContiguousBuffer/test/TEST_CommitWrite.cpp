@@ -4,11 +4,10 @@
 
 class TEST_CommitWrite : public ::testing::Test {
 protected:
-    ContiguousRingbuffer<int> mRingBuffer;
+    ContiguousRingbuffer<int, 3> mRingBuffer;
 
     void SetUp() override
     {
-        EXPECT_TRUE(mRingBuffer.Reserve(3));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     };
 

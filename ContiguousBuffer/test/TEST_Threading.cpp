@@ -8,11 +8,12 @@
 static const int   NR_ITEMS_THREAD_TEST  = 2000;
 static int refArr [NR_ITEMS_THREAD_TEST] = {};
 static int measArr[NR_ITEMS_THREAD_TEST] = {};
+static const size_t BUFFER_SIZE_THREAD_TEST = 15;
 
 
 class TEST_Threading : public ::testing::Test {
 protected:
-    ContiguousRingbuffer<int> mRingBuffer;
+    ContiguousRingbuffer<int, BUFFER_SIZE_THREAD_TEST> mRingBuffer;
 
     void TearDown() override
     {
@@ -78,7 +79,7 @@ protected:
         }
     };
 
-    void Threaded_Iteration(size_t buffer_size, uint16_t nr_of_runs, uint8_t prod_nr_items, uint8_t cons_nr_items)
+    void Threaded_Iteration(uint16_t nr_of_runs, uint8_t prod_nr_items, uint8_t cons_nr_items)
     {
         EXPECT_GT(nr_of_runs, 0);
         EXPECT_EQ(NR_ITEMS_THREAD_TEST % prod_nr_items, 0);
@@ -86,7 +87,7 @@ protected:
 
         for (auto run = 0; run < nr_of_runs; run++)
         {
-            EXPECT_TRUE(mRingBuffer.Reserve(buffer_size)); // Clears previous state
+            mRingBuffer.Clear(); // Clears previous state
 
             // Clear the measurement array for each iteration
             std::fill_n(measArr, NR_ITEMS_THREAD_TEST, 0);
@@ -118,15 +119,14 @@ TEST_F(TEST_Threading, ThreadingOperations)
         refArr[i] = i;
     }
 
-    const size_t buffer_size = 15;
     const uint16_t nrOfRuns  = 200;
 
     // Test cases
-    Threaded_Iteration(buffer_size, nrOfRuns, 1, 1);
-    Threaded_Iteration(buffer_size, nrOfRuns, 1, 2);
-    Threaded_Iteration(buffer_size, nrOfRuns, 2, 1);
-    Threaded_Iteration(buffer_size, nrOfRuns, 2, 2);
-    Threaded_Iteration(buffer_size, nrOfRuns, 4, 1);
-    Threaded_Iteration(buffer_size, nrOfRuns, 1, 4);
-    Threaded_Iteration(buffer_size, nrOfRuns, 4, 4);
+    Threaded_Iteration(nrOfRuns, 1, 1);
+    Threaded_Iteration(nrOfRuns, 1, 2);
+    Threaded_Iteration(nrOfRuns, 2, 1);
+    Threaded_Iteration(nrOfRuns, 2, 2);
+    Threaded_Iteration(nrOfRuns, 4, 1);
+    Threaded_Iteration(nrOfRuns, 1, 4);
+    Threaded_Iteration(nrOfRuns, 4, 4);
 }

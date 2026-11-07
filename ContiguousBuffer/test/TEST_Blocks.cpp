@@ -4,13 +4,12 @@
 
 class TEST_Blocks : public ::testing::Test {
 protected:
-    const size_t kBlockSize = 256;
+    static constexpr size_t kBlockSize = 256;
 
-    ContiguousRingbuffer<int> mRingBuffer;
+    ContiguousRingbuffer<int, kBlockSize * 4> mRingBuffer;
 
     void SetUp() override
     {
-        EXPECT_TRUE(mRingBuffer.Reserve(kBlockSize * 4));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     };
 
@@ -55,12 +54,14 @@ protected:
     }
 };
 
+// Out-of-class definition, required when odr-used before C++17.
+constexpr size_t TEST_Blocks::kBlockSize;
+
 TEST_F(TEST_Blocks, LargeBlocksStartAtStart) {
     int index = 0;
     int* data = nullptr;
     size_t size = 0;
 
-    EXPECT_TRUE(mRingBuffer.Reserve(kBlockSize * 4));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     // Add blocks and check state
@@ -113,7 +114,6 @@ TEST_F(TEST_Blocks, LargeBlocksStartAtEnd) {
     int* data = nullptr;
     size_t size = 0;
 
-    EXPECT_TRUE(mRingBuffer.Reserve(kBlockSize * 4));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     mRingBuffer.SetState(1024, 1024, 1025);            // Filled 4 blocks, removed 4 blocks

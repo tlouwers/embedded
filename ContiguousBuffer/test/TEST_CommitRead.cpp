@@ -3,10 +3,9 @@
 
 class TEST_CommitRead : public ::testing::Test {
 protected:
-    ContiguousRingbuffer<int> mRingBuffer;
+    ContiguousRingbuffer<int, 3> mRingBuffer;
 
     void SetUp() override {
-        EXPECT_TRUE(mRingBuffer.Reserve(3));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     }
 
@@ -17,7 +16,6 @@ protected:
 };
 
 TEST_F(TEST_CommitRead, CommitReadOperations_ReadAt0) {
-    EXPECT_TRUE(mRingBuffer.Reserve(3));
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     mRingBuffer.SetState(0, 0, 4);   // Set mWrite(0), mRead(0), mWrap(4) - buffer empty

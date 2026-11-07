@@ -12,7 +12,7 @@ set(TEST_SOURCES
     TEST_ReserveRead.cpp
     TEST_ReserveWrite.cpp
     TEST_CommitRead.cpp
-    TEST_Resize.cpp
+    TEST_StaticStorage.cpp
     TEST_Size.cpp
     TEST_Speed.cpp
     TEST_Threading.cpp

@@ -2,12 +2,12 @@
 #include "ContiguousRingbuffer.hpp"
 
 
-class TEST_HistoricalIssues : public ::testing::Test {
+template<size_t N>
+class TEST_HistoricalIssuesFixture : public ::testing::Test {
 protected:
-    ContiguousRingbuffer<int> mRingBuffer;
+    ContiguousRingbuffer<int, N> mRingBuffer;
 
     void SetUp() override {
-        EXPECT_TRUE(mRingBuffer.Reserve(10));
         EXPECT_EQ(mRingBuffer.Size(), 0);
     }
 
@@ -96,8 +96,13 @@ protected:
 };
 
 
-TEST_F(TEST_HistoricalIssues, IndicateFirstFilledElementsAtEndThenAtStart) {
-    EXPECT_TRUE(mRingBuffer.Reserve(8));
+// One fixture per buffer capacity used by the tests below.
+using TEST_HistoricalIssues_N4 = TEST_HistoricalIssuesFixture<4>;
+using TEST_HistoricalIssues_N8 = TEST_HistoricalIssuesFixture<8>;
+using TEST_HistoricalIssues_N128 = TEST_HistoricalIssuesFixture<128>;
+using TEST_HistoricalIssues_N1024 = TEST_HistoricalIssuesFixture<1024>;
+
+TEST_F(TEST_HistoricalIssues_N8, IndicateFirstFilledElementsAtEndThenAtStart) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     mRingBuffer.SetState(5, 5, 9); // Set mWrite(5), mRead(5), mWrap(9)
@@ -164,8 +169,7 @@ TEST_F(TEST_HistoricalIssues, IndicateFirstFilledElementsAtEndThenAtStart) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
-TEST_F(TEST_HistoricalIssues, IndicateSpaceAvailableInVariousConditions) {
-    EXPECT_TRUE(mRingBuffer.Reserve(4));
+TEST_F(TEST_HistoricalIssues_N4, IndicateSpaceAvailableInVariousConditions) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     mRingBuffer.SetState(4, 0, 5); // Buffer full
@@ -216,8 +220,7 @@ TEST_F(TEST_HistoricalIssues, IndicateSpaceAvailableInVariousConditions) {
     EXPECT_EQ(mRingBuffer.Size(), 1);
 }
 
-TEST_F(TEST_HistoricalIssues, FillingTheBufferReadWriteShiftedToEnd) {
-    EXPECT_TRUE(mRingBuffer.Reserve(4));
+TEST_F(TEST_HistoricalIssues_N4, FillingTheBufferReadWriteShiftedToEnd) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     mRingBuffer.SetState(0, 0, 5); // Set mWrite(0), mRead(0), mWrap(5) - 4 elements available
@@ -258,8 +261,7 @@ TEST_F(TEST_HistoricalIssues, FillingTheBufferReadWriteShiftedToEnd) {
     EXPECT_EQ(mRingBuffer.Size(), 4);
 }
 
-TEST_F(TEST_HistoricalIssues, PeekGeneratedFalsePositive) {
-    EXPECT_TRUE(mRingBuffer.Reserve(1024));
+TEST_F(TEST_HistoricalIssues_N1024, PeekGeneratedFalsePositive) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     EXPECT_TRUE(AddBlock(1, 1020)); // Add 1020 items, leave 4 remaining
@@ -308,8 +310,7 @@ TEST_F(TEST_HistoricalIssues, PeekGeneratedFalsePositive) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 }
 
-TEST_F(TEST_HistoricalIssues, CannotUseSingleBlockBufferSize) {
-    EXPECT_TRUE(mRingBuffer.Reserve(128));
+TEST_F(TEST_HistoricalIssues_N128, CannotUseSingleBlockBufferSize) {
     EXPECT_EQ(mRingBuffer.Size(), 0);
 
     EXPECT_TRUE(AddBlock(1, 128)); // Fill with a fixed block (size of buffer)
