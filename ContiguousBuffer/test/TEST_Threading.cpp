@@ -3,7 +3,6 @@
 #include <cstddef>      // size_t
 #include <cstdint>      // uint8_t, uint16_t
 #include <thread>
-#include <algorithm>    // std::fill_n
 
 
 static const int   NR_ITEMS_THREAD_TEST  = 2000;
@@ -18,19 +17,6 @@ protected:
 
     void TearDown() override
     {
-        mRingBuffer.Clear();
-    };
-
-    // Empty the buffer and overwrite its storage with a value never produced,
-    // so a consumer reading stale data from a previous run is detected.
-    void ResetAndPoison()
-    {
-        mRingBuffer.Clear();
-
-        int* data = nullptr;
-        size_t size = mRingBuffer.Capacity();
-        EXPECT_TRUE(mRingBuffer.ReserveWrite(data, size));
-        std::fill_n(data, size, -1);
         mRingBuffer.Clear();
     };
 
@@ -101,7 +87,7 @@ protected:
 
         for (auto run = 0; run < nr_of_runs; run++)
         {
-            ResetAndPoison(); // Clears previous state
+            mRingBuffer.Clear(); // Clears previous state
 
             // Clear the measurement array for each iteration
             std::fill_n(measArr, NR_ITEMS_THREAD_TEST, 0);

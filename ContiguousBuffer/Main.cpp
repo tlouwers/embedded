@@ -29,10 +29,9 @@
 
 // Buffer type under test: fixed capacity, no heap.
 constexpr size_t ringBufferSize = 1024;
-using Ringbuffer = ContiguousRingbuffer<int, ringBufferSize>;
 
 // Static storage duration: the intended embedded use, and keeps the storage off the stack.
-static Ringbuffer ringBuffer;
+static ContiguousRingbuffer<int, ringBufferSize> ringBuffer;
 
 // Global atomic flag to request threads to stop.
 std::atomic<bool> running{true};
@@ -42,7 +41,7 @@ std::atomic<size_t> itemsProduced{0};
 std::atomic<size_t> itemsConsumed{0};
 
 // Producer thread: write sequential integers at full speed.
-void producer(Ringbuffer& buffer) {
+void producer(ContiguousRingbuffer<int, ringBufferSize>& buffer) {
     int counter = 1;
     while (running.load(std::memory_order_acquire)) {
         // Try to reserve a block for up to 4 integers.
@@ -66,7 +65,7 @@ void producer(Ringbuffer& buffer) {
 }
 
 // Consumer thread: reads integers from the buffer at full speed.
-void consumer(Ringbuffer& buffer, long long& sum) {
+void consumer(ContiguousRingbuffer<int, ringBufferSize>& buffer, long long& sum) {
     while (running.load(std::memory_order_acquire)) {
         size_t reqSize = 4;
         int* dest = nullptr;

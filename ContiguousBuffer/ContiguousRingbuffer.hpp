@@ -68,7 +68,7 @@
  * Template Class                                                             *
  *****************************************************************************/
 /**
- * \tparam  T   Element type.
+ * \tparam  T   Element type, must be default constructible.
  * \tparam  N   Capacity: the maximum number of elements the buffer can hold.
  *              One extra element is allocated internally to distinguish
  *              between 'full' and 'empty' states.
@@ -201,7 +201,7 @@ bool ContiguousRingbuffer<T, N>::ReserveWrite(T*& dest, size_t& size) noexcept
 
     // Case 1: Space available at the end
     if (write >= read) {
-        if (write < kStorageSize) {                                // Robustness check
+        if (write < kStorageSize) {                             // Robustness check
             const size_t available = kStorageSize - write - ((read == 0) ? 1 : 0);
 
             if (size <= available) {                            // Does the requested block fit?
@@ -281,7 +281,7 @@ bool ContiguousRingbuffer<T, N>::CommitWrite(const size_t size) noexcept
 
     // Case 1: Space at the end
     if (write >= read) {
-        if (write < kStorageSize) {                                // Robustness, condition should always be true
+        if (write < kStorageSize) {                             // Robustness, condition should always be true
             // Pre-calculate space at end for efficiency
             const size_t space_at_end = kStorageSize - write;
             // Calculate the size available at the end, take into account the extra element when the buffer is empty
@@ -370,7 +370,7 @@ bool ContiguousRingbuffer<T, N>::ReserveRead(T*& dest, size_t& size) noexcept
     }
     // Case 2: Data available at the end
     else { // write < read
-        if (read < kStorageSize) {                                 // Robustness, condition should always be true
+        if (read < kStorageSize) {                              // Robustness, condition should always be true
             const auto wrap = LoadWrap(std::memory_order_acquire);
             // Pre-calculate available data at end for efficiency
             const size_t available_at_end = wrap - read;
@@ -448,7 +448,7 @@ bool ContiguousRingbuffer<T, N>::CommitRead(const size_t size) noexcept
     }
     // Case 2: Data available at the end
     else if (read > write) {
-        if (read < kStorageSize) {                                 // Robustness, condition should always be true
+        if (read < kStorageSize) {                              // Robustness, condition should always be true
             const auto wrap = LoadWrap(std::memory_order_acquire);
 
             if (read_and_size < wrap) {                         // Requested size available? And we do not wrap?
@@ -504,7 +504,7 @@ size_t ContiguousRingbuffer<T, N>::Size() const noexcept
 
     // Sanity checks: administration out-of-bounds, thus return a 'sane' value
     if (write >= wrap) {
-        return kStorageSize - 1;                                   // Write out of bounds
+        return kStorageSize - 1;                                // Write out of bounds
     }
     if (read > wrap) {
         return 0;                                               // Read out of bounds

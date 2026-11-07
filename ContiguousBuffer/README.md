@@ -37,23 +37,32 @@ Inspired by: [PEEK and POKE](https://en.wikipedia.org/wiki/PEEK_and_POKE), [Lock
 // Check result values in actual code; omitted here for clarity.
 
 // Declare the buffer: room for 5 elements, no heap
-static ContiguousRingbuffer<int, 5> ringBuff;
+constexpr size_t kSize = 5;
+static ContiguousRingbuffer<int, kSize> ringBuff;
 
 // Check for room and write 1 element
-int* data = nullptr;
-size_t size = 1;
-int val = 42;
-if (ringBuff.ReserveWrite(data, size)) {
-    data[0] = val;
-    ringBuff.CommitWrite(1);
+void Producer(ContiguousRingbuffer<int, kSize>& buffer) {
+    int* data = nullptr;
+    size_t size = 1;
+    int val = 42;
+    if (buffer.ReserveWrite(data, size)) {
+        data[0] = val;
+        buffer.CommitWrite(1);
+    }
 }
 
 // Check for at least 1 element and read it
-size = 1;
-if (ringBuff.ReserveRead(data, size)) {
-    val = data[0];
-    ringBuff.CommitRead(1);
+void Consumer(ContiguousRingbuffer<int, kSize>& buffer) {
+    int* data = nullptr;
+    size_t size = 1;
+    if (buffer.ReserveRead(data, size)) {
+        // <process data[0]>
+        buffer.CommitRead(1);
+    }
 }
+
+Producer(ringBuff);
+Consumer(ringBuff);
 ```
 
 ## Note
