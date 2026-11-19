@@ -17,6 +17,13 @@ The ContiguousRingbuffer provides enhanced efficiency compared to traditional th
 ## Requirements
 - C++11 or later
 
+## Changes in 2.1
+- `SetState()`/`CheckState()` (test methods) are enabled with `CONTIGUOUS_RINGBUFFER_TEST_HOOKS` instead of `DEBUG`, and no longer emit a `#warning`. A Debug build of an application no longer gets them.
+- The class is explicitly non-movable; the move constructor and move assignment are deleted.
+- Include guard renamed to `CONTIGUOUS_RINGBUFFER_HPP_`.
+- `ReserveRead()` documentation matches the behaviour: `size` is a minimum, the whole contiguous run is returned.
+- No functional change.
+
 ## Changes in 2.0
 - Capacity is a template argument: `ContiguousRingbuffer<T, N>` replaces `ContiguousRingbuffer<T>` + `Reserve(N)`.
 - No heap: storage is part of the object. `Reserve()` is removed; the buffer is empty and ready after construction. Use `Clear()` to discard its contents.
