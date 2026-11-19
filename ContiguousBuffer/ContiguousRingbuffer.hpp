@@ -48,12 +48,12 @@
  * \note    https://github.com/tlouwers/embedded/tree/master/ContiguousBuffer
  *
  * \author  Terry Louwers (terry.louwers@fourtress.nl)
- * \version 2.0
- * \date    10-2026
+ * \version 2.1
+ * \date    11-2026
  */
 
-#ifndef CONTIGUOUS_RING_BUFFER_HPP_
-#define CONTIGUOUS_RING_BUFFER_HPP_
+#ifndef CONTIGUOUS_RINGBUFFER_HPP_
+#define CONTIGUOUS_RINGBUFFER_HPP_
 
 /******************************************************************************
  * Includes                                                                   *
@@ -95,22 +95,25 @@ public:
     // shared by reference between a single producer and a single consumer.
     ContiguousRingbuffer(const ContiguousRingbuffer&) = delete;
     ContiguousRingbuffer& operator=(const ContiguousRingbuffer&) = delete;
+    ContiguousRingbuffer(ContiguousRingbuffer&&) = delete;
+    ContiguousRingbuffer& operator=(ContiguousRingbuffer&&) = delete;
+    ~ContiguousRingbuffer() = default;
 
     bool ReserveWrite(T*& dest, size_t& size) noexcept;
-    bool CommitWrite(const size_t size) noexcept;
+    bool CommitWrite(size_t size) noexcept;
 
     bool ReserveRead(T*& dest, size_t& size) noexcept;
-    bool CommitRead(const size_t size) noexcept;
+    bool CommitRead(size_t size) noexcept;
 
     size_t Size() const noexcept;
     static constexpr size_t Capacity() noexcept;
     void Clear() noexcept;
     bool IsLockFree() const noexcept;
 
-#ifdef DEBUG
+#ifdef CONTIGUOUS_RINGBUFFER_TEST_HOOKS
     void SetState(size_t write, size_t read, size_t wrap);
     bool CheckState(size_t write, size_t read, size_t wrap);
-#endif // DEBUG
+#endif  // CONTIGUOUS_RINGBUFFER_TEST_HOOKS
 
 private:
     // Number of elements in storage: one more than the capacity, to
@@ -133,9 +136,10 @@ private:
     }
 };
 
-// Out-of-class definition, required when odr-used before C++17.
+// Out-of-class definition, required when odr-used before C++17 (redundant,
+// but harmless, from C++17 on).
 template<typename T, size_t N>
-constexpr size_t ContiguousRingbuffer<T, N>::kStorageSize;
+constexpr size_t ContiguousRingbuffer<T, N>::kStorageSize;  // NOLINT(readability-redundant-declaration)
 
 
 /**
@@ -212,12 +216,12 @@ bool ContiguousRingbuffer<T, N>::ReserveWrite(T*& dest, size_t& size) noexcept
             // Case 2: Space available at the start
             else if (size < read) {                             // Does the requested block fit?
                 size = read - 1;
-                dest = &mElements[0];
+                dest = mElements.data();
                 return true;
             }
             // Exceptional case: buffer is empty and requested size equals read
             else if ((write == read) && (size == read)) {
-                dest = &mElements[0];
+                dest = mElements.data();
                 mRead.store(0, std::memory_order_release);      // Note: ReserveWrite() modifies mWrite and mRead in this exceptional case!
                 mWrite.store(0, std::memory_order_release);
                 return true;
@@ -324,10 +328,11 @@ bool ContiguousRingbuffer<T, N>::CommitWrite(const size_t size) noexcept
  *          3. CommitRead() - Release the data, making space available
  *
  *          Returns a pointer to a contiguous block of filled elements,
- *          either at the start or the end of the buffer. If the requested
- *          size exceeds the available data, the method will return the size
- *          of the contiguous block at the end, while additional data may be
- *          available at the start for subsequent reads.
+ *          either at the start or the end of the buffer. 'size' is the
+ *          minimum number of elements wanted. If fewer are available, the
+ *          method returns false; otherwise it returns the whole contiguous
+ *          run, which may be shorter than all the elements in the buffer when
+ *          the data wraps (then a second call returns the part at the start).
  *
  * \param   dest    [out] Reference to a pointer that will point to the start
  *                  of the readable block if found; otherwise, nullptr.
@@ -385,7 +390,7 @@ bool ContiguousRingbuffer<T, N>::ReserveRead(T*& dest, size_t& size) noexcept
             else if (read == wrap) {                            // Data available at the start?
                 if (size <= write) {                            // Requested size available?
                     size = write;
-                    dest = &mElements[0];
+                    dest = mElements.data();
                     return true;
                 }
             }
@@ -561,21 +566,15 @@ bool ContiguousRingbuffer<T, N>::IsLockFree() const noexcept
     return (mWrite.is_lock_free() && mRead.is_lock_free() && mWrapGap.is_lock_free());
 }
 
-#ifdef DEBUG
-// '#warning' is a GCC/Clang extension (standard only since C++23); MSVC uses '#pragma message'.
-#if defined(_MSC_VER)
-#pragma message("DEBUG methods SetState()/CheckState() enabled - careful, there be dragons here.")
-#else
-#warning DEBUG methods SetState()/CheckState() enabled - careful, there be dragons here.
-#endif
-
+#ifdef CONTIGUOUS_RINGBUFFER_TEST_HOOKS
 /**
- * \brief   Debug method to force a state to be set to the write/read/wrap
+ * \brief   Test method to force a state to be set to the write/read/wrap
  *          pointers.
  * \param   write   Value to set mWrite to.
  * \param   read    Value to set mRead to.
  * \param   wrap    Value to set the wrap index to.
- * \remarks There are no checks, so know what you are doing!
+ * \remarks There are no checks, so know what you are doing! Only compiled
+ *          when CONTIGUOUS_RINGBUFFER_TEST_HOOKS is defined; for tests.
  */
 template<typename T, size_t N>
 void ContiguousRingbuffer<T, N>::SetState(size_t write, size_t read, size_t wrap)
@@ -586,7 +585,7 @@ void ContiguousRingbuffer<T, N>::SetState(size_t write, size_t read, size_t wrap
 }
 
 /**
- * \brief   Debug method to check the state of the write/read/wrap pointers.
+ * \brief   Test method to check the state of the write/read/wrap pointers.
  * \param   write   Value to check mWrite against.
  * \param   read    Value to check mRead against.
  * \param   wrap    Value to check the wrap index against.
@@ -603,6 +602,6 @@ bool ContiguousRingbuffer<T, N>::CheckState(size_t write, size_t read, size_t wr
              ( read  == current_read  ) &&
              ( wrap  == current_wrap  ) );
 }
-#endif // DEBUG
+#endif  // CONTIGUOUS_RINGBUFFER_TEST_HOOKS
 
-#endif // CONTIGUOUS_RING_BUFFER_HPP_
+#endif  // CONTIGUOUS_RINGBUFFER_HPP_

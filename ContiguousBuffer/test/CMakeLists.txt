@@ -25,13 +25,8 @@ set(TEST_SOURCES
 add_executable(ContiguousRingbufferTest ${TEST_SOURCES})
 target_link_libraries(ContiguousRingbufferTest PRIVATE ContiguousRingbuffer gtest gtest_main)
 
-# Define DEBUG for single-config generators (CMAKE_BUILD_TYPE)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(ContiguousRingbufferTest PRIVATE DEBUG)
-endif()
-
-# Also define DEBUG for multi-config generators when the Debug config is selected
-target_compile_definitions(ContiguousRingbufferTest PRIVATE $<$<CONFIG:Debug>:DEBUG>)
+# The tests use SetState()/CheckState(): enable them in every configuration
+target_compile_definitions(ContiguousRingbufferTest PRIVATE CONTIGUOUS_RINGBUFFER_TEST_HOOKS)
 
 # Enable testing
 enable_testing()
